@@ -4,7 +4,7 @@ library(tidyverse)
 library(scales)
 library(colormap)
 library(viridis)
-library(gridExtra)
+
 
 ## Read PT 
 coag <- read.csv("data/analysis-ready/blood_clotting_20220425.csv")

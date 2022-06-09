@@ -1,6 +1,8 @@
-# Spatial Data...very big
-data/spatial/
-data/other_states/
+# Ignore data and output for now
+data/
+docs/
+output/
+figs/
 
 # History files
 .Rhistory
