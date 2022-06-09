@@ -1,3 +1,7 @@
+# Spatial Data...very big
+data/spatial/
+data/other_states/
+
 # History files
 .Rhistory
 .Rapp.history
