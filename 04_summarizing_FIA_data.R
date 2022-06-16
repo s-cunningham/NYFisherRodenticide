@@ -23,5 +23,6 @@ plot(ny_grid, add=TRUE)
 
 
 #### FIA data ####
-db  <- getFIA(states='NY', dir=tempdir())
+nydb <- readFIA("data/ny_fia/")
 
+biomass(db=nydb, byPlot=TRUE)
