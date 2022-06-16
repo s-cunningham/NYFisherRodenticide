@@ -137,7 +137,7 @@ ages$Village <- ages$Town
 ages$Town[ages$Town=="Mariaville" | ages$Town=="Delanson"] <- "Duanesburg"
 ages$Town[ages$Town=="Caroga Lake"] <- "Caroga"
 ages$Town[ages$Town=="Schenevus"] <- "Maryland"
-ages$Town[ages$Town=="Pierrpont"] <- "Ellisburg"
+ages$Town[ages$Town=="Pierrpont"] <- "Pierrepont"
 ages$Town[ages$Town=="Taborton" | ages$Town=="Averill Park" | ages$Town=="Averil Park"] <- "Sand Lake"
 ages$Town[ages$Town=="Melrose"] <- "Schaghticoke"
 ages$Town[ages$Town=="Taberg"] <- "Annsville"
@@ -233,6 +233,7 @@ ages$Town[ages$Town=="Lockwood"] <- "Barton"
 ages$Town[ages$Town=="Lusselville"] <- "Ephratah"
 ages$Town[ages$Town=="Wylden"] <- "Ava"
 ages$Town[ages$Town=="West Lydon" | ages$County=="Oneida"] <- "Western"
+ages$Town[ages$Town=="Pittfield"] <- "Pittsfield"
 
 ages$TrapperID[ages$Town=="Monettca"] <- "2666-8000-0482"
 ages$Town[ages$Town=="Monettca"] <- "Arietta"
@@ -302,6 +303,8 @@ ages$longitude[ages$Town=="Lewis"& ages$County=="Lewis"] <- 1633203
 ages$latitude[ages$Town=="Lewis" & ages$County=="Lewis"] <- 2452525
 ages$longitude[ages$Town=="Lewis"& ages$County=="Essex"] <- 1767925
 ages$latitude[ages$Town=="Lewis" & ages$County=="Essex"] <- 2577509
+ages$longitude[ages$Town=="Middletown"& ages$County=="Delaware"] <- 1739612
+ages$latitude[ages$Town=="Middletown" & ages$County=="Delaware"] <- 2325361
 
 # Add column for string length of Regional Sample ID
 ages$strl <- str_length(ages$RegionalSampleID)
@@ -354,7 +357,6 @@ for.ha2 <- fortify(for.ha2)
 for.ha2 <- left_join(for.ha2, rfor, by="id")
 
 
-
 #### 2020 livers ####
 # subset to 2020 and non-missing towns
 ages <- subset(ages, !is.na(longitude) & HarvestYear==2020)
@@ -368,6 +370,14 @@ ages <- left_join(ages, liv20, by="RegionalID")
 
 # Subset to animals with liver samples
 dat <- subset(ages, liver==1 | RegionalID=="2020-6134" | RegionalID=="2020-9481")
+
+# IDK why 4018 is lost, but just adding in manually here
+l4018 <- data.frame(HarvestDate=NA, County="Otsego", Town="Hartwick", WMU="4F", Region="4",
+                    Sex="F", Age="0.5", AgeClass="Juvenile", CC="A", AgeRange=NA, 
+                    Zone="Harvest Expansion Area", TrapperID="2029-8000-0448", RegionalID="2020-4018",
+                    SubmissionYear=as.numeric(2020), HarvestYear="2020", Village=NA, 
+                    longitude=as.numeric(1696505), latitude=as.numeric(2371246), liver=NA)
+dat <- rbind(dat, l4018)
 
 plot(dat$longitude, dat$latitude)
 
@@ -404,6 +414,8 @@ dat %>% group_by(Age) %>% count()
 
 N.order <- order(dat$HarvestDate, decreasing=FALSE)
 dat <- dat[N.order,]
+
+# write.csv(dat, "data/2020_forest_groups.csv")
 
 # Select livers
 livers <- data.frame()
@@ -568,6 +580,8 @@ dat %>% group_by(Age) %>% count()
 
 N.order <- order(dat$HarvestDate, decreasing=FALSE)
 dat <- dat[N.order,]
+
+# write.csv(dat, "data/2019_forest_groups.csv")
 
 # Select livers
 nal <- data.frame()

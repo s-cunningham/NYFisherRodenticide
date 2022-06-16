@@ -16,21 +16,83 @@ ar <- rbind(b1ar, b2ar)
 names(ar)[1] <- "RegionalID"
 
 ## Read sample details 
+# First batch, 2018 samples
 b1det <- read.csv("data/analysis-ready/liver_samples_20201021_batch1.csv")
 b1det <- b1det[,c(3,9,7,8,6,5,12:18)]
 b1det$RegionalID <- paste0("2018-", b1det$RegionalID)
 
+# b1det$RegionalID[!(b1det$RegionalID %in% b1ar$ID)]
+
+# 2nd batch, 2020 samples
 b2det <- read.csv("data/analysis-ready/liver_samples_20211207_batch2.csv")
 b2det <- b2det[,c(2,5,6,7,9,8,11,12,14,15,17:19)]
 
+# 3rd batch, mainly 2019, some 2020 samples
 b3det <- read.csv("data/analysis-ready/liver_samples_20220310_batch3.csv")
 b3det <- b3det[,c(1:4,6,5,7,8,17,18)]
+fg19 <- read.csv("data/2019_forest_groups.csv")
+fg19 <- fg19[,c(2,16:18)]
+fg20 <- read.csv("data/2020_forest_groups.csv")
+fg20 <- fg20[,c(2,17:19)]
+b3det <- b3det %>% left_join(fg19, by="RegionalID") %>% left_join(fg20, by="RegionalID") %>%
+  mutate(PctForest = coalesce(PctForest.x, PctForest.y)) %>%
+  mutate(ForestGroup = coalesce(ForestGroup.x, ForestGroup.y)) %>%
+  mutate(AG = coalesce(AG.x, AG.y)) 
+b3det <- b3det[,-c(11:16)]
 
-dets <- rbind(b1det, b2det)
+dets <- bind_rows(b1det, b2det, b3det)
+dets <- dets[dets$RegionalID!="2018-6108",]
+
+dets$PctForest[dets$RegionalID=="2018-4033"] <- 54.76190 
+dets$ForestGroup[dets$RegionalID=="2018-4033"] <- 2 
+dets$Town[dets$RegionalID=="2018-6086"] <- "Pierrepont"
+dets$Town[dets$RegionalID=="2018-5215"] <- "Moira"
+dets$WMU[dets$RegionalID=="2018-5215"] <- "6C"
+dets$WMU[dets$RegionalID=="2018-5384"] <- "5G"
+dets$WMU[dets$RegionalID=="2019-5142"] <- "5S"
+dets$WMU[dets$RegionalID=="2019-8179"] <- "8T"
+dets$Town[dets$RegionalID=="2020-4064"] <- "Pittsfield"
+dets$Town[dets$RegionalID=="2019-6207"] <- "Sangerfield"
+dets$Town[dets$RegionalID=="2019-6209"] <- "Augusta"
+dets$County[dets$County=="St. Lawrsnce" | dets$County=="St.Lawrence" | 
+              dets$County=="St. Lawrence" | dets$County=="St. Lawrence "] <- "St Lawrence"
+dets$County[dets$County=="oneida"] <- "Oneida"
+dets$County[dets$RegionalID=="2018-9211"] <- "Cattaraugus"
+dets$County[dets$RegionalID=="2018-6016"] <- "Lewis"
+dets$County[dets$RegionalID=="2020-6267"] <- "Oswego"
+dets$County[dets$RegionalID=="2020-6140"] <- "Oneida"
+
+# Update centroid locations based on town AND wmu
+twmu <- st_read("data/spatial", "WMUtown_union_Harv")
+twmu <- st_transform(twmu, "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-96 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs")
+twmu <- st_drop_geometry(twmu)
+names(twmu)[c(1,2,3,5)] <- c("FID", "WMU", "Town", "County")
+twmu <- twmu[!(twmu$Town=="Corning" & twmu$MUNI_TYPE=="city"),]
+twmu <- twmu[!(twmu$Town=="Little Falls" & twmu$MUNI_TYPE=="city"),]
+lymehouns <- twmu[twmu$Town=="Lyme" | twmu$Town=="Hounsfield",]
+twmu <- twmu[twmu$Town!="Lyme" & twmu$Town!="Hounsfield",]
+lymehouns <- lymehouns[(lymehouns$Town=="Lyme" & lymehouns$x_coord==1570473.02421) |
+                         (lymehouns$Town=="Hounsfield" & lymehouns$x_coord==1583912.96229),]
+twmu <- bind_rows(twmu, lymehouns)
+twmu <- twmu[,-c(1,4,6)]
+twmu <- unite(twmu, "key", 1:2, sep="-", remove=FALSE)
+
+dets <- left_join(dets, twmu, by=c("Town", "WMU", "County"))
+write.csv(dets, "data/analysis-ready/ar_locations_only.csv")
+
+# Fix Middletown coordinates
+# dets$longitude[dets$Town=="Middletown"] <- 1739612
+# dets$latitude[dets$Town=="Middletown"] <- 2325361
+
+# dets[is.na(dets$x_coord),]
+
+# Save locations as point file
+dets.sf <- st_as_sf(dets, coords=c("x_coord", "y_coord"), crs="+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-96 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs")
+# st_write(dets.sf, "output/liver_pts.shp")
 
 ## Join data to screening results
 dat <- left_join(dets, ar, by="RegionalID")
-dat <- dat[dat$RegionalID!="2018-9211",]
+dat <- dat[dat$RegionalID!="2018-9211",] # this one seems like it is wrong but don't know which to fix to make it right
 
 dat$HarvestDate <- as.Date(dat$HarvestDate, format="%m/%d/%Y")
 dat$year <- as.numeric(format(dat$HarvestDate, "%Y"))
