@@ -86,8 +86,8 @@ nlcd_class <- c("Open Water", "Developed, Open Space", "Developed, Low Intensity
 levels(nlcd) <- list(data.frame(ID = nlcd_values,
                                 landcov = nlcd_class))
 
-## Extract values from rasters based on buffer using exactextractr
-landcov_fracs4_5 <- exact_extract(nlcd, buff15, function(df) {
+## Extract values from NLCD raster based on buffer using exactextractr
+landcov_fracs4_5 <- exact_extract(nlcd, buff4_5, function(df) {
   df %>%
     mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
     group_by(name, value) %>%
@@ -103,7 +103,7 @@ landcov_fracs15 <- exact_extract(nlcd, buff15, function(df) {
 }, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
 landcov_fracs15$buffsize <- 15
 
-landcov_fracs30 <- exact_extract(nlcd, buff15, function(df) {
+landcov_fracs30 <- exact_extract(nlcd, buff30, function(df) {
   df %>%
     mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
     group_by(name, value) %>%
@@ -118,9 +118,55 @@ landcov_frac <- bind_rows(landcov_fracs4_5, landcov_fracs15, landcov_fracs30)
 keep_cov <- c(41, 42, 43, 81, 82)
 landcov_frac <- landcov_frac[landcov_frac$value %in% keep_cov,]
 
+write.csv(landcov_frac, "data/analysis-ready/nlcd_pct.csv")
+
+## Read in WUI layers to calculate 
+# 100m radius
+wui100 <- rast("data/rasters/WUI100mNY.tif")
+wui100 <- project(wui100, nlcd) # Match projection to nlcd
+
+wui250 <- rast("data/rasters/WUI250mNY.tif")
+wui250 <- project(wui250, nlcd) # Match projection to nlcd
+
+wui500 <- rast("data/rasters/WUI500mNY.tif")
+wui500 <- project(wui500, nlcd) # Match projection to nlcd
+
+# Set up WUI classes and values
+wui_values <- c(0, 1, 2)
+wui_class <- c("not WUI", "intermix WUI", "interface WUI")
+
+# Add class names and numbers to the raster
+levels(wui100) <- list(data.frame(ID = wui_values,
+                                landcov = wui_class))
+
+levels(wui250) <- list(data.frame(ID = wui_values,
+                                  landcov = wui_class))
+
+levels(wui500) <- list(data.frame(ID = wui_values,
+                                  landcov = wui_class))
+
+# Extract WUI
+wui100_fracs4_5 <- exact_extract(wui100, buff4_5, function(df) {
+  df %>%
+    mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
+    group_by(name, value) %>%
+    summarize(freq = sum(frac_total))
+}, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
+wui100_fracs4_5$buffsize <- 4.5
+
+wui100_sum4_5 <- exact_extract(rast, poly, function(values, coverage_fraction)
+  sum(values * coverage_fraction, na.rm=TRUE))
+
+# 250 m radius
 
 
 
+# 500 m radius
+
+
+
+
+## Read in housing layer to calculate density and extract values
 
 
 
