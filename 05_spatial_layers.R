@@ -146,6 +146,8 @@ levels(wui500) <- list(data.frame(ID = wui_values,
                                   landcov = wui_class))
 
 # Extract WUI
+# make raster stack
+
 wui100_fracs4_5 <- exact_extract(wui100, buff4_5, function(df) {
   df %>%
     mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
