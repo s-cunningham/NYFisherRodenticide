@@ -12,7 +12,10 @@ b1ar$ID <- paste0("2018-", b1ar$ID)
 b2ar <- read.csv("data/analysis-ready/screening-results_batch2.csv")
 b2ar <- b2ar[,-1]
 
-ar <- rbind(b1ar, b2ar)
+b3ar <- read.csv("data/analysis-ready/screening-results_batch3.csv")
+b3ar <- b3ar[,c("ID", names(b2ar[2:12]))]
+
+ar <- rbind(b1ar, b2ar, b3ar)
 names(ar)[1] <- "RegionalID"
 
 ## Read sample details 
@@ -78,7 +81,7 @@ twmu <- twmu[,-c(1,4,6)]
 twmu <- unite(twmu, "key", 1:2, sep="-", remove=FALSE)
 
 dets <- left_join(dets, twmu, by=c("Town", "WMU", "County"))
-write.csv(dets, "data/analysis-ready/ar_locations_only.csv")
+# write.csv(dets, "data/analysis-ready/ar_locations_only.csv")
 
 # Fix Middletown coordinates
 # dets$longitude[dets$Town=="Middletown"] <- 1739612
@@ -96,24 +99,24 @@ dat <- dat[dat$RegionalID!="2018-9211",] # this one seems like it is wrong but d
 
 dat$HarvestDate <- as.Date(dat$HarvestDate, format="%m/%d/%Y")
 dat$year <- as.numeric(format(dat$HarvestDate, "%Y"))
-dat$year[is.na(dat$year)] <- c(2018, 2020, 2020, 2020, 2020)
+dat$year[is.na(dat$year)] <- c(2018, 2020, 2020, 2020, 2020, 2020) 
 
-yr <- dat[,c(1,5,25)]
+yr <- dat[,c(1,5,28)]  # update this
 
 # Reformat
-dat[14:24] <- lapply(dat[14:24], function(x) replace(x, x=="ND", NA))
-dat[14:24] <- lapply(dat[14:24], function(x) replace(x, x=="Traces", 0.000001))
+dat[17:27] <- lapply(dat[17:27], function(x) replace(x, x=="ND", NA))
+dat[17:27] <- lapply(dat[17:27], function(x) replace(x, x=="Traces", 0.000001))
 
 # convert to numeric
-dat[,14:24] <- sapply(dat[,14:24], as.numeric)
+dat[,17:27] <- sapply(dat[,17:27], as.numeric)
 
 # Check if there are compounds not detected
-for (i in 14:24) {
+for (i in 17:27) {
   print(sum(is.na(dat[,i])))
 }
 
 # Convert to long format for ggplotting
-datl <- as.data.frame(pivot_longer(dat, cols=14:24, names_to="compound", values_to="ppm"))
+datl <- as.data.frame(pivot_longer(dat, cols=17:27, names_to="compound", values_to="ppm"))
 
 # Remove compounds with no detections
 datl <- datl[datl$compound!="Pindone" & datl$compound!="Coumafuryl" & 
