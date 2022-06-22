@@ -97,13 +97,19 @@ dets.sf <- st_as_sf(dets, coords=c("x_coord", "y_coord"), crs="+proj=aea +lat_1=
 dat <- left_join(dets, ar, by="RegionalID")
 dat <- dat[dat$RegionalID!="2018-9211",] # this one seems like it is wrong but don't know which to fix to make it right
 
+# save as shapefile
+# dat.sf <- st_as_sf(dat, coords=c("x_coord", "y_coord"), crs="+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-96 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs")
+# st_write(dat.sf, "output/liver_pts.shp")
+
+# Reformat date 
 dat$HarvestDate <- as.Date(dat$HarvestDate, format="%m/%d/%Y")
 dat$year <- as.numeric(format(dat$HarvestDate, "%Y"))
 dat$year[is.na(dat$year)] <- c(2018, 2020, 2020, 2020, 2020, 2020) 
 
-yr <- dat[,c(1,5,28)]  # update this
+# look at years
+yr <- dat[,c(1,5,28)]  
 
-# Reformat
+# Reformat screening results
 dat[17:27] <- lapply(dat[17:27], function(x) replace(x, x=="ND", NA))
 dat[17:27] <- lapply(dat[17:27], function(x) replace(x, x=="Traces", 0.000001))
 
