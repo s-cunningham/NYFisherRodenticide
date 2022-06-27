@@ -98,10 +98,10 @@ dat <- left_join(dets, ar, by="RegionalID")
 dat <- dat[dat$RegionalID!="2018-9211",] # this one seems like it is wrong but don't know which to fix to make it right
 
 ### Check what fishers had fur extracted
-fur <- read.csv("data/harvest_hair.csv")
-
-sum(fur$Fisher.ID %in% dat$RegionalID)
-furliv <- dat[dat$RegionalID %in% fur$Fisher.ID,]
+# fur <- read.csv("data/harvest_hair.csv")
+# 
+# sum(fur$Fisher.ID %in% dat$RegionalID)
+# furliv <- dat[dat$RegionalID %in% fur$Fisher.ID,]
 ###
 
 # save as shapefile
@@ -183,7 +183,6 @@ ggplot(datl) +
   scale_fill_gradient(low="#ffffcc", high="#081d58", space="Lab", na.value="gray80", limits=c(0,1)) +
   theme_bw() +
   theme(axis.text.x=element_blank())
-
 
 # Read in state polygon
 nys <- st_read("data/spatial", "NYS_outline_albers")
