@@ -144,6 +144,8 @@ datl$exposure[datl$ppm>=0.001] <- "measured"
 datl$bin.exp <- ifelse(datl$exposure=="ND", 0, 1)
 datl$bin.exp.ntr <- ifelse(datl$exposure=="measured", 1, 0)
 
+# write.csv(datl, "output/summarized_AR_results.csv")
+
 dat2 <- datl %>% group_by(RegionalID) %>% summarize(n.compounds=sum(bin.exp))
 dat2 <- as.data.frame(dat2)
 dat2 <- left_join(dat2, yr, by="RegionalID")
