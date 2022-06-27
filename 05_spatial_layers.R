@@ -137,7 +137,7 @@ wui_class <- c("not WUI", "intermix WUI", "interface WUI")
 
 # Add class names and numbers to the raster
 levels(wui100) <- list(data.frame(ID = wui_values,
-                                landcov = wui_class))
+                                  landcov = wui_class))
 
 levels(wui250) <- list(data.frame(ID = wui_values,
                                   landcov = wui_class))
@@ -152,11 +152,11 @@ levels(wui500) <- list(data.frame(ID = wui_values,
 ## 4.5 km2 buffer
 # Fraction
 wui100_fracs4_5 <- exact_extract(wui100, buff4_5, function(df) {
-  df %>%
-    mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
-    group_by(name, value) %>%
-    summarize(freq = sum(frac_total))
-}, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
+    df %>%
+      mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
+      group_by(name, value) %>%
+      summarize(freq = sum(frac_total))
+  }, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
 wui100_fracs4_5$buffsize <- 4.5
 
 # # sum
