@@ -328,8 +328,8 @@ build_avg$name <- rep(buff4_5$name, 9)
 # write.csv(build_avg, "data/analysis-ready/build_avg.csv")
 
 #### Read in beech layer
-beech <- rast("data/rasters/NY_Fgrandifolia.tif")  # This is the 2000-2009 layer
-# beech <- rast("data/rasters/baa_predict.tif") # Predicted layer from random forest
+# beech <- rast("data/rasters/NY_Fgrandifolia.tif")  # This is the 2000-2009 layer
+beech <- rast("data/rasters/baa_predict.tif") # Predicted layer from random forest
 
 # Calculate mean beech basal area per acre in buffers
 baa_4_5 <- exact_extract(beech, buff4_5, 'mean')
@@ -346,7 +346,7 @@ baa_30$buffsize <- 30
 
 baa <- rbind(baa_4_5, baa_15, baa_30)
 baa$name <- rep(buff4_5$name, 3)
-# write.csv(baa, "data/analysis-ready/baa2009_avg.csv")
+write.csv(baa, "data/analysis-ready/baa-predicted_avg.csv")
 
 
 
