@@ -6,10 +6,10 @@ library(sf)
 library(tidyverse)
 library(ranger)
 library(terra)
-library(recipes)
+
+set.seed(123)
 
 #### FIA data ####
-
 # Import from csv files
 nydb <- readFIA("data/ny_fia/", inMemory=FALSE)
 
@@ -206,7 +206,7 @@ rf_rast <- predictions(predict(baa_rf, vars))
 pts_sf <- pts_sf[vars$ID,]
 pts_sf$BAA_pred <- rf_rast
 
-# st_write(pts_sf, "output/beech_baa_pred.shp")
+st_write(pts_sf, "output/beech_baa_pred.shp")
 
 
 
