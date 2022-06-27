@@ -149,10 +149,12 @@ datl$bin.exp.ntr <- ifelse(datl$exposure=="measured", 1, 0)
 dat2 <- datl %>% group_by(RegionalID) %>% summarize(n.compounds=sum(bin.exp))
 dat2 <- as.data.frame(dat2)
 dat2 <- left_join(dat2, yr, by="RegionalID")
+# write.csv(dat2, "output/ncompounds_trace.csv")
 
 dat3 <- datl %>% group_by(RegionalID) %>% summarize(n.compounds=sum(bin.exp.ntr))
 dat3 <- as.data.frame(dat3)
 dat3 <- left_join(dat3, yr, by="RegionalID")
+# write.csv(dat3, "output/ncompounds_notrace.csv")
 
 dat2s <- dat2 %>% group_by(n.compounds, year) %>% count()
 dat2s$Trace <- "yes"
