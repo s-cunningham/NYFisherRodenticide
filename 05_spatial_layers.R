@@ -48,12 +48,18 @@ ids <- unite(ids, "id_index", 1:2, sep="_", remove=TRUE)
 
 samples$name <- ids$id_index
 
+# save points as data frame
+samples_df <- sfheaders::sf_to_df(samples)
+samples_df$pt_name <- ids$id_index
+samples_df <- samples_df[,c(5,3,4)]
+write_csv(samples_df, "output/random_point_locs.csv")
+
 # Create buffer for 15km2 area
 buff4_5 <- st_buffer(samples, 1196.83)
 buff15 <- st_buffer(samples, 2185.1)
 buff30 <- st_buffer(samples, 3090.19)
 
-# Plot and example to see what 
+# Plot and example to see what random points look like
 ggplot() + 
   geom_sf(data=twmu) +
   geom_sf(data=samples, shape=20, color="blue", size=3) +
