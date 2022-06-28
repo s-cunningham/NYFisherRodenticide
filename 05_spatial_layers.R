@@ -124,7 +124,7 @@ levels(nlcd) <- list(data.frame(ID = nlcd_values,
 # keep_cov <- c(41, 42, 43, 81, 82)
 # landcov_frac <- landcov_frac[landcov_frac$value %in% keep_cov,]
 
-# write.csv(landcov_frac, "data/analysis-ready/nlcd_pct.csv")
+# write_csv(landcov_frac, "data/analysis-ready/nlcd_pct.csv")
 
 ## Read in WUI layers to calculate 
 # 100m radius
@@ -197,7 +197,7 @@ wui100_fracs30$buffsize <- 30
 # wui100_sum30$buffsize <- 30
 
 wui100_fracs <- rbind(wui100_fracs4_5, wui100_fracs15, wui100_fracs30)
-# write.csv(wui100_fracs, "data/analysis-ready/wui100_frac.csv")
+# write_csv(wui100_fracs, "data/analysis-ready/wui100_frac.csv")
 
 
 ### 250 m radius
@@ -238,7 +238,7 @@ wui250_fracs30$buffsize <- 30
 #   sum(values * coverage_fraction, na.rm=TRUE))
 
 wui250_fracs <- rbind(wui250_fracs4_5, wui250_fracs15, wui250_fracs30)
-# write.csv(wui250_fracs, "data/analysis-ready/wui250_frac.csv")
+# write_csv(wui250_fracs, "data/analysis-ready/wui250_frac.csv")
 
 ## 500 m radius
 wui500_fracs4_5 <- exact_extract(wui500, buff4_5, function(df) {
@@ -275,7 +275,7 @@ wui500_fracs30$buffsize <- 30
 #   sum(values * coverage_fraction, na.rm=TRUE))
 
 wui500_fracs <- rbind(wui500_fracs4_5, wui500_fracs15, wui500_fracs30)
-# write.csv(wui500_fracs, "data/analysis-ready/wui500_frac.csv")
+# write_csv(wui500_fracs, "data/analysis-ready/wui500_frac.csv")
 
 
 #### Read in housing layer to calculate density and extract values
@@ -331,7 +331,7 @@ build500_avg$radius <- 500
 
 build_avg <- rbind(build100_avg, build250_avg, build500_avg)
 build_avg$name <- rep(buff4_5$name, 9)
-# write.csv(build_avg, "data/analysis-ready/build_avg.csv")
+# write_csv(build_avg, "data/analysis-ready/build_avg.csv")
 
 #### Read in beech layer
 # beech <- rast("data/rasters/NY_Fgrandifolia.tif")  # This is the 2000-2009 layer
@@ -352,7 +352,7 @@ baa_30$buffsize <- 30
 
 baa <- rbind(baa_4_5, baa_15, baa_30)
 baa$name <- rep(buff4_5$name, 3)
-write.csv(baa, "data/analysis-ready/baa-predicted_avg.csv")
+write_csv(baa, "data/analysis-ready/baa-predicted_avg.csv")
 
 
 
