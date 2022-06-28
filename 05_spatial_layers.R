@@ -165,11 +165,6 @@ wui100_fracs4_5 <- exact_extract(wui100, buff4_5, function(df) {
   }, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
 wui100_fracs4_5$buffsize <- 4.5
 
-# # sum
-# wui100_sum4_5 <- exact_extract(wui100, buff4_5, function(values, coverage_fraction)
-#   sum(values * coverage_fraction, na.rm=TRUE))
-# wui100_sum4_5$buffsize <- 4.5
-
 ## 15 km2 buffer
 wui100_fracs15 <- exact_extract(wui100, buff15, function(df) {
   df %>%
@@ -179,10 +174,6 @@ wui100_fracs15 <- exact_extract(wui100, buff15, function(df) {
 }, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
 wui100_fracs15$buffsize <- 15
 
-# wui100_sum15 <- exact_extract(wui100, buff15, function(values, coverage_fraction)
-#   sum(values * coverage_fraction, na.rm=TRUE))
-# wui100_sum15$buffsize <- 15
-
 ## 30 km2 buffer
 wui100_fracs30 <- exact_extract(wui100, buff30, function(df) {
   df %>%
@@ -191,10 +182,6 @@ wui100_fracs30 <- exact_extract(wui100, buff30, function(df) {
     summarize(freq = sum(frac_total))
 }, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
 wui100_fracs30$buffsize <- 30
-
-# wui100_sum30 <- exact_extract(wui100, buff30, function(values, coverage_fraction)
-#   sum(values * coverage_fraction, na.rm=TRUE))
-# wui100_sum30$buffsize <- 30
 
 wui100_fracs <- rbind(wui100_fracs4_5, wui100_fracs15, wui100_fracs30)
 # write_csv(wui100_fracs, "data/analysis-ready/wui100_frac.csv")
@@ -210,9 +197,6 @@ wui250_fracs4_5 <- exact_extract(wui250, buff4_5, function(df) {
 }, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
 wui250_fracs4_5$buffsize <- 4.5
 
-# wui250_sum4_5 <- exact_extract(wui250, buff4_5, function(values, coverage_fraction)
-#   sum(values * coverage_fraction, na.rm=TRUE))
-
 ## 15 km2 buffer
 wui250_fracs15 <- exact_extract(wui250, buff15, function(df) {
   df %>%
@@ -222,9 +206,6 @@ wui250_fracs15 <- exact_extract(wui250, buff15, function(df) {
 }, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
 wui250_fracs15$buffsize <- 15
 
-# wui250_sum15 <- exact_extract(wui250, buff15, function(values, coverage_fraction)
-#   sum(values * coverage_fraction, na.rm=TRUE))
-
 ## 30 km2 buffer
 wui250_fracs30 <- exact_extract(wui250, buff30, function(df) {
   df %>%
@@ -233,9 +214,6 @@ wui250_fracs30 <- exact_extract(wui250, buff30, function(df) {
     summarize(freq = sum(frac_total))
 }, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
 wui250_fracs30$buffsize <- 30
-
-# wui250_sum15 <- exact_extract(wui250, buff15, function(values, coverage_fraction)
-#   sum(values * coverage_fraction, na.rm=TRUE))
 
 wui250_fracs <- rbind(wui250_fracs4_5, wui250_fracs15, wui250_fracs30)
 # write_csv(wui250_fracs, "data/analysis-ready/wui250_frac.csv")
@@ -249,9 +227,6 @@ wui500_fracs4_5 <- exact_extract(wui500, buff4_5, function(df) {
 }, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
 wui500_fracs4_5$buffsize <- 4.5
 
-# wui500_sum4_5 <- exact_extract(wui500, buff4_5, function(values, coverage_fraction)
-#   sum(values * coverage_fraction, na.rm=TRUE))
-
 wui500_fracs15 <- exact_extract(wui500, buff15, function(df) {
   df %>%
     mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
@@ -260,9 +235,6 @@ wui500_fracs15 <- exact_extract(wui500, buff15, function(df) {
 }, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
 wui500_fracs15$buffsize <- 15
 
-# wui500_sum15 <- exact_extract(wui500, buff15, function(values, coverage_fraction)
-#   sum(values * coverage_fraction, na.rm=TRUE))
-
 wui500_fracs30 <- exact_extract(wui500, buff30, function(df) {
   df %>%
     mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
@@ -270,9 +242,6 @@ wui500_fracs30 <- exact_extract(wui500, buff30, function(df) {
     summarize(freq = sum(frac_total))
 }, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
 wui500_fracs30$buffsize <- 30
-
-# wui500_sum30 <- exact_extract(wui500, buff30, function(values, coverage_fraction)
-#   sum(values * coverage_fraction, na.rm=TRUE))
 
 wui500_fracs <- rbind(wui500_fracs4_5, wui500_fracs15, wui500_fracs30)
 # write_csv(wui500_fracs, "data/analysis-ready/wui500_frac.csv")
