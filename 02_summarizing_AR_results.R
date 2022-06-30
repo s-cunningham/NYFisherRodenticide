@@ -216,9 +216,13 @@ fha2 <- fortify(fha, region="Name")
 
 names(wmu.cl)[1] <- "WMU"
 
-# Add town coordinates
-dat <- left_join()
+datsf <- st_as_sf(dat, coords=c("x_coord", "y_coord"), crs="+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-96 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs")
+datsf <- st_transform(datsf, "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=23 +lon_0=-96 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs")
 
 ggplot() + 
   geom_sf(data=nys, fill="gray40") +
-  geom_point(data=dat, aes(x=longitude, y=latitude)) +facet_grid(.~year)
+  geom_sf(data=datsf, aes(color=factor(year)), size=2) +
+  guides(color=guide_legend(title="Year"))
+
+
+             
