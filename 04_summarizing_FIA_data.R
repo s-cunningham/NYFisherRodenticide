@@ -25,7 +25,7 @@ baa <- tpa(db=nydb, byPlot=TRUE, returnSpatial=TRUE, bySpecies=TRUE)
 
 baa <- baa[(baa$YEAR==2017 | baa$YEAR==2018 | baa$YEAR==2019 | baa$YEAR==2020) & 
              (baa$SCIENTIFIC_NAME=="Fagus grandifolia") &
-             (baa$PROP_FOREST>=0.75),]
+             (baa$PROP_FOREST==1),]
 
 plot(st_geometry(baa))
 
@@ -37,13 +37,16 @@ baaSV <- vect(baa)
 
 #### Land cover data and covariates ####
 
+## Beech layer (2000-2009)
+beech <- rast("data/rasters/NY_Fgrandifolia.tif")
+
 ## LANDFIRE layers
 slp <- rast("data/rasters/LANDFIRE/LF20_SlpD220.tif")
 asp <- rast("data/rasters/LANDFIRE/Asp22_NY.tif")
 elev <- rast("data/rasters/LANDFIRE/LF20_Elev220_NY.tif")
-evc <- rast("data/rasters/LANDFIRE/EVC_resample.tif")
-evh <- rast("data/rasters/LANDFIRE/EVH_resample.tif")
-evt <- rast("data/rasters/LANDFIRE/EVT_resample.tif")
+evc <- rast("data/rasters/LANDFIRE/EVC_resamp2.tif")
+evh <- rast("data/rasters/LANDFIRE/EVH_resamp2.tif")
+evt <- rast("data/rasters/LANDFIRE/EVT_resamp2.tif")
 
 # Rename the veg layers so they're not confusing
 names(evc) <- "EVC_CLASS"
@@ -76,10 +79,18 @@ names(relh) <- "rel_humidity"
 vpd <- (vpdmax + vpdmin)/2
 names(vpd) <- "vapor_press_deficit"
 
-## Resample LANDFIRE to PRISM
-slp <- resample(slp, tmin, method='bilinear', filename="data/rasters/LANDFIRE/slp_resamp.tif", overwrite=TRUE)
-elev <- resample(elev, tmin, method='bilinear', filename="data/rasters/LANDFIRE/elev_resamp.tif", overwrite=TRUE)
-asp <- resample(asp, tmin, method='bilinear', filename="data/rasters/LANDFIRE/asp_resamp.tif", overwrite=TRUE)
+## Resample LANDFIRE to beech
+slp <- resample(slp, beech, method='bilinear')
+elev <- resample(elev, beech, method='bilinear')
+asp <- resample(asp, beech, method='bilinear')
+
+## Resample PRISM to beech
+tmin <- resample(tmin, beech, method='bilinear')
+tmax <- resample(tmax, beech, method='bilinear')
+relh <- resample(relh, beech, method='bilinear')
+ppt <- resample(ppt, beech, method='bilinear')
+sol <- resample(sol, beech, method='bilinear')
+vpd <- resample(vpd, beech, method='bilinear')
 
 ## Mask landfire veg 
 ext(evc) <- ext(slp)
@@ -94,8 +105,8 @@ evt <- mask(evt, slp)
 # Reproject FIA points
 baaSV <- project(baaSV, crs(slp))
 
-# Create raster stacks...different extent for landfire veg variables (clipped but not masked)
-stack <- c(slp, elev, asp, tmin, tmax, ppt, sol, relh, vpd, evc, evh, evt)
+# Create raster stacks
+stack <- c(slp, elev, asp, tmin, tmax, ppt, relh, sol, vpd, evc, evh, evt) 
 
 # Extract from raster stacks
 extr_vals <- extract(stack, baaSV)
@@ -154,7 +165,7 @@ k_fold_cv <- function(data, k, ...) {
 
 # Create tuning grid
 tuning_grid <- expand.grid(
-  mtry=floor(ncol(training) * c(0.3, 0.6, 0.9)),
+  mtry=floor(ncol(training) * c(0.3,  0.6, 0.9)),
   min.node.size=c(1,3,5),
   replace=c(TRUE, FALSE),
   sample.fraction = c(0.5, 0.63, 0.8),
@@ -178,7 +189,7 @@ head(tuning_grid[order(tuning_grid$rmse), ])
 
 # Build random forest model with tuned parameters
 baa_rf <- ranger(BAA ~ ., data=training, num.trees=1300, mtry=3, min.node.size = 3, 
-                 replace=FALSE, sample.fraction=0.5)
+                 replace=TRUE, sample.fraction=0.5)
 
 # Predict on trainin data
 rf_pred <- predictions(predict(baa_rf, testing))
@@ -189,7 +200,7 @@ sqrt(mean((rf_pred - testing$BAA)^2))
 #### Create raster of BAA predictions ####
 
 # Read in raster point centers and convert to SpatVector
-pts <- st_read("data/rasters/PRISM_normals/ppt_pts.shp")
+pts <- st_read("data/rasters/Fgrandi_pts.shp")
 pts <- vect(pts)
 pts <- project(pts, crs(slp))
 pts_sf <- st_as_sf(pts)
@@ -206,7 +217,11 @@ rf_rast <- predictions(predict(baa_rf, vars))
 pts_sf <- pts_sf[vars$ID,]
 pts_sf$BAA_pred <- rf_rast
 
-st_write(pts_sf, "output/beech_baa_pred.shp")
+# Write point dataset
+st_write(pts_sf, "output/beech_baa_pred_250.shp")
+
+
+
 
 
 
