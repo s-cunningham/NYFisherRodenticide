@@ -64,6 +64,8 @@ dets$County[dets$RegionalID=="2018-9211"] <- "Cattaraugus"
 dets$County[dets$RegionalID=="2018-6016"] <- "Lewis"
 dets$County[dets$RegionalID=="2020-6267"] <- "Oswego"
 dets$County[dets$RegionalID=="2020-6140"] <- "Oneida"
+dets$WMU[dets$RegionalID=="2018-5318"] <- "6J"
+dets$Region[dets$RegionalID=="2018-5318"] <- 6
 
 # Update centroid locations based on town AND wmu
 twmu <- st_read("data/spatial", "WMUtown_union_Harv")
@@ -81,17 +83,11 @@ twmu <- twmu[,-c(1,4,6)]
 twmu <- unite(twmu, "key", 1:2, sep="-", remove=FALSE)
 
 dets <- left_join(dets, twmu, by=c("Town", "WMU", "County"))
-# write.csv(dets, "data/analysis-ready/ar_locations_only.csv")
-
-# Fix Middletown coordinates
-# dets$longitude[dets$Town=="Middletown"] <- 1739612
-# dets$latitude[dets$Town=="Middletown"] <- 2325361
-
-# dets[is.na(dets$x_coord),]
+write.csv(dets, "data/analysis-ready/ar_locations_only.csv")
 
 # Save locations as point file
 dets.sf <- st_as_sf(dets, coords=c("x_coord", "y_coord"), crs="+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-96 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs")
-# st_write(dets.sf, "output/liver_pts.shp")
+st_write(dets.sf, "output/liver_pts.shp")
 
 ## Join data to screening results
 dat <- left_join(dets, ar, by="RegionalID")
