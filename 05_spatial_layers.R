@@ -26,7 +26,7 @@ aea <- "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-96 +x_0=0 +y_0=0 +
 # st_write(twmu, "output/AR_towns.shp", layer_options="SHPT=POLYGON")
 
 ## Read edited polygon layer back in
-twmu <- st_read("data/spatial", "ARland")
+twmu <- st_read("data/spatial", "ARerase")
 st_crs(twmu)
 # Make sure projection is what it's supposed to be, and as a proj4 string
 twmu <- st_transform(twmu, aea)
@@ -58,7 +58,8 @@ buff60 <- st_buffer(samples, 4370.194)
 ggplot() + 
   geom_sf(data=twmu) +
   geom_sf(data=samples, shape=20, color="blue", size=3) +
-  # geom_sf(data=buff60, fill=NA, color="blue") +
+  geom_sf(data=buff4p5, fill=NA, color="blue") +
+  geom_sf(data=buff60, fill=NA, color="green") +
   coord_sf(xlim=c(1583308.486, 1625741.123), ylim=c(861590.893, 888677.666)) +
   theme_bw()
 
