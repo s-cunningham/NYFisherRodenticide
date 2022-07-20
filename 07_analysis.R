@@ -1,10 +1,6 @@
 library(tidyverse)
 library(brms)
 
-# library(lme4)
-# library(broom.mixed)
-# library(MuMIn)
-
 set.seed(123)
 
 #### Read in data ####
@@ -18,12 +14,15 @@ dat$binary.T <- ifelse(dat$n.compounds.T==0, 0, 1)
 dat$binary.MO <- ifelse(dat$n.compounds.MO==0, 0, 1)
 
 ## Scale and center variables
-dat[,18:23] <- scale(dat[,18:23])
+dat[,c(9,18:23)] <- scale(dat[,c(9,18:23)])
 dat$fBMI <- factor(dat$year, levels=c(2019, 2018, 2020), labels=c("failure", "intermediate", "high"))
 
 cor(dat[,18:23])
 
-## Subset data by buffers and radii
+#### Subset data by buffers and radii ####
+
+dat_r100_b4p5 <- dat[dat$buffsize==4.5 & dat$radius==100 & dat$pt_index==1,]
+cor(dat_r100_b4p5[,18:23])
 dat_r100_b15 <- dat[dat$buffsize==15 & dat$radius==100 & dat$pt_index==1,]
 cor(dat_r100_b15[,18:23])
 dat_r100_b30 <- dat[dat$buffsize==30 & dat$radius==100 & dat$pt_index==1,]
@@ -31,6 +30,8 @@ cor(dat_r100_b30[,18:23])
 dat_r100_b60 <- dat[dat$buffsize==60 & dat$radius==100 & dat$pt_index==1,]
 cor(dat_r100_b60[,18:23])
 
+dat_r250_b4p5 <- dat[dat$buffsize==4.5 & dat$radius==250 & dat$pt_index==1,]
+cor(dat_r250_b4p5[,18:23])
 dat_r250_b15 <- dat[dat$buffsize==15 & dat$radius==250 & dat$pt_index==1,]
 cor(dat_r250_b15[,18:23])
 dat_r250_b30 <- dat[dat$buffsize==30 & dat$radius==250 & dat$pt_index==1,]
@@ -38,6 +39,8 @@ cor(dat_r250_b30[,18:23])
 dat_r250_b60 <- dat[dat$buffsize==60 & dat$radius==250 & dat$pt_index==1,]
 cor(dat_r250_b60[,18:23])
 
+dat_r500_b4p5 <- dat[dat$buffsize==4.5 & dat$radius==500 & dat$pt_index==1,]
+cor(dat_r500_b4p5[,18:23])
 dat_r500_b15 <- dat[dat$buffsize==15 & dat$radius==500 & dat$pt_index==1,]
 cor(dat_r500_b15[,18:23])
 dat_r500_b30 <- dat[dat$buffsize==30 & dat$radius==500 & dat$pt_index==1,]
@@ -45,13 +48,21 @@ cor(dat_r500_b30[,18:23])
 dat_r500_b60 <- dat[dat$buffsize==60 & dat$radius==500 & dat$pt_index==1,]
 cor(dat_r500_b60[,18:23])
 
+#### Test covariates individually ####
+
+
+
+
+
+
+
 
 ## Run models
 
-m1_r100_b15 <- brm(binary.T ~ pct_ag + intermix + (1|WMUA_code), family=bernoulli(link = "logit"), data=dat_r100_b15, chains=3, iter=50000, backend="cmdstanr", cores=3)
+m1_r100_b4p5 <- brm(binary.T ~ baa*fBMI + Sex*Age + (1|WMUA_code), family=bernoulli(link = "logit"), data=dat_r100_b15, chains=3, iter=50000, backend="cmdstanr", cores=3)
 m1_r100_b30 <- brm(binary.T ~ pct_ag + intermix + (1|Region), family=bernoulli(link = "logit"), data=dat_r100_b30, chains=3, iter=50000, backend="cmdstanr", cores=3)
 
-summary(m1_r100_b15)
+summary(m1_r100_b4p5)
 summary(m1_r100_b30)
 
 m1_r100_b15 <- add_criterion(m1_r100_b15, c("loo", "waic"))
