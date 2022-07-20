@@ -76,10 +76,10 @@ dat <- dat[,-c(3)]
 dat$pt_index <- as.numeric(dat$pt_index)
 
 # Add columns for buffer and radius
+dat <- bind_rows(dat, dat, dat, dat)
+dat$buffsize <- rep(c(4.5,15,30,60), each=3370) # buffer sizes
 dat <- bind_rows(dat, dat, dat)
-dat$buffsize <- rep(c(15,30,60), each=3370) # buffer sizes
-dat <- bind_rows(dat, dat, dat)
-dat$radius <- rep(c(100,250,500), each=10110) # WUI radius sizes
+dat$radius <- rep(c(100,250,500), each=13480) # WUI radius sizes
 
 # join covariate data
 dat <- left_join(dat, c_ag, by=c("pt_name", "buffsize"))
