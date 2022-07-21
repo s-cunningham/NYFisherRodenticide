@@ -102,7 +102,7 @@ dat <- dat %>% mutate(pct_ag = coalesce(pct_ag, 0),
 dat <- left_join(dat, wmua, by="WMU")
 
 ### Save data to file ####
-write_csv(dat, "data/analysis-ready/combined_AR_covars.csv")
+# write_csv(dat, "data/analysis-ready/combined_AR_covars.csv")
 
 
 #### Semivariogram ####
@@ -114,4 +114,19 @@ plot(vario)
 
 # create correlologram
 
+#### Plot covariate values ####
+dat100 <- dat[dat$radius==100,]
+dat250 <- dat[dat$radius==250,]
+dat500 <- dat[dat$radius==500,]
 
+ggplot(dat100, aes(x=factor(buffsize), y=baa, fill=factor(Region))) + geom_boxplot() + theme_bw() 
+
+
+ggplot(dat100, aes(x=factor(buffsize), y=pct_ag, fill=factor(Region))) + geom_boxplot() + theme_bw()
+ggplot(dat100, aes(x=factor(buffsize), y=intermix, fill=factor(Region))) + geom_boxplot() + theme_bw()
+ggplot(dat100, aes(x=factor(buffsize), y=interface, fill=factor(Region))) + geom_boxplot() + theme_bw()
+
+ggplot(dat100, aes(x=factor(buffsize), y=totalWUI)) + geom_boxplot() + theme_bw()
+ggplot(dat250, aes(x=factor(buffsize), y=totalWUI)) + geom_boxplot() + theme_bw()
+ggplot(dat500, aes(x=factor(buffsize), y=totalWUI, fill=factor(Region))) + 
+  geom_boxplot() +  theme_bw()
