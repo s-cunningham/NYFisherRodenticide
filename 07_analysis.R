@@ -50,7 +50,7 @@ cor(dat_r500_b60[,18:23])
 
 ## Run test model
 
-pctAG15 <- brm(binary.T ~ pct_ag + (1|WMUA_code), family=bernoulli(link = "logit"), 
+pctAG15 <- brm(binary.T ~ pct_ag + (Region|WMUA_code), family=bernoulli(link = "logit"), 
                data=dat_r100_b15, chains=3, iter=50000, backend="cmdstanr", cores=3)
 
 # Look at priors
@@ -62,8 +62,8 @@ new_priors <- c(prior_string("normal(0,10)", class="b"),
                 prior_string("normal(0,10)", class="Intercept"))
 
 
-pctAG15 <- brm(binary.T ~ pct_ag + (1|Region), family=bernoulli(link = "logit"), 
-               data=dat_r100_b15, chains=3, iter=50000, backend="cmdstanr", cores=3,
+pctAG15 <- brm(binary.T ~ pct_ag + baa*laggedBMI + Sex*Age + (Region|WMUA_code), family=bernoulli(link = "logit"), 
+               data=dat_r100_b15, chains=4, iter=5000, backend="cmdstanr", cores=3,
                prior=new_priors)
 
 
