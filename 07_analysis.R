@@ -7,7 +7,7 @@ set.seed(123)
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv")
 dat <- as.data.frame(dat)
 
-#### Analysis ####
+#### Analysis Set-up ####
 
 ## set up binary variable
 dat$binary.T <- ifelse(dat$n.compounds.T==0, 0, 1)
@@ -16,8 +16,6 @@ dat$binary.MO <- ifelse(dat$n.compounds.MO==0, 0, 1)
 ## Scale and center variables
 dat[,c(9,18:23)] <- scale(dat[,c(9,18:23)])
 dat$fBMI <- factor(dat$year, levels=c(2019, 2018, 2020), labels=c("failure", "intermediate", "high"))
-
-cor(dat[,18:23])
 
 #### Subset data by buffers and radii ####
 
@@ -50,8 +48,23 @@ cor(dat_r500_b60[,18:23])
 
 #### Test covariates individually ####
 
+## Run test model
+
+pctAG15 <- brm(binary.T ~ pct_ag + (1|WMUA_code), family=bernoulli(link = "logit"), 
+               data=dat_r100_b15, chains=3, iter=50000, backend="cmdstanr", cores=3)
+
+# Look at priors
+prior_summary(pctAG15)
+
+# Try different priors
+
+new_priors <- c(prior_string("normal(0,10)", class="b"),
+                prior_string("normal(0,10)", class="Intercept"))
 
 
+pctAG15 <- brm(binary.T ~ pct_ag + (1|Region), family=bernoulli(link = "logit"), 
+               data=dat_r100_b15, chains=3, iter=50000, backend="cmdstanr", cores=3,
+               prior=new_priors)
 
 
 
