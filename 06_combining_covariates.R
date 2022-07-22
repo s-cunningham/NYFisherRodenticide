@@ -39,13 +39,13 @@ pts <- pts[,c(2,1,4,5)]
 names(pts)[3:4] <- c("rand_x", "rand_y")
 
 ## Subset ag and add together
-ag <- ag[ag$value==81 | ag$value==82, -1]
+ag <- ag[ag$value==81 | ag$value==82, ]
 c_ag <- ag %>% group_by(name, buffsize) %>% summarise(pct_ag=sum(freq))
 names(c_ag)[1] <- "pt_name"
 
 ## reorganize beech
-baa <- baa[,-1]
 names(baa)[1] <- "pt_name"
+baa$baa[is.na(baa$baa)] <- 0
 
 ## reorganize WUI
 wui100$radius <- 100
@@ -102,7 +102,7 @@ dat <- dat %>% mutate(pct_ag = coalesce(pct_ag, 0),
 dat <- left_join(dat, wmua, by="WMU")
 
 ### Save data to file ####
-# write_csv(dat, "data/analysis-ready/combined_AR_covars.csv")
+write_csv(dat, "data/analysis-ready/combined_AR_covars.csv")
 
 
 #### Semivariogram ####
