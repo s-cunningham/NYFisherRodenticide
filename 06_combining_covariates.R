@@ -112,7 +112,26 @@ sp::coordinates(dat1) <- ~x_coord+y_coord
 vario <- gstat::variogram(n.compounds.MO~1, data=dat1)
 plot(vario)
 
-# create correlologram
+## Moran's I
+midat <- dat[dat$pt_index==1,c(1,4:10,14:15)]
+midat$binary.T <- ifelse(midat$n.compounds.T==0, 0, 1)
+midat$binary.MO <- ifelse(midat$n.compounds.MO==0, 0, 1)
+midat <- distinct(midat)
+
+# Create distance matrix
+ar.dists <- as.matrix(dist(cbind(midat$rand_x, midat$rand_y)))
+
+# create inverse distance matrix
+ar.dists.inv <- 1/ar.dists
+diag(ar.dists.inv) <- 0
+ar.dists.inv[1:5, 1:5]
+
+# Moran's I
+ape::Moran.I(midat$n.compounds.T, ar.dists.inv)
+
+# Binary distance matrix, where d=50 km
+ar.dists.bin <- (ar.dists >0 & ar.dists <= 50000)
+ape::Moran.I(midat$n.compounds.T, ar.dists.bin)
 
 #### Plot covariate values ####
 dat100 <- dat[dat$radius==100,]
