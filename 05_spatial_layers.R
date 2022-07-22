@@ -129,7 +129,7 @@ landcov_frac <- bind_rows(landcov_fracs4p5, landcov_fracs15, landcov_fracs30, la
 keep_cov <- c(41, 42, 43, 81, 82)
 landcov_frac <- landcov_frac[landcov_frac$value %in% keep_cov,]
 
-write.csv(landcov_frac, "data/analysis-ready/nlcd_pct.csv")
+write_csv(landcov_frac, "data/analysis-ready/nlcd_pct.csv")
 
 #### Read in WUI layers to calculate ####
 # 100m radius
@@ -197,7 +197,7 @@ wui100_fracs60 <- exact_extract(wui100, buff60, function(df) {
 wui100_fracs60$buffsize <- 60
 
 wui100_fracs <- rbind(wui100_fracs4p5, wui100_fracs15, wui100_fracs30, wui100_fracs60)
-write.csv(wui100_fracs, "data/analysis-ready/wui100_frac.csv")
+write_csv(wui100_fracs, "data/analysis-ready/wui100_frac.csv")
 
 
 ### 250 m radius
@@ -240,7 +240,7 @@ wui250_fracs60$buffsize <- 60
 
 # Save as .csv
 wui250_fracs <- rbind(wui250_fracs4p5, wui250_fracs15, wui250_fracs30, wui250_fracs60)
-write.csv(wui250_fracs, "data/analysis-ready/wui250_frac.csv")
+write_csv(wui250_fracs, "data/analysis-ready/wui250_frac.csv")
 
 ## 500 m radius
 
@@ -282,7 +282,7 @@ wui500_fracs60$buffsize <- 60
 
 # Save to csv
 wui500_fracs <- rbind(wui500_fracs4p5, wui500_fracs15, wui500_fracs30, wui500_fracs60)
-write.csv(wui500_fracs, "data/analysis-ready/wui500_frac.csv")
+write_csv(wui500_fracs, "data/analysis-ready/wui500_frac.csv")
 
 #### Read in housing layer to calculate density and extract values ####
 # build100 <- rast("data/rasters/BuildCount100m.tif")
@@ -337,7 +337,7 @@ write.csv(wui500_fracs, "data/analysis-ready/wui500_frac.csv")
 # 
 # build_avg <- rbind(build100_avg, build250_avg, build500_avg)
 # build_avg$name <- rep(buff60$name, 9)
-# write.csv(build_avg, "data/analysis-ready/build_avg.csv")
+# write_csv(build_avg, "data/analysis-ready/build_avg.csv")
 
 #### Read in predicted beech layer ####
 
@@ -357,6 +357,6 @@ beech_mean60 <- exact_extract(beech, buff60, 'mean')
 beech_mean60 <- data.frame(name=buff60$name, baa=beech_mean60, buffsize=60)
 
 beech_mean <- bind_rows(beech_mean4p5, beech_mean15, beech_mean30, beech_mean60)
-write.csv(beech_mean, "data/analysis-ready/baa_mean.csv")
+write_csv(beech_mean, "data/analysis-ready/baa_mean.csv")
 
 
