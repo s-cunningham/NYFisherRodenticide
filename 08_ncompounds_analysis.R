@@ -1,7 +1,4 @@
 library(tidyverse)
-# library(brms)
-# library(lme4)
-# library(broom.mixed)
 library(MuMIn)
 library(ordinal)
 
@@ -201,7 +198,7 @@ for (i in 1:10) {
 }
 
 # Save dredge tables
-save(file="output/dredge_tables_ncompT.Rdata", list="pt_spec")
+# save(file="output/dredge_tables_ncompT.Rdata", list="pt_spec")
 
 #### Do this whole thing again but for measured only ####
 
@@ -349,7 +346,7 @@ dat1 <- left_join(dat1, wui1, by=c("RegionalID", "pt_name", "pt_index"))
 names(dat1)[28] <- "wui_60km2_500m" 
 
 ## Check correlation matrix
-cor(dat1[,19:26])
+cor(dat1[,19:28])
 
 
 ## Set up models
@@ -361,8 +358,9 @@ for (i in 1:10) {
   pt_dat <- dat1[dat1$pt_index==i,]
   
   m1g <- clmm(n.compounds.T ~ Sex*Age + baa_60*laggedBMI + 
-                pctAG_15 + pctAG_4_5 + pctAG_30 + pctAG_60 + 
+                baa_30*laggedBMI + baa_15*laggedBMI + baa_4*laggedBMI + pctAG_60 + 
                 intermix_60km2_500m + interface_60km2_100m + wui_60km2_500m +
+                intermix_60km2_250m + interface_4_5km2_500m +
                 (1|Region), data=pt_dat, na.action="na.fail")
   summary(m1g)
   
@@ -372,16 +370,16 @@ for (i in 1:10) {
                                   !(baa_15 && baa_30) &&
                                   !(baa_15 && baa_60) &&
                                   !(baa_30 && baa_60) && 
-                                  !(interface_60km2_100m && interface_4_km2_500m) &&
+                                  !(interface_60km2_100m && interface_4_5km2_500m) &&
                                   !(intermix_60km2_500m && intermix_60km2_250m) &&
-                                  !(intermix_60km2_500m && wui_60km2_100m) &&
+                                  !(intermix_60km2_500m && wui_60km2_500m) &&
                                   !(intermix_60km2_500m && interface_60km2_100m) &&
-                                  !(intermix_60km2_500m && interface_4_km2_500m) &&
-                                  !(intermix_60km2_250m && wui_60km2_100m) &&
+                                  !(intermix_60km2_500m && interface_4_5km2_500m) &&
+                                  !(intermix_60km2_250m && wui_60km2_500m) &&
                                   !(intermix_60km2_250m && interface_60km2_100m) &&
-                                  !(intermix_60km2_250m && interface_4_km2_500m) &&                        
-                                  !(interface_60km2_100m && wui_60km2_100m) &&
-                                  !(interface_4_km2_500m && wui_60km2_100m))
+                                  !(intermix_60km2_250m && interface_4_5km2_500m) &&                        
+                                  !(interface_60km2_100m && wui_60km2_500m) &&
+                                  !(interface_4_5km2_500m && wui_60km2_500m))
   
   pt_spec[[i]] <- pt_dredge
   
