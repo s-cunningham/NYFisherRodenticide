@@ -39,6 +39,10 @@ pts <- pts[,c(2,1,4,5)]
 names(pts)[3:4] <- c("rand_x", "rand_y")
 
 ## Subset ag and add together
+forest <- ag[ag$value==41 | ag$value==42 | ag$value==43,]
+forest <- forest %>% group_by(name, buffsize) %>% summarise(pct_ag=sum(freq))
+names(forest)[1] <- "pt_name"
+
 ag <- ag[ag$value==81 | ag$value==82, ]
 c_ag <- ag %>% group_by(name, buffsize) %>% summarise(pct_ag=sum(freq))
 names(c_ag)[1] <- "pt_name"
