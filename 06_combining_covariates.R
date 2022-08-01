@@ -38,18 +38,33 @@ pts <- separate(pts, 1, into=c("RegionalID", "throw"), sep="_", remove=FALSE)
 pts <- pts[,c(2,1,4,5)]
 names(pts)[3:4] <- c("rand_x", "rand_y")
 
-## Subset ag and add together
+## Subset forest and add together
+ag <- ag[,-1]
 forest <- ag[ag$value==41 | ag$value==42 | ag$value==43,]
-forest <- forest %>% group_by(name, buffsize) %>% summarise(pct_ag=sum(freq))
+forest$value <- factor(forest$value, levels=c(41, 42, 43), labels=c("deciduous", "evergreen", "mixed")) |> as.character()
+forest <- forest[forest$buffsize>10,]
+forest <- forest[,c(1,4,2,3)]
+forest <- pivot_wider(forest, names_from=value, values_from=freq)
 names(forest)[1] <- "pt_name"
+forest$deciduous[is.na(forest$deciduous)] <- 0
+forest$evergreen[is.na(forest$evergreen)] <- 0
+forest$mixed[is.na(forest$mixed)] <- 0
+forest <- mutate(forest, totalforest=deciduous + evergreen + mixed)
 
+## Subset ag and add together
 ag <- ag[ag$value==81 | ag$value==82, ]
-c_ag <- ag %>% group_by(name, buffsize) %>% summarise(pct_ag=sum(freq))
-names(c_ag)[1] <- "pt_name"
+ag$value <- factor(ag$value, levels=c(81, 82), labels=c("pasture", "crops")) |> as.character()
+ag <- ag[ag$buffsize>10,]
+names(ag)[1] <- "pt_name"
+ag <- pivot_wider(ag, names_from=value, values_from=freq)
+ag$crops[is.na(ag$crops)] <- 0
+ag$pasture[is.na(ag$pasture)] <- 0
+ag <- mutate(ag, totalag=crops + pasture)
 
 ## reorganize beech
 names(baa)[1] <- "pt_name"
 baa$baa[is.na(baa$baa)] <- 0
+baa <- baa[baa$buffsize>10,]
 
 ## reorganize WUI
 wui100$radius <- 100
@@ -62,6 +77,7 @@ names(wui)[4:5] <- c("intermix", "interface")
 wui[is.na(wui)] <- 0
 wui <- mutate(wui, totalWUI=intermix + interface)
 names(wui)[1] <- "pt_name"
+wui <- wui[wui$buffsize>10,]
 
 # annual beech mast index
 mast <- read_csv("data/analysis-ready/ALTEMP26_beech-data.csv")
@@ -80,13 +96,14 @@ dat <- dat[,-c(3)]
 dat$pt_index <- as.numeric(dat$pt_index)
 
 # Add columns for buffer and radius
-dat <- bind_rows(dat, dat, dat, dat)
-dat$buffsize <- rep(c(4.5,15,30,60), each=3370) # buffer sizes
 dat <- bind_rows(dat, dat, dat)
-dat$radius <- rep(c(100,250,500), each=13480) # WUI radius sizes
+dat$buffsize <- rep(c(15,30,60), each=3370) # buffer sizes
+dat <- bind_rows(dat, dat, dat)
+dat$radius <- rep(c(100,250,500), each=10110) # WUI radius sizes
 
 # join covariate data
-dat <- left_join(dat, c_ag, by=c("pt_name", "buffsize"))
+dat <- left_join(dat, ag, by=c("pt_name", "buffsize"))
+dat <- left_join(dat, forest, by=c("pt_name", "buffsize"))
 dat <- left_join(dat, baa, by=c("pt_name", "buffsize"))
 dat <- left_join(dat, wui, by=c("pt_name", "buffsize", "radius"))
 
@@ -96,11 +113,13 @@ dat$laggedBMI[dat$year==2018] <- mast$devMean[mast$year==2017]
 dat$laggedBMI[dat$year==2019] <- mast$devMean[mast$year==2018]
 dat$laggedBMI[dat$year==2020] <- mast$devMean[mast$year==2019]
 
-# Fill in 0 for missing values (ag, WUI)
-dat <- dat %>% mutate(pct_ag = coalesce(pct_ag, 0),
-                      interface = coalesce(interface, 0),
+# Fill in 0 for missing values (WUI)
+dat <- dat %>% mutate(interface = coalesce(interface, 0),
                       intermix = coalesce(intermix, 0),
-                      totalWUI = coalesce(totalWUI, 0))
+                      totalWUI = coalesce(totalWUI, 0),
+                      crops = coalesce(crops, 0),
+                      pasture = coalesce(pasture, 0),
+                      totalag = coalesce(totalag, 0))
 
 # Add WMUA 
 dat <- left_join(dat, wmua, by="WMU")
