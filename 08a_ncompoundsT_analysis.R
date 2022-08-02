@@ -333,296 +333,40 @@ write_csv(dh, "output/human-models_ncompT.csv")
 df <- as.data.frame(forest_dredge)
 write_csv(df, "output/forest-models_ncompT.csv")
 
-#### Do this whole thing again but for measured only ####
+#### Run models based on best ####
+m1 <- clmm(n.compounds.T ~ Age*Sex + mix_60_500 + I(mix_60_500^2) + 
+                            pasture_60 + baa_60*laggedBMI +  
+                            (1|Region) + (1|WMU), data=dat1)
+m2 <- clmm(n.compounds.T ~ Age*Sex + mix_60_500 + I(mix_60_500^2) + 
+                           pasture_60 + I(pasture_60^2) + baa_60*laggedBMI +  
+                           (1|Region) + (1|WMU), data=dat1)
+m3 <- clmm(n.compounds.T ~ Age*Sex + mix_60_500 + I(mix_60_500^2) + 
+             pasture_60 + baa_60*year +  
+             (1|Region) + (1|WMU), data=dat1)
+m4 <- clmm(n.compounds.T ~ Age*Sex + mix_60_500 + I(mix_60_500^2) + 
+             pasture_60 + I(pasture_60^2) + baa_60*year +  
+             (1|Region) + (1|WMU), data=dat1)
+m5 <- clmm(n.compounds.T ~ Age*Sex + mix_60_500 + 
+             pasture_60 + baa_60*year +  
+             (1|Region) + (1|WMU), data=dat1)
 
-## Percent AG
-pctAG1 <- dat[, c(1:18, 20:22)]
-pctAG1 <- distinct(pctAG1)
-pctAG1 <- pctAG1 %>% group_by(RegionalID) %>% 
-  pivot_wider(names_from=buffsize, values_from=c(pasture, crops, totalag)) %>% as.data.frame()
+sel <- model.sel(m1, m2, m3, m4, m5)
+sel
 
-## Scale and center variables
-pctAG1[,c(18:26)] <- scale(pctAG1[,c(18:26)])
+summary(m3)
 
-# Run models
-ag15 <- clmm(n.compounds.MO ~ totalag_15 + (1|Region) + (1|WMU), data=pctAG1)
-ag15sq <- clmm(n.compounds.MO ~ totalag_15 + I(totalag_15^2) + (1|Region) + (1|WMU), data=pctAG1)
-ag30 <- clmm(n.compounds.MO ~ totalag_30 + (1|Region) + (1|WMU), data=pctAG1)
-ag30sq <- clmm(n.compounds.MO ~ totalag_30 + I(totalag_30^2) +(1|Region) + (1|WMU), data=pctAG1)
-ag60 <- clmm(n.compounds.MO ~ totalag_60 + (1|Region) + (1|WMU), data=pctAG1)
-ag60sq <- clmm(n.compounds.MO ~ totalag_60 + I(totalag_60^2) + (1|Region) + (1|WMU), data=pctAG1)
+library(sjPlot)
+library(sjmisc)
 
-crop15 <- clmm(n.compounds.MO ~ crops_15 + (1|Region) + (1|WMU), data=pctAG1)
-crop15sq <- clmm(n.compounds.MO ~ crops_15 + I(crops_15^2) + (1|Region) + (1|WMU), data=pctAG1)
-crop30 <- clmm(n.compounds.MO ~ crops_30 + (1|Region) + (1|WMU), data=pctAG1)
-crop30sq <- clmm(n.compounds.MO ~ crops_30 + I(crops_30^2) +(1|Region) + (1|WMU), data=pctAG1)
-crop60 <- clmm(n.compounds.MO ~ crops_60 + (1|Region) + (1|WMU), data=pctAG1)
-crop60sq <- clmm(n.compounds.MO ~ crops_60 + I(crops_60^2) + (1|Region) + (1|WMU), data=pctAG1)
+pred <- plot_model(m3, type="pred", terms=c("Age [all]", "Sex"))
+plot(pred)
 
-past15 <- clmm(n.compounds.MO ~ pasture_15 + (1|Region) + (1|WMU), data=pctAG1)
-past15sq <- clmm(n.compounds.MO ~ pasture_15 + I(pasture_15^2) + (1|Region) + (1|WMU), data=pctAG1)
-past30 <- clmm(n.compounds.MO ~ pasture_30 + (1|Region) + (1|WMU), data=pctAG1)
-past30sq <- clmm(n.compounds.MO ~ pasture_30 + I(pasture_30^2) +(1|Region) + (1|WMU), data=pctAG1)
-past60 <- clmm(n.compounds.MO ~ pasture_60 + (1|Region) + (1|WMU), data=pctAG1)
-past60sq <- clmm(n.compounds.MO ~ pasture_60 + I(pasture_60^2) + (1|Region) + (1|WMU), data=pctAG1)
+pred <- plot_model(m3, type="pred", terms=c("year [all]"))
+plot(pred)
 
+pred <- plot_model(m3, type="pred", terms=c("mix_60_500 [all]"))
+plot(pred)
 
-pctAG_sel <- model.sel(ag15, ag30, ag60, ag15sq, ag30sq, ag60sq,
-                       crop15, crop30, crop60, crop15sq, crop30sq, crop60sq,
-                       past15, past30, past60, past15sq, past30sq, past60sq)
-pctAG_sel
-
-## Percent forest
-pctFOR1 <- dat[, c(1:18, 23:26)]
-pctFOR1 <- distinct(pctFOR1)
-pctFOR1 <- pctFOR1 %>% group_by(RegionalID) %>% 
-  pivot_wider(names_from=buffsize, values_from=c(deciduous, evergreen, mixed, totalforest)) %>% as.data.frame()
-
-## Scale and center variables
-pctFOR1[,c(18:29)] <- scale(pctFOR1[,c(18:29)])
-
-# Run models
-for15 <- clmm(n.compounds.MO ~ totalforest_15 + (1|Region) + (1|WMU), data=pctFOR1)
-for15sq <- clmm(n.compounds.MO ~ totalforest_15 + I(totalforest_15^2) + (1|Region) + (1|WMU), data=pctFOR1)
-for30 <- clmm(n.compounds.MO ~ totalforest_30 + (1|Region) + (1|WMU), data=pctFOR1)
-for30sq <- clmm(n.compounds.MO ~ totalforest_30 + I(totalforest_30^2) +(1|Region) + (1|WMU), data=pctFOR1)
-for60 <- clmm(n.compounds.MO ~ totalforest_60 + (1|Region) + (1|WMU), data=pctFOR1)
-for60sq <- clmm(n.compounds.MO ~ totalforest_60 + I(totalforest_60^2) + (1|Region) + (1|WMU), data=pctFOR1)
-
-decid15 <- clmm(n.compounds.MO ~ deciduous_15 + (1|Region) + (1|WMU), data=pctFOR1)
-decid15sq <- clmm(n.compounds.MO ~ deciduous_15 + I(deciduous_15^2) + (1|Region) + (1|WMU), data=pctFOR1)
-decid30 <- clmm(n.compounds.MO ~ deciduous_30 + (1|Region) + (1|WMU), data=pctFOR1)
-decid30sq <- clmm(n.compounds.MO ~ deciduous_30 + I(deciduous_30^2) +(1|Region) + (1|WMU), data=pctFOR1)
-decid60 <- clmm(n.compounds.MO ~ deciduous_60 + (1|Region) + (1|WMU), data=pctFOR1)
-decid60sq <- clmm(n.compounds.MO ~ deciduous_60 + I(deciduous_60^2) + (1|Region) + (1|WMU), data=pctFOR1)
-
-ever15 <- clmm(n.compounds.MO ~ evergreen_15 + (1|Region) + (1|WMU), data=pctFOR1)
-ever15sq <- clmm(n.compounds.MO ~ evergreen_15 + I(evergreen_15^2) + (1|Region) + (1|WMU), data=pctFOR1)
-ever30 <- clmm(n.compounds.MO ~ evergreen_30 + (1|Region) + (1|WMU), data=pctFOR1)
-ever30sq <- clmm(n.compounds.MO ~ evergreen_30 + I(evergreen_30^2) +(1|Region) + (1|WMU), data=pctFOR1)
-ever60 <- clmm(n.compounds.MO ~ evergreen_60 + (1|Region) + (1|WMU), data=pctFOR1)
-ever60sq <- clmm(n.compounds.MO ~ evergreen_60 + I(evergreen_60^2) + (1|Region) + (1|WMU), data=pctFOR1)
-
-mfor15 <- clmm(n.compounds.MO ~ mixed_15 + (1|Region) + (1|WMU), data=pctFOR1)
-mfor15sq <- clmm(n.compounds.MO ~ mixed_15 + I(mixed_15^2) + (1|Region) + (1|WMU), data=pctFOR1)
-mfor30 <- clmm(n.compounds.MO ~ mixed_30 + (1|Region) + (1|WMU), data=pctFOR1)
-mfor30sq <- clmm(n.compounds.MO ~ mixed_30 + I(mixed_30^2) +(1|Region) + (1|WMU), data=pctFOR1)
-mfor60 <- clmm(n.compounds.MO ~ mixed_60 + (1|Region) + (1|WMU), data=pctFOR1)
-mfor60sq <- clmm(n.compounds.MO ~ mixed_60 + I(mixed_60^2) + (1|Region) + (1|WMU), data=pctFOR1)
-
-pctFOR_sel <- model.sel(for15, for30, for60, for15sq, for30sq, for60sq,
-                        decid15, decid30, decid60, decid15sq, decid30sq, decid60sq,
-                        ever15, ever30, ever60, ever15sq, ever30sq, ever60sq,
-                        mfor15, mfor30, mfor60, mfor15sq, mfor30sq, mfor60sq)
-pctFOR_sel
-
-## Beech basal area
-baa1 <- dat[, c(1:18, 27)]
-baa1  <- baa1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffsize, values_from=baa, values_fn=unique) %>% as.data.frame()
-names(baa1)[18:20] <- c("baa_15", "baa_30", "baa_60") 
-
-## Scale and center variables
-baa1[,c(18:20)] <- scale(baa1[,c(18:20)])
-
-baa15 <- clmm(n.compounds.MO ~ baa_15 + (1|Region) + (1|WMU), data=baa1)
-baa15sq <- clmm(n.compounds.MO ~ baa_15 + I(baa_15^2) + (1|Region) + (1|WMU), data=baa1)
-baa30 <- clmm(n.compounds.MO ~ baa_30 + (1|Region) + (1|WMU), data=baa1)
-baa30sq <- clmm(n.compounds.MO ~ baa_30 + I(baa_30^2) + (1|Region) + (1|WMU), data=baa1)
-baa60 <- clmm(n.compounds.MO ~ baa_60 + (1|Region) + (1|WMU), data=baa1)
-baa60sq <- clmm(n.compounds.MO ~ baa_60 + I(baa_60^2) + (1|Region) + (1|WMU), data=baa1)
-
-baa_sel <- model.sel(baa15, baa30, baa60, baa15sq, baa30sq, baa60sq)
-baa_sel
-
-
-## Intermix WUI
-intermix1 <- dat[, c(1:19, 28)]
-intermix1 <- unite(intermix1, "buffrad", 18:19, sep="_")
-intermix1  <- intermix1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffrad, values_from=intermix) %>% as.data.frame()
-names(intermix1)[18:26] <- c("mix_15_100", "mix_30_100", "mix_60_100",
-                             "mix_15_250", "mix_30_250", "mix_60_250",
-                             "mix_15_500", "mix_30_500", "mix_60_500") 
-
-## Scale and center variables
-intermix1[,c(18:26)] <- scale(intermix1[,c(18:26)])
-
-mix_15100 <- clmm(n.compounds.MO ~ mix_15_100 + (1|Region) + (1|WMU), data=intermix1)
-mix_15250 <- clmm(n.compounds.MO ~ mix_15_250 + (1|Region) + (1|WMU), data=intermix1)
-mix_15500 <- clmm(n.compounds.MO ~ mix_15_500 + (1|Region) + (1|WMU), data=intermix1)
-mix_15100sq <- clmm(n.compounds.MO ~ mix_15_100 + I(mix_15_100^2) + (1|Region) + (1|WMU), data=intermix1)
-mix_15250sq <- clmm(n.compounds.MO ~ mix_15_250 + I(mix_15_250^2) + (1|Region) + (1|WMU), data=intermix1)
-mix_15500sq <- clmm(n.compounds.MO ~ mix_15_500 + I(mix_15_500^2) + (1|Region) + (1|WMU), data=intermix1)
-
-mix_30100 <- clmm(n.compounds.MO ~ mix_30_100 + (1|Region) + (1|WMU), data=intermix1)
-mix_30250 <- clmm(n.compounds.MO ~ mix_30_250 + (1|Region) + (1|WMU), data=intermix1)
-mix_30500 <- clmm(n.compounds.MO ~ mix_30_500 + (1|Region) + (1|WMU), data=intermix1)
-mix_30100sq <- clmm(n.compounds.MO ~ mix_30_100 + I(mix_30_100^2) + (1|Region) + (1|WMU), data=intermix1)
-mix_30250sq <- clmm(n.compounds.MO ~ mix_30_250 + I(mix_30_250^2) + (1|Region) + (1|WMU), data=intermix1)
-mix_30500sq <- clmm(n.compounds.MO ~ mix_30_500 + I(mix_30_500^2) + (1|Region) + (1|WMU), data=intermix1)
-
-mix_60100 <- clmm(n.compounds.MO ~ mix_60_100 + (1|Region) + (1|WMU), data=intermix1)
-mix_60250 <- clmm(n.compounds.MO ~ mix_60_250 + (1|Region) + (1|WMU), data=intermix1)
-mix_60500 <- clmm(n.compounds.MO ~ mix_60_500 + (1|Region) + (1|WMU), data=intermix1)
-mix_60100sq <- clmm(n.compounds.MO ~ mix_60_100 + I(mix_60_100^2) + (1|Region) + (1|WMU), data=intermix1)
-mix_60250sq <- clmm(n.compounds.MO ~ mix_60_250 + I(mix_60_250^2) + (1|Region) + (1|WMU), data=intermix1)
-mix_60500sq <- clmm(n.compounds.MO ~ mix_60_500 + I(mix_60_500^2) + (1|Region) + (1|WMU), data=intermix1)
-
-intermix_sel <- model.sel(mix_15100, mix_30100, mix_60100, mix_15100sq, mix_30100sq, mix_60100sq,
-                          mix_15250, mix_30250, mix_60250, mix_15250sq, mix_30250sq, mix_60250sq,
-                          mix_15500, mix_30500, mix_60500, mix_15500sq, mix_30500sq, mix_60500sq)
-intermix_sel
-
-## Interface WUI
-interface1 <- dat[, c(1:19, 29)]
-interface1 <- unite(interface1, "buffrad", 18:19, sep="_")
-interface1  <- interface1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffrad, values_from=interface) %>% as.data.frame()
-names(interface1)[18:26] <- c("face_15_100", "face_30_100", "face_60_100",
-                              "face_15_250", "face_30_250", "face_60_250",
-                              "face_15_500", "face_30_500", "face_60_500") 
-
-## Scale and center variables
-interface1[,c(18:26)] <- scale(interface1[,c(18:26)])
-
-face_15100 <- clmm(n.compounds.MO ~ face_15_100 + (1|Region) + (1|WMU), data=interface1)
-face_15250 <- clmm(n.compounds.MO ~ face_15_250 + (1|Region) + (1|WMU), data=interface1)
-face_15500 <- clmm(n.compounds.MO ~ face_15_500 + (1|Region) + (1|WMU), data=interface1)
-face_15100sq <- clmm(n.compounds.MO ~ face_15_100 + I(face_15_100^2) + (1|Region) + (1|WMU), data=interface1)
-face_15250sq <- clmm(n.compounds.MO ~ face_15_250 + I(face_15_250^2) + (1|Region) + (1|WMU), data=interface1)
-face_15500sq <- clmm(n.compounds.MO ~ face_15_500 + I(face_15_500^2) + (1|Region) + (1|WMU), data=interface1)
-
-face_30100 <- clmm(n.compounds.MO ~ face_30_100 + (1|Region) + (1|WMU), data=interface1)
-face_30250 <- clmm(n.compounds.MO ~ face_30_250 + (1|Region) + (1|WMU), data=interface1)
-face_30500 <- clmm(n.compounds.MO ~ face_30_500 + (1|Region) + (1|WMU), data=interface1)
-face_30100sq <- clmm(n.compounds.MO ~ face_30_100 + I(face_30_100^2) + (1|Region) + (1|WMU), data=interface1)
-face_30250sq <- clmm(n.compounds.MO ~ face_30_250 + I(face_30_250^2) + (1|Region) + (1|WMU), data=interface1)
-face_30500sq <- clmm(n.compounds.MO ~ face_30_500 + I(face_30_500^2) + (1|Region) + (1|WMU), data=interface1)
-
-face_60100 <- clmm(n.compounds.MO ~ face_60_100 + (1|Region) + (1|WMU), data=interface1)
-face_60250 <- clmm(n.compounds.MO ~ face_60_250 + (1|Region) + (1|WMU), data=interface1)
-face_60500 <- clmm(n.compounds.MO ~ face_60_500 + (1|Region) + (1|WMU), data=interface1)
-face_60100sq <- clmm(n.compounds.MO ~ face_60_100 + I(face_60_100^2) + (1|Region) + (1|WMU), data=interface1)
-face_60250sq <- clmm(n.compounds.MO ~ face_60_250 + I(face_60_250^2) + (1|Region) + (1|WMU), data=interface1)
-face_60500sq <- clmm(n.compounds.MO ~ face_60_500 + I(face_60_500^2) + (1|Region) + (1|WMU), data=interface1)
-
-interface_sel <- model.sel(face_15100, face_30100, face_60100, face_15100sq, face_30100sq, face_60100sq,  
-                           face_15250, face_30250, face_60250, face_15250sq, face_30250sq, face_60250sq,  
-                           face_15500, face_30500, face_60500, face_15500sq, face_30500sq, face_60500sq)  
-interface_sel
-
-## Total WUI
-wui1 <- dat[, c(1:19, 30)]
-wui1 <- unite(wui1, "buffrad", 18:19, sep="_")
-wui1  <- wui1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffrad, values_from=totalWUI) %>% as.data.frame()
-names(wui1)[18:26] <- c("wui_15_100", "wui_30k_100", "wui_60_100",
-                        "wui_15_250", "wui_30k_250", "wui_60_250",
-                        "wui_15_500", "wui_30k_500", "wui_60_500") 
-
-# Set up WMU as group number
-wui1$WMUnum <- as.numeric(factor(wui1$WMU, labels=1:54))
-
-## Scale and center variables
-wui1[,c(18:26)] <- scale(wui1[,c(18:26)])
-
-wui_15100 <- clmm(n.compounds.MO ~ wui_15_100 + (1|Region) + (1|WMU), data=wui1)
-wui_15250 <- clmm(n.compounds.MO ~ wui_15_250 + (1|Region) + (1|WMU), data=wui1)
-wui_15500 <- clmm(n.compounds.MO ~ wui_15_500 + (1|Region) + (1|WMU), data=wui1)
-wui_15100sq <- clmm(n.compounds.MO ~ wui_15_100 + I(wui_15_100^2) + (1|Region) + (1|WMU), data=wui1)
-wui_15250sq <- clmm(n.compounds.MO ~ wui_15_250 + I(wui_15_250^2) + (1|Region) + (1|WMU), data=wui1)
-wui_15500sq <- clmm(n.compounds.MO ~ wui_15_500 + I(wui_15_500^2) + (1|Region) + (1|WMU), data=wui1)
-
-wui_30100 <- clmm(n.compounds.MO ~ wui_30k_100 + (1|Region) + (1|WMU), data=wui1)
-wui_30250 <- clmm(n.compounds.MO ~ wui_30k_250 + (1|Region) + (1|WMU), data=wui1)
-wui_30500 <- clmm(n.compounds.MO ~ wui_30k_500 + (1|Region) + (1|WMU), data=wui1)
-wui_30100sq <- clmm(n.compounds.MO ~ wui_30k_100 + I(wui_30k_100^2) + (1|Region) + (1|WMU), data=wui1)
-wui_30250sq <- clmm(n.compounds.MO ~ wui_30k_250 + I(wui_30k_250^2) + (1|Region) + (1|WMU), data=wui1)
-wui_30500sq <- clmm(n.compounds.MO ~ wui_30k_500 + I(wui_30k_500^2) + (1|Region) + (1|WMU), data=wui1)
-
-wui_60100 <- clmm(n.compounds.MO ~ wui_60_100 + (1|Region) + (1|WMU), data=wui1)
-wui_60250 <- clmm(n.compounds.MO ~ wui_60_250 + (1|Region) + (1|WMU), data=wui1)
-wui_60500 <- clmm(n.compounds.MO ~ wui_60_500 + (1|Region) + (1|WMU), data=wui1)
-wui_60100sq <- clmm(n.compounds.MOC ~ wui_60_100 + I(wui_60_100^2) + (1|Region) + (1|WMU), data=wui1)
-wui_60250sq <- clmm(n.compounds.MOC ~ wui_60_250 + I(wui_60_250^2) + (1|Region) + (1|WMU), data=wui1)
-wui_60500sq <- clmm(n.compounds.MOC ~ wui_60_500 + I(wui_60_500^2) + (1|Region) + (1|WMU), data=wui1)
-
-wui_sel <- model.sel(wui_15100, wui_30100, wui_60100, wui_15100sq, wui_30100sq, wui_60100sq, 
-                     wui_15250, wui_30250, wui_60250, wui_15250sq, wui_30250sq, wui_60250sq, 
-                     wui_15500, wui_30500, wui_60500, wui_15500sq, wui_30500sq, wui_60500sq)
-wui_sel
-
-#### Set up data to run for each combination of covariates ####
-dat1 <- dat[,c(1:15,23:25)]
-dat1 <- distinct(dat1)
-
-# Join percent agriculture
-pctAG1 <- pctAG1[,c(1:3, 20)]
-dat1 <- left_join(dat1, pctAG1, by=c("RegionalID", "pt_name", "pt_index"))
-names(dat1)[19] <-  "pctAG_60"
-  
-# beech basal area
-baa1 <- baa1[,c(1:3, 17:20)]
-dat1 <- left_join(dat1, baa1, by=c("RegionalID", "pt_name", "pt_index"))
-names(dat1)[20:23] <- c("baa_4", "baa_15", "baa_30", "baa_60")
-
-# Join intermix WUI
-intermix1 <- intermix1[,c(1:3, 24, 28)]
-dat1 <- left_join(dat1, intermix1, by=c("RegionalID", "pt_name", "pt_index"))
-names(dat1)[24:25] <- c("intermix_60km2_250m", "intermix_60km2_500m")
-
-# Join interface WUI
-interface1 <- interface1[, c(1:3, 20, 25)]
-dat1 <- left_join(dat1, interface1, by=c("RegionalID", "pt_name", "pt_index"))
-names(dat1)[26:27] <- c("interface_4_5km2_500m", "interface_60km2_100m")
-
-# Join total WUI
-wui1 <- wui1[,c(1:3, 28)]
-dat1 <- left_join(dat1, wui1, by=c("RegionalID", "pt_name", "pt_index"))
-names(dat1)[28] <- "wui_60km2_500m" 
-
-## Check correlation matrix
-cor(dat1[,19:28])
-
-## Different way of accounting for year/mast cycle
-dat1$fBMI <- ordered(dat1$year, levels=c(2019, 2018, 2020))
-dat1$year <- as.factor(dat1$year)
-
-#### Set up models ####
-
-
-
-
-
-  pt_dat <- dat1[dat1$pt_index==i,]
-  
-  m1g <- clmm(n.compounds.T ~ Sex*Age + pctAG_60 + 
-                baa_15*laggedBMI + baa_4*laggedBMI + baa_30*laggedBMI +baa_60*laggedBMI +
-                baa_15*year + baa_4*year + baa_30*year +baa_60*year +
-                baa_15*fBMI + baa_4*fBMI + baa_30*fBMI +baa_60*fBMI +
-                intermix_60km2_500m + interface_60km2_100m + wui_60km2_500m +
-                intermix_60km2_250m + interface_4_5km2_500m +
-                (1|Region), data=pt_dat, na.action="na.fail")
-  summary(m1g)
-  
-  pt_dredge <- dredge(m1g, subset=!(baa_4 && baa_30) &&
-                                  !(baa_4 && baa_15) &&
-                                  !(baa_4 && baa_60) &&
-                                  !(baa_15 && baa_30) &&
-                                  !(baa_15 && baa_60) &&
-                                  !(baa_30 && baa_60) && 
-                                  !(laggedBMI && fBMI) &&
-                                  !(laggedBMI && year) &&
-                                  !(fBMI && year) &&
-                                  !(interface_60km2_100m && interface_4_5km2_500m) &&
-                                  !(intermix_60km2_500m && intermix_60km2_250m) &&
-                                  !(intermix_60km2_500m && wui_60km2_500m) &&
-                                  !(intermix_60km2_500m && interface_60km2_100m) &&
-                                  !(intermix_60km2_500m && interface_4_5km2_500m) &&
-                                  !(intermix_60km2_250m && wui_60km2_500m) &&
-                                  !(intermix_60km2_250m && interface_60km2_100m) &&
-                                  !(intermix_60km2_250m && interface_4_5km2_500m) &&                        
-                                  !(interface_60km2_100m && wui_60km2_500m) &&
-                                  !(interface_4_5km2_500m && wui_60km2_500m))
-  
-
-# Save dredge tables
-save(file="output/dredge_tables_ncompMO.Rdata", list="pt_spec")
+pred <- plot_model(m3, type="pred", terms=c("pasture_60"))
+plot(pred)
 
