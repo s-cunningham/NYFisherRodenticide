@@ -101,7 +101,7 @@ dat <- dat[dat$RegionalID!="2018-9211",] # this one seems like it is wrong but d
 ###
 
 # save as shapefile
-# dat.sf <- st_as_sf(dat, coords=c("x_coord", "y_coord"), crs="+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-96 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs")
+dat.sf <- st_as_sf(dat, coords=c("x_coord", "y_coord"), crs="+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-96 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs")
 # st_write(dat.sf, "output/liver_pts.shp")
 
 # Reformat date 
@@ -217,8 +217,13 @@ datsf <- st_transform(datsf, "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=23 +lon_0
 
 ggplot() + 
   geom_sf(data=nys, fill="gray40") +
-  geom_sf(data=datsf, aes(color=factor(year)), size=2) +
-  guides(color=guide_legend(title="Year"))
+  geom_sf(data=dat.sf, aes(color=factor(year)), size=1) +
+  guides(color=guide_legend(title="Year")) +
+  theme_bw()
 
 
-             
+comps <- datl[datl$exposure!="ND",]             
+comps %>% group_by(compound) %>% count()
+
+comps <- datl[datl$exposure=="measured",]             
+comps %>% group_by(compound) %>% count()
