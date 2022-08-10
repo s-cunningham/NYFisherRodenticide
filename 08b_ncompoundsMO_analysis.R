@@ -70,48 +70,48 @@ pctAG_sel <- model.sel(ag15, ag30, ag60, ag15sq, ag30sq, ag60sq,
 pctAG_sel
 
 ## Percent forest
-pctFOR1 <- dat[, c(1:18, 23:26)]
-pctFOR1 <- distinct(pctFOR1)
-pctFOR1 <- pctFOR1 %>% group_by(RegionalID) %>% 
-  pivot_wider(names_from=buffsize, values_from=c(deciduous, evergreen, mixed, totalforest)) %>% as.data.frame()
-
-## Scale and center variables
-pctFOR1[,c(18:29)] <- scale(pctFOR1[,c(18:29)])
-
-# Run models
-for15 <- clmm(n.compounds.MO ~ totalforest_15 + (1|Region) + (1|WMU), data=pctFOR1)
-for15sq <- clmm(n.compounds.MO ~ totalforest_15 + I(totalforest_15^2) + (1|Region) + (1|WMU), data=pctFOR1)
-for30 <- clmm(n.compounds.MO ~ totalforest_30 + (1|Region) + (1|WMU), data=pctFOR1)
-for30sq <- clmm(n.compounds.MO ~ totalforest_30 + I(totalforest_30^2) +(1|Region) + (1|WMU), data=pctFOR1)
-for60 <- clmm(n.compounds.MO ~ totalforest_60 + (1|Region) + (1|WMU), data=pctFOR1)
-for60sq <- clmm(n.compounds.MO ~ totalforest_60 + I(totalforest_60^2) + (1|Region) + (1|WMU), data=pctFOR1)
-
-decid15 <- clmm(n.compounds.MO ~ deciduous_15 + (1|Region) + (1|WMU), data=pctFOR1)
-decid15sq <- clmm(n.compounds.MO ~ deciduous_15 + I(deciduous_15^2) + (1|Region) + (1|WMU), data=pctFOR1)
-decid30 <- clmm(n.compounds.MO ~ deciduous_30 + (1|Region) + (1|WMU), data=pctFOR1)
-decid30sq <- clmm(n.compounds.MO ~ deciduous_30 + I(deciduous_30^2) +(1|Region) + (1|WMU), data=pctFOR1)
-decid60 <- clmm(n.compounds.MO ~ deciduous_60 + (1|Region) + (1|WMU), data=pctFOR1)
-decid60sq <- clmm(n.compounds.MO ~ deciduous_60 + I(deciduous_60^2) + (1|Region) + (1|WMU), data=pctFOR1)
-
-ever15 <- clmm(n.compounds.MO ~ evergreen_15 + (1|Region) + (1|WMU), data=pctFOR1)
-ever15sq <- clmm(n.compounds.MO ~ evergreen_15 + I(evergreen_15^2) + (1|Region) + (1|WMU), data=pctFOR1)
-ever30 <- clmm(n.compounds.MO ~ evergreen_30 + (1|Region) + (1|WMU), data=pctFOR1)
-ever30sq <- clmm(n.compounds.MO ~ evergreen_30 + I(evergreen_30^2) +(1|Region) + (1|WMU), data=pctFOR1)
-ever60 <- clmm(n.compounds.MO ~ evergreen_60 + (1|Region) + (1|WMU), data=pctFOR1)
-ever60sq <- clmm(n.compounds.MO ~ evergreen_60 + I(evergreen_60^2) + (1|Region) + (1|WMU), data=pctFOR1)
-
-mfor15 <- clmm(n.compounds.MO ~ mixed_15 + (1|Region) + (1|WMU), data=pctFOR1)
-mfor15sq <- clmm(n.compounds.MO ~ mixed_15 + I(mixed_15^2) + (1|Region) + (1|WMU), data=pctFOR1)
-mfor30 <- clmm(n.compounds.MO ~ mixed_30 + (1|Region) + (1|WMU), data=pctFOR1)
-mfor30sq <- clmm(n.compounds.MO ~ mixed_30 + I(mixed_30^2) +(1|Region) + (1|WMU), data=pctFOR1)
-mfor60 <- clmm(n.compounds.MO ~ mixed_60 + (1|Region) + (1|WMU), data=pctFOR1)
-mfor60sq <- clmm(n.compounds.MO ~ mixed_60 + I(mixed_60^2) + (1|Region) + (1|WMU), data=pctFOR1)
-
-pctFOR_sel <- model.sel(for15, for30, for60, for15sq, for30sq, for60sq,
-                        decid15, decid30, decid60, decid15sq, decid30sq, decid60sq,
-                        ever15, ever30, ever60, ever15sq, ever30sq, ever60sq,
-                        mfor15, mfor30, mfor60, mfor15sq, mfor30sq, mfor60sq)
-pctFOR_sel
+# pctFOR1 <- dat[, c(1:18, 23:26)]
+# pctFOR1 <- distinct(pctFOR1)
+# pctFOR1 <- pctFOR1 %>% group_by(RegionalID) %>% 
+#   pivot_wider(names_from=buffsize, values_from=c(deciduous, evergreen, mixed, totalforest)) %>% as.data.frame()
+# 
+# ## Scale and center variables
+# pctFOR1[,c(18:29)] <- scale(pctFOR1[,c(18:29)])
+# 
+# # Run models
+# for15 <- clmm(n.compounds.MO ~ totalforest_15 + (1|Region) + (1|WMU), data=pctFOR1)
+# for15sq <- clmm(n.compounds.MO ~ totalforest_15 + I(totalforest_15^2) + (1|Region) + (1|WMU), data=pctFOR1)
+# for30 <- clmm(n.compounds.MO ~ totalforest_30 + (1|Region) + (1|WMU), data=pctFOR1)
+# for30sq <- clmm(n.compounds.MO ~ totalforest_30 + I(totalforest_30^2) +(1|Region) + (1|WMU), data=pctFOR1)
+# for60 <- clmm(n.compounds.MO ~ totalforest_60 + (1|Region) + (1|WMU), data=pctFOR1)
+# for60sq <- clmm(n.compounds.MO ~ totalforest_60 + I(totalforest_60^2) + (1|Region) + (1|WMU), data=pctFOR1)
+# 
+# decid15 <- clmm(n.compounds.MO ~ deciduous_15 + (1|Region) + (1|WMU), data=pctFOR1)
+# decid15sq <- clmm(n.compounds.MO ~ deciduous_15 + I(deciduous_15^2) + (1|Region) + (1|WMU), data=pctFOR1)
+# decid30 <- clmm(n.compounds.MO ~ deciduous_30 + (1|Region) + (1|WMU), data=pctFOR1)
+# decid30sq <- clmm(n.compounds.MO ~ deciduous_30 + I(deciduous_30^2) +(1|Region) + (1|WMU), data=pctFOR1)
+# decid60 <- clmm(n.compounds.MO ~ deciduous_60 + (1|Region) + (1|WMU), data=pctFOR1)
+# decid60sq <- clmm(n.compounds.MO ~ deciduous_60 + I(deciduous_60^2) + (1|Region) + (1|WMU), data=pctFOR1)
+# 
+# ever15 <- clmm(n.compounds.MO ~ evergreen_15 + (1|Region) + (1|WMU), data=pctFOR1)
+# ever15sq <- clmm(n.compounds.MO ~ evergreen_15 + I(evergreen_15^2) + (1|Region) + (1|WMU), data=pctFOR1)
+# ever30 <- clmm(n.compounds.MO ~ evergreen_30 + (1|Region) + (1|WMU), data=pctFOR1)
+# ever30sq <- clmm(n.compounds.MO ~ evergreen_30 + I(evergreen_30^2) +(1|Region) + (1|WMU), data=pctFOR1)
+# ever60 <- clmm(n.compounds.MO ~ evergreen_60 + (1|Region) + (1|WMU), data=pctFOR1)
+# ever60sq <- clmm(n.compounds.MO ~ evergreen_60 + I(evergreen_60^2) + (1|Region) + (1|WMU), data=pctFOR1)
+# 
+# mfor15 <- clmm(n.compounds.MO ~ mixed_15 + (1|Region) + (1|WMU), data=pctFOR1)
+# mfor15sq <- clmm(n.compounds.MO ~ mixed_15 + I(mixed_15^2) + (1|Region) + (1|WMU), data=pctFOR1)
+# mfor30 <- clmm(n.compounds.MO ~ mixed_30 + (1|Region) + (1|WMU), data=pctFOR1)
+# mfor30sq <- clmm(n.compounds.MO ~ mixed_30 + I(mixed_30^2) +(1|Region) + (1|WMU), data=pctFOR1)
+# mfor60 <- clmm(n.compounds.MO ~ mixed_60 + (1|Region) + (1|WMU), data=pctFOR1)
+# mfor60sq <- clmm(n.compounds.MO ~ mixed_60 + I(mixed_60^2) + (1|Region) + (1|WMU), data=pctFOR1)
+# 
+# pctFOR_sel <- model.sel(for15, for30, for60, for15sq, for30sq, for60sq,
+#                         decid15, decid30, decid60, decid15sq, decid30sq, decid60sq,
+#                         ever15, ever30, ever60, ever15sq, ever30sq, ever60sq,
+#                         mfor15, mfor30, mfor60, mfor15sq, mfor30sq, mfor60sq)
+# pctFOR_sel
 
 ## Beech basal area
 baa1 <- dat[, c(1:18, 27)]
@@ -271,11 +271,11 @@ wui1 <- wui1[,c(1:3, 20)]
 dat1 <- left_join(dat1, wui1, by=c("RegionalID", "pt_name", "pt_index"))
 
 # join forest
-pctFOR1 <- pctFOR1[,c(1:3, 20, 24, 26)]
-dat1 <- left_join(dat1, pctFOR1, by=c("RegionalID", "pt_name", "pt_index"))
+# pctFOR1 <- pctFOR1[,c(1:3, 20, 24, 26)]
+# dat1 <- left_join(dat1, pctFOR1, by=c("RegionalID", "pt_name", "pt_index"))
 
 ## Check correlation matrix
-cor(dat1[,19:28])
+cor(dat1[,19:26])
 
 ## Different way of accounting for year/mast cycle
 dat1$fBMI <- ordered(dat1$year, levels=c(2019, 2018, 2020))
@@ -284,13 +284,59 @@ dat1$year <- as.factor(dat1$year)
 ## Set up global models
 # Human-driven hypothesis
 m1humans <- clmm(n.compounds.MO ~ Sex*Age + crops_60 + I(crops_60^2) +
-                   wui_60_100 + I(wui_60_100^2) +
+                   wui_60_100 + I(wui_60_100^2) + laggedBMI + 
+                   baa_15 + I(baa_15^2) +
+                   baa_30 + I(baa_30^2) +
+                   baa_60 + I(baa_60^2) +
+                   baa_15:laggedBMI + baa_30:laggedBMI + baa_60:laggedBMI +
                    (1|Region) + (1|WMU), data=dat1, na.action="na.fail")
 
 m2humans <- clmm(n.compounds.MO ~ Sex*Age + mix_60_100 + I(mix_60_100 ^2) +
-                   face_60_100 + I(face_60_100^2) + face_60_500 +
+                   face_60_100 + I(face_60_100^2) + face_60_500 + laggedBMI + 
+                   baa_15 + I(baa_15^2) +
+                   baa_30 + I(baa_30^2) +
+                   baa_60 + I(baa_60^2) +
+                   baa_15:laggedBMI + baa_30:laggedBMI + baa_60:laggedBMI +
                    (1|Region) + (1|WMU), data=dat1, na.action="na.fail")
 
+# Export data and model into the cluster worker nodes
+clusterExport(cl, c("dat1","m1humans","m2humans"))
+
+humans_dredge <- MuMIn:::.dredge.par(m1humans, cluster=cl, trace=2, subset=dc(wui_60_100, I(wui_60_100^2)) &&
+                                       dc(crops_60, I(crops_60^2)) &&
+                                       !(baa_15 && baa_30) &&
+                                       !(baa_15 && baa_60) &&
+                                       !(baa_30 && baa_60) &&
+                                       dc(baa_15, I(baa_15^2)) &&
+                                       dc(baa_30, I(baa_30^2)) &&
+                                       dc(baa_60, I(baa_60^2)) &&
+                                       dc(baa_15, laggedBMI, baa_15:laggedBMI) &&
+                                       dc(baa_30, laggedBMI, baa_30:laggedBMI) &&
+                                       dc(baa_60, laggedBMI, baa_60:laggedBMI))
+
+humans_dredge2 <- MuMIn:::.dredge.par(m2humans, cluster=cl, trace=2, subset=!(mix_60_100 && face_60_100) &&
+                                        !(mix_60_100 && face_60_500) &&
+                                        !(face_60_100 && face_60_500) &&
+                                        dc(face_60_100, I(face_60_100^2)) &&
+                                        dc(mix_60_100, I(mix_60_100^2)) &&
+                                        dc(baa_15, I(baa_15^2)) &&
+                                        dc(baa_30, I(baa_30^2)) &&
+                                        dc(baa_60, I(baa_60^2)) &&
+                                        dc(baa_15, laggedBMI, baa_15:laggedBMI) &&
+                                        dc(baa_30, laggedBMI, baa_30:laggedBMI) &&
+                                        dc(baa_60, laggedBMI, baa_60:laggedBMI))
+
+# Save dredge tables
+save(file="output/dredge_tables_humansMO.Rdata", list="humans_dredge")
+save(file="output/dredge_tables_humansMO2.Rdata", list="humans_dredge2")
+
+
+dh <- as.data.frame(humans_dredge)
+write_csv(dh, "output/human-models_ncompMO.csv")
+dh2 <- as.data.frame(humans_dredge2)
+write_csv(dh2, "output/human-models_ncompMO2.csv")
+
+###
 # forest conditions hypothesis
 m1forest <- clmm(n.compounds.MO ~ Sex*Age + 
                    laggedBMI + 
@@ -298,28 +344,30 @@ m1forest <- clmm(n.compounds.MO ~ Sex*Age +
                    baa_30 + I(baa_30^2) +
                    baa_60 + I(baa_60^2) +
                    baa_15:laggedBMI + baa_30:laggedBMI + baa_60:laggedBMI +
-                   mixed_60 + I(mixed_60^2) +
-                   mixed_15 + I(mixed_15^2) + 
-                   deciduous_60 + I(deciduous_60^2) + 
+                   # mixed_60 + I(mixed_60^2) +
+                   # mixed_15 + I(mixed_15^2) + 
+                   # deciduous_60 + I(deciduous_60^2) + 
                    (1|Region) + (1|WMU), data=dat1, na.action="na.fail")
 
-# Export data and model into the cluster worker nodes
-clusterExport(cl, c("dat1","m1humans","m2humans","m1forest"))
+m1forest2 <- clmm(n.compounds.MO ~ Sex*Age + 
+                    year + 
+                    baa_15 + I(baa_15^2) +
+                    baa_30 + I(baa_30^2) +
+                    baa_60 + I(baa_60^2) +
+                    baa_15:year + baa_30:year + baa_60:year +
+                    # mixed_60 + I(mixed_60^2) +
+                    # mixed_15 + I(mixed_15^2) + 
+                    # deciduous_60 + I(deciduous_60^2) + 
+                    (1|Region) + (1|WMU), data=dat1, na.action="na.fail")
 
-humans_dredge <- MuMIn:::.dredge.par(m1humans, cluster=cl, trace=2, subset=dc(wui_60_100, I(wui_60_100^2)) &&
-                                       dc(crops_60, I(crops_60^2)))
+forest_dredge <- MuMIn:::.dredge.par(m1forest, cluster=cl, trace=2, subset=)
 
-humans_dredge2 <- MuMIn:::.dredge.par(m2humans, cluster=cl, trace=2, subset=!(mix_60_100 && face_60_100) &&
-                                        !(mix_60_100 && face_60_500) &&
-                                        !(face_60_100 && face_60_500) &&
-                                        dc(face_60_100, I(face_60_100^2)) &&
-                                        dc(mix_60_100, I(mix_60_100^2)))
-
-forest_dredge <- MuMIn:::.dredge.par(m1forest, cluster=cl, trace=2, subset=dc(mixed_15, I(mixed_15^2)) &&
-                                       dc(mixed_60, I(mixed_60^2)) &&
-                                       !(mixed_15 && mixed_60) &&
-                                       !(baa_15 && baa_30) &&
+forest_dredge <- MuMIn:::.dredge.par(m1forest, cluster=cl, trace=2, subset=!(baa_15 && baa_30) &&
                                        !(baa_15 && baa_60) &&
                                        !(baa_30 && baa_60) &&
-                                       dc(baa_60, I(baa_60^2), I(baa_60^2):laggedBMI) &&
-                                       dc(totalforest_60, I(totalforest_60^2)))
+                                       dc(baa_60, I(baa_60^2), I(baa_60^2):year))
+
+save(file="output/dredge_tables_forestMO.Rdata", list="forest_dredge")
+df <- as.data.frame(forest_dredge)
+write_csv(df, "output/forest-models_ncompMO.csv")
+
