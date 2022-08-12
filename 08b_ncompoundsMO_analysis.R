@@ -18,8 +18,7 @@ clusterEvalQ(cl,library(ordinal))
 clusterEvalQ(cl,library(MuMIn))
 
 #### Read in data ####
-# dat <- read_csv("data/analysis-ready/combined_AR_covars.csv")
-dat <- read_csv("C:/Users/StephCunningham/Desktop/rodenticide/combined_AR_covars.csv")
+dat <- read_csv("data/analysis-ready/combined_AR_covars.csv")
 dat <- as.data.frame(dat)
 
 #### Analysis Set-up ####
@@ -69,7 +68,7 @@ pctAG_sel <- model.sel(ag15, ag30, ag60, ag15sq, ag30sq, ag60sq,
                        past15, past30, past60, past15sq, past30sq, past60sq)
 pctAG_sel
 
-## Percent forest
+#### Percent forest ####
 # pctFOR1 <- dat[, c(1:18, 23:26)]
 # pctFOR1 <- distinct(pctFOR1)
 # pctFOR1 <- pctFOR1 %>% group_by(RegionalID) %>% 
@@ -112,6 +111,7 @@ pctAG_sel
 #                         ever15, ever30, ever60, ever15sq, ever30sq, ever60sq,
 #                         mfor15, mfor30, mfor60, mfor15sq, mfor30sq, mfor60sq)
 # pctFOR_sel
+########
 
 ## Beech basal area
 baa1 <- dat[, c(1:18, 27)]
@@ -335,39 +335,3 @@ dh <- as.data.frame(humans_dredge)
 write_csv(dh, "output/human-models_ncompMO.csv")
 dh2 <- as.data.frame(humans_dredge2)
 write_csv(dh2, "output/human-models_ncompMO2.csv")
-
-###
-# forest conditions hypothesis
-m1forest <- clmm(n.compounds.MO ~ Sex*Age + 
-                   laggedBMI + 
-                   baa_15 + I(baa_15^2) +
-                   baa_30 + I(baa_30^2) +
-                   baa_60 + I(baa_60^2) +
-                   baa_15:laggedBMI + baa_30:laggedBMI + baa_60:laggedBMI +
-                   # mixed_60 + I(mixed_60^2) +
-                   # mixed_15 + I(mixed_15^2) + 
-                   # deciduous_60 + I(deciduous_60^2) + 
-                   (1|Region) + (1|WMU), data=dat1, na.action="na.fail")
-
-m1forest2 <- clmm(n.compounds.MO ~ Sex*Age + 
-                    year + 
-                    baa_15 + I(baa_15^2) +
-                    baa_30 + I(baa_30^2) +
-                    baa_60 + I(baa_60^2) +
-                    baa_15:year + baa_30:year + baa_60:year +
-                    # mixed_60 + I(mixed_60^2) +
-                    # mixed_15 + I(mixed_15^2) + 
-                    # deciduous_60 + I(deciduous_60^2) + 
-                    (1|Region) + (1|WMU), data=dat1, na.action="na.fail")
-
-forest_dredge <- MuMIn:::.dredge.par(m1forest, cluster=cl, trace=2, subset=)
-
-forest_dredge <- MuMIn:::.dredge.par(m1forest, cluster=cl, trace=2, subset=!(baa_15 && baa_30) &&
-                                       !(baa_15 && baa_60) &&
-                                       !(baa_30 && baa_60) &&
-                                       dc(baa_60, I(baa_60^2), I(baa_60^2):year))
-
-save(file="output/dredge_tables_forestMO.Rdata", list="forest_dredge")
-df <- as.data.frame(forest_dredge)
-write_csv(df, "output/forest-models_ncompMO.csv")
-
