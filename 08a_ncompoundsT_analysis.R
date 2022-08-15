@@ -330,11 +330,11 @@ dh <- read_csv("output/human-models_ncompT.csv")
 dh <- as.data.frame(dh)
 
 # Remove rows where the quadratic total ag was included without the linear
-dh <- dh[!(is.na(dh$totalag_60) & dh$`I(totalag_60^2)`),]
+dh <- dh[!(is.na(dh$totalag_60) & dh$`I(totalag_60^2)`>0),]
 dh <- dh[!is.na(dh$AICc),]
 
 # Remove rows where quadratic interaction was included but not the linear interaction
-dh <- dh[!(is.na(dh$`baa_60:laggedBMI`) & dh$`I(baa_60^2):laggedBMI`),]
+dh <- dh[!(is.na(dh$`baa_60:laggedBMI`) & dh$`I(baa_60^2):laggedBMI`>0),]
 dh <- dh[!is.na(dh$AICc),]
 
 # Clear deltaAIC and model weights
