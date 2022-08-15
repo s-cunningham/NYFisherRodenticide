@@ -346,8 +346,9 @@ dh$delta <- dh$AICc - dh$AICc[1]
 w <- qpcR::akaike.weights(dh$AICc)
 dh$weight <- w$weights
 
-#### See summary for top models (deltaAICc < 2) ####
+#### Running final models ####
 
+# See summary for top models (deltaAICc < 2)
 m1 <- clmm(n.compounds.T ~ Sex*Age + baa_60 + laggedBMI + I(baa_60^2) +
              baa_60:laggedBMI + I(baa_60^2):laggedBMI +
              mix_60_500 + I(mix_60_500^2) +
@@ -362,6 +363,8 @@ m2 <- clmm(n.compounds.T ~ Sex*Age + baa_60 + laggedBMI + I(baa_60^2) +
 ## Loop over each set of random points
 
 m_est <- data.frame()
+pct2.5 <- data.frame()
+pct97.5 <- data.frame()
 
 # Loop over each point set
 for (i in 1:10) {
@@ -382,17 +385,41 @@ for (i in 1:10) {
   # Create model selection object for averaging
   mod_pt <- model.sel(m1_pt, m2_pt)
   
-  # Average estimates
+  # Model average estimates
   avgd <- model.avg(mod_pt)
+  avg_smry <- summary(avgd)
   
+  # save averaged confidence intervals
+  pct2.5 <- rbind(pct2.5, t(confint(avgd, full=TRUE))[1,])
+  pct97.5 <- rbind(pct97.5, t(confint(avgd, full=TRUE))[2,])
+
   # Save point set estimates
-  m_est <- rbind(m_est, avgd$coefficients[row.names(avgd$coefficients)=="full"])  
+  m_est <- rbind(m_est, avgd$coefficients[row.names(avgd$coefficients)=="full"])
   
-  # Rename (only need to do onece)
-  if (i==1) {names(m_est) <- c(colnames(avgd$coefficients))}
+  # Rename (only need to do once)
+  if (i==1) {
+    names(m_est) <- c(colnames(avgd$coefficients))
+    names(pct2.5) <- c(colnames(avgd$coefficients))
+    names(pct97.5) <- c(colnames(avgd$coefficients))
+    }
   
 }
 
 # Calculate averages for each coefficient
 coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)])
+pct2.5_avg <- colMeans(pct2.5[sapply(pct2.5, is.numeric)])
+pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)])
+
+#### Making sense of results ####
+
+
+
+
+
+
+
+
+
+
+
 
