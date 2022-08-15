@@ -212,6 +212,41 @@ dat1 <- left_join(dat1, wui1, by=c("RegionalID", "pt_name", "pt_index"))
 
 #### Run models ####
 
+## Check correlation matrix
+cor(dat1[,16:22])
 
+## Set up global model
+g1 <- glmer(binary.MO ~ Sex*Age + laggedBMI + 
+                        mix_60_100 + I(mix_60_100^2) +
+                        face_60_100 + I(face_60_100^2) +
+                        baa_30 + I(baa_30^2) +
+                        baa_30:laggedBMI + I(baa_30^2):laggedBMI + 
+                        (1|Region:WMU), family=binomial(link="logit"), data=dat1, na.action="na.fail")
 
+g2 <- glmer(binary.MO ~ Sex*Age + laggedBMI + 
+                        pasture_60 + I(pasture_60^2) +
+                        wui_60_100 + I(wui_60_100^2) + 
+                        baa_60 + I(baa_60^2) +
+                        baa_60:laggedBMI + I(baa_60^2):laggedBMI +
+                        (1|Region:WMU), family=binomial(link="logit"), data=dat1, na.action="na.fail")
 
+## Build model sets
+g1_dredge <- dredge(g1, subset=dc(baa_30, laggedBMI, baa_30:laggedBMI) &&
+                               dc(baa_30, I(baa_30^2), I(baa_30^2):laggedBMI) &&
+                               dc(mix_60_100, I(mix_60_100^2)) &&
+                               dc(face_60_100, I(face_60_100^2)))
+
+g2_dredge <- dredge(g1, subset=dc(baa_60, laggedBMI, baa_60:laggedBMI) &&
+                               dc(baa_60, I(baa_60^2), I(baa_60^2):laggedBMI) &&
+                               dc(wui_60_100, I(wui_60_100^2)) &&
+                               dc(pasture_60, I(pasture_60^2)))
+
+# Save dredge tables
+save(file="output/dredge_tables_binaryMO.Rdata", list="g1_dredge")
+save(file="output/dredge_tables_binaryMO2.Rdata", list="g2_dredge")
+
+# Save as csv file
+dh <- as.data.frame(g1_dredge)
+write_csv(dh, "output/models_binaryMO.csv")
+dh2 <- as.data.frame(g2_dredge)
+write_csv(dh2, "output/models_binaryMO2.csv")
