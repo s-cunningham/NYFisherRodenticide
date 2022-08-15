@@ -315,6 +315,7 @@ m1_dredge <- MuMIn:::.dredge.par(m1, cluster=cl, trace=2, subset=!(pasture_60 &&
                                                                           dc(wui_60_500, I(wui_60_500^2)) &&
                                                                           dc(wui_30k_500, I(wui_30k_500^2)) &&
                                                                           dc(pasture_60, I(pasture_60^2)) &&
+                                                                          dc(totalag_60, I(totalag_60^2)) &&
                                                                           dc(baa_60, I(baa_60^2), I(baa_60^2):laggedBMI))
 
 # Save dredge tables
