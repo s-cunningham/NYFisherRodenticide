@@ -1,6 +1,6 @@
 library(tidyverse)
 library(lme4)
-library(broom.mixed)
+library(parallel)
 library(MuMIn)
 
 set.seed(123)
