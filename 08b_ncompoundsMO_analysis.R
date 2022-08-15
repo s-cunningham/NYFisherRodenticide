@@ -30,7 +30,6 @@ dat$n.compounds.T <- ordered(dat$n.compounds.T, levels=c(0,1,2,3,4,5))
 # Resort columns
 dat <- dat[,c(1:7,30,31,10:12,8,9,13:29)]
 
-
 ## Percent AG
 pctAG1 <- dat[, c(1:18, 20:22)]
 pctAG1 <- distinct(pctAG1)
