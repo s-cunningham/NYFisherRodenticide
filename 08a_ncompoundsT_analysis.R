@@ -333,18 +333,66 @@ dh <- as.data.frame(dh)
 dh <- dh[!(is.na(dh$totalag_60) & dh$`I(totalag_60^2)`),]
 dh <- dh[!is.na(dh$AICc),]
 
+# Remove rows where quadratic interaction was included but not the linear interaction
 dh <- dh[!(is.na(dh$`baa_60:laggedBMI`) & dh$`I(baa_60^2):laggedBMI`),]
 dh <- dh[!is.na(dh$AICc),]
 
+# Clear deltaAIC and model weights
 dh$delta <- NA
 dh$weight <- NA
 
+# Recalculate deltaAIC and model weights
 dh$delta <- dh$AICc - dh$AICc[1]
 w <- qpcR::akaike.weights(dh$AICc)
 dh$weight <- w$weights
 
 #### See summary for top models (deltaAICc < 2) ####
 
-m1 <- clmm()
+m1 <- clmm(n.compounds.T ~ Sex*Age + baa_60 + laggedBMI + I(baa_60^2) +
+             baa_60:laggedBMI + I(baa_60^2):laggedBMI +
+             mix_60_500 + I(mix_60_500^2) +
+             totalag_60 + (1|Region) + (1|WMU), data=dat1)
 
+m2 <- clmm(n.compounds.T ~ Sex*Age + baa_60 + laggedBMI + I(baa_60^2) +
+             baa_60:laggedBMI + I(baa_60^2):laggedBMI +
+             mix_60_500 + I(mix_60_500^2) +
+             totalag_60 + I(totalag_60^2) +
+             (1|Region) + (1|WMU), data=dat1)
+
+## Loop over each set of random points
+
+m_est <- data.frame()
+
+# Loop over each point set
+for (i in 1:10) {
+  
+  # Subset to one point set at a time
+  pt <- dat1[dat1$pt_index==i,]
+  
+  # Run both models with deltaAICc < 2
+  m1_pt <- clmm(n.compounds.T ~ Sex*Age + baa_60 + laggedBMI + I(baa_60^2) +
+               baa_60:laggedBMI + I(baa_60^2):laggedBMI + mix_60_500 + I(mix_60_500^2) +
+               totalag_60 + (1|Region), data=pt)
+  
+  m2_pt <- clmm(n.compounds.T ~ Sex*Age + baa_60 + laggedBMI + I(baa_60^2) +
+               baa_60:laggedBMI + I(baa_60^2):laggedBMI +
+               mix_60_500 + I(mix_60_500^2) + totalag_60 + I(totalag_60^2) +
+               (1|Region), data=pt)
+  
+  # Create model selection object for averaging
+  mod_pt <- model.sel(m1_pt, m2_pt)
+  
+  # Average estimates
+  avgd <- model.avg(mod_pt)
+  
+  # Save point set estimates
+  m_est <- rbind(m_est, avgd$coefficients[row.names(avgd$coefficients)=="full"])  
+  
+  # Rename (only need to do onece)
+  if (i==1) {names(m_est) <- c(colnames(avgd$coefficients))}
+  
+}
+
+# Calculate averages for each coefficient
+coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)])
 
