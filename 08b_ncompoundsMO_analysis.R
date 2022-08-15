@@ -283,7 +283,7 @@ dat1$year <- as.factor(dat1$year)
 
 ## Set up global models
 # Human-driven hypothesis
-m1humans <- clmm(n.compounds.MO ~ Sex*Age + crops_60 + I(crops_60^2) +
+g1 <- clmm(n.compounds.MO ~ Sex*Age + crops_60 + I(crops_60^2) +
                    wui_60_100 + I(wui_60_100^2) + laggedBMI + 
                    baa_15 + I(baa_15^2) +
                    baa_30 + I(baa_30^2) +
@@ -291,18 +291,20 @@ m1humans <- clmm(n.compounds.MO ~ Sex*Age + crops_60 + I(crops_60^2) +
                    baa_15:laggedBMI + baa_30:laggedBMI + baa_60:laggedBMI +
                    (1|Region) + (1|WMU), data=dat1, na.action="na.fail")
 
-m2humans <- clmm(n.compounds.MO ~ Sex*Age + mix_60_100 + I(mix_60_100 ^2) +
+g2 <- clmm(n.compounds.MO ~ Sex*Age + mix_60_100 + I(mix_60_100 ^2) +
                    face_60_100 + I(face_60_100^2) + face_60_500 + laggedBMI + 
-                   baa_15 + I(baa_15^2) +
-                   baa_30 + I(baa_30^2) +
-                   baa_60 + I(baa_60^2) +
+                   baa_15 + I(baa_15^2) + I(baa_15^2):laggedBMI +
+                   baa_30 + I(baa_30^2) + I(baa_30^2):laggedBMI +
+                   baa_60 + I(baa_60^2) + I(baa_60^2):laggedBMI +
                    baa_15:laggedBMI + baa_30:laggedBMI + baa_60:laggedBMI +
                    (1|Region) + (1|WMU), data=dat1, na.action="na.fail")
 
 # Export data and model into the cluster worker nodes
-clusterExport(cl, c("dat1","m1humans","m2humans"))
+clusterExport(cl, c("dat1","g1","g2"))
 
-humans_dredge <- MuMIn:::.dredge.par(m1humans, cluster=cl, trace=2, subset=dc(wui_60_100, I(wui_60_100^2)) &&
+# Had to split because "column rank deficient" so it dropped a coefficient
+
+g_dredge <- MuMIn:::.dredge.par(g1, cluster=cl, trace=2, subset=dc(wui_60_100, I(wui_60_100^2)) &&
                                        dc(crops_60, I(crops_60^2)) &&
                                        !(baa_15 && baa_30) &&
                                        !(baa_15 && baa_60) &&
@@ -314,7 +316,7 @@ humans_dredge <- MuMIn:::.dredge.par(m1humans, cluster=cl, trace=2, subset=dc(wu
                                        dc(baa_30, laggedBMI, baa_30:laggedBMI) &&
                                        dc(baa_60, laggedBMI, baa_60:laggedBMI))
 
-humans_dredge2 <- MuMIn:::.dredge.par(m2humans, cluster=cl, trace=2, subset=!(mix_60_100 && face_60_100) &&
+g_dredge2 <- MuMIn:::.dredge.par(g2, cluster=cl, trace=2, subset=!(mix_60_100 && face_60_100) &&
                                         !(mix_60_100 && face_60_500) &&
                                         !(face_60_100 && face_60_500) &&
                                         dc(face_60_100, I(face_60_100^2)) &&
@@ -322,16 +324,71 @@ humans_dredge2 <- MuMIn:::.dredge.par(m2humans, cluster=cl, trace=2, subset=!(mi
                                         dc(baa_15, I(baa_15^2)) &&
                                         dc(baa_30, I(baa_30^2)) &&
                                         dc(baa_60, I(baa_60^2)) &&
+                                        dc(baa_15:laggedBMI, baa_30:laggedBMI) &&
+                                        dc(baa_15:laggedBMI, baa_60:laggedBMI) &&
+                                        dc(baa_30:laggedBMI, baa_60:laggedBMI) &&
                                         dc(baa_15, laggedBMI, baa_15:laggedBMI) &&
                                         dc(baa_30, laggedBMI, baa_30:laggedBMI) &&
+                                        dc(baa_15, I(baa_15^2), I(baa_15^2):laggedBMI) &&
+                                        dc(baa_30, I(baa_30^2), I(baa_30^2):laggedBMI) &&
+                                        dc(baa_60, I(baa_60^2), I(baa_60^2):laggedBMI) &&
                                         dc(baa_60, laggedBMI, baa_60:laggedBMI))
 
 # Save dredge tables
-save(file="output/dredge_tables_humansMO.Rdata", list="humans_dredge")
-save(file="output/dredge_tables_humansMO2.Rdata", list="humans_dredge2")
+save(file="output/dredge_tables_humansMO.Rdata", list="g_dredge")
+save(file="output/dredge_tables_humansMO2.Rdata", list="g_dredge2")
 
-
+# Save as csv file
 dh <- as.data.frame(humans_dredge)
 write_csv(dh, "output/human-models_ncompMO.csv")
 dh2 <- as.data.frame(humans_dredge2)
 write_csv(dh2, "output/human-models_ncompMO2.csv")
+
+## Read tables back in
+dh <- read_csv("output/human-models_ncompMO.csv")
+dh <- as.data.frame(dh)
+
+dh2 <- read_csv("output/human-models_ncompMO2.csv")
+dh2 <- as.data.frame(dh2)
+
+# Combine and reorder
+dh <- bind_rows(dh, dh2)
+ 
+# Clear deltaAIC and model weights
+dh$delta <- NA
+dh$weight <- NA
+
+# Reorder columns
+dh <- dh[,c(1:18, 24:28, 19:23)]
+
+# Remove rows with multiple baa scales, did not do a good job of setting subsets for dredge
+dh <- dh[!(!is.na(dh$`baa_15:laggedBMI`) & !is.na(dh$`baa_30:laggedBMI`)),]
+dh <- dh[!(!is.na(dh$`baa_15:laggedBMI`) & !is.na(dh$`baa_60:laggedBMI`)),]
+dh <- dh[!(!is.na(dh$`baa_30:laggedBMI`) & !is.na(dh$`baa_60:laggedBMI`)),]
+dh <- dh[!(!is.na(dh$baa_30) & !is.na(dh$`baa_60:laggedBMI`)),]
+dh <- dh[!(!is.na(dh$baa_15) & !is.na(dh$`baa_60:laggedBMI`)),]
+dh <- dh[!(!is.na(dh$baa_60) & !is.na(dh$`baa_30:laggedBMI`)),]
+dh <- dh[!(!is.na(dh$baa_15) & !is.na(dh$`baa_30:laggedBMI`)),]
+dh <- dh[!(!is.na(dh$baa_60) & !is.na(dh$`baa_15:laggedBMI`)),]
+dh <- dh[!(!is.na(dh$baa_30) & !is.na(dh$`baa_15:laggedBMI`)),]
+dh <- dh[!(!is.na(dh$baa_15) & !is.na(dh$baa_30)),]
+dh <- dh[!(!is.na(dh$baa_60) & !is.na(dh$baa_15)),]
+dh <- dh[!(!is.na(dh$baa_30) & !is.na(dh$baa_60)),]
+
+# Reorder according to AICc
+N.order <- order(dh$AICc)
+dh <- dh[N.order,]
+
+# Recalculate deltaAIC and model weights
+dh$delta <- dh$AICc - dh$AICc[1]
+w <- qpcR::akaike.weights(dh$AICc)
+dh$weight <- w$weights
+
+#### Running final models ####
+
+# See summary for top model (deltaAICc < 2)
+m1 <- clmm(n.compounds.T ~ Sex*Age + baa_15 + I(baa_15^2) +
+             crops_60 + I(crops_60^2) +
+             wui_60_100 + I(wui_60_100^2) + (1|Region), data=dat1)
+
+
