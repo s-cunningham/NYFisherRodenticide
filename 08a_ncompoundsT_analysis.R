@@ -283,7 +283,7 @@ dat1$year <- as.factor(dat1$year)
 
 ## Set up global models
 # Human-driven hypothesis
-m1 <- clmm(n.compounds.T ~ Sex*Age + 
+g1 <- clmm(n.compounds.T ~ Sex*Age + 
                 pasture_60 + I(pasture_60^2) + 
                 totalag_60 + I(totalag_60^2) +
                 mix_60_500 + I(mix_60_500 ^2) +
@@ -297,9 +297,9 @@ m1 <- clmm(n.compounds.T ~ Sex*Age +
 
 
 # Export data and model into the cluster worker nodes
-clusterExport(cl, c("dat1","m1"))
+clusterExport(cl, c("dat1","g1"))
 
-m1_dredge <- MuMIn:::.dredge.par(m1, cluster=cl, trace=2, subset=!(pasture_60 && totalag_60) &&
+g1_dredge <- MuMIn:::.dredge.par(g1, cluster=cl, trace=2, subset=!(pasture_60 && totalag_60) &&
                                                                           !(wui_60_250 && wui_30k_500) &&
                                                                           !(wui_60_250 && wui_60_500) &&
                                                                           !(wui_60_250 && mix_60_500) &&
@@ -316,54 +316,35 @@ m1_dredge <- MuMIn:::.dredge.par(m1, cluster=cl, trace=2, subset=!(pasture_60 &&
                                                                           dc(wui_30k_500, I(wui_30k_500^2)) &&
                                                                           dc(pasture_60, I(pasture_60^2)) &&
                                                                           dc(totalag_60, I(totalag_60^2)) &&
+                                                                          dc(baa_60:laggedBMI, I(baa_60^2):laggedBMI) &&
                                                                           dc(baa_60, I(baa_60^2), I(baa_60^2):laggedBMI))
 
 # Save dredge tables
-save(file="output/dredge_tables_humansT.Rdata", list="m1_dredge")
+save(file="output/dredge_tables_humansT.Rdata", list="g1_dredge")
 
-dh <- as.data.frame(m1_dredge)
+dh <- as.data.frame(g1_dredge)
 write_csv(dh, "output/human-models_ncompT.csv")
 
+## Read table back in...hopefully simple data frame
+dh <- read_csv("output/human-models_ncompT.csv")
+dh <- as.data.frame(dh)
 
+# Remove rows where the quadratic total ag was included without the linear
+dh <- dh[!(is.na(dh$totalag_60) & dh$`I(totalag_60^2)`),]
+dh <- dh[!is.na(dh$AICc),]
 
+dh <- dh[!(is.na(dh$`baa_60:laggedBMI`) & dh$`I(baa_60^2):laggedBMI`),]
+dh <- dh[!is.na(dh$AICc),]
 
+dh$delta <- NA
+dh$weight <- NA
 
+dh$delta <- dh$AICc - dh$AICc[1]
+w <- qpcR::akaike.weights(dh$AICc)
+dh$weight <- w$weights
 
+#### See summary for top models (deltaAICc < 2) ####
 
-#### Run models based on best ####
-m1 <- clmm(n.compounds.T ~ Age*Sex + mix_60_500 + I(mix_60_500^2) + 
-                            pasture_60 + baa_60*laggedBMI +  
-                            (1|Region) + (1|WMU), data=dat1)
-m2 <- clmm(n.compounds.T ~ Age*Sex + mix_60_500 + I(mix_60_500^2) + 
-                           pasture_60 + I(pasture_60^2) + baa_60*laggedBMI +  
-                           (1|Region) + (1|WMU), data=dat1)
-m3 <- clmm(n.compounds.T ~ Age*Sex + mix_60_500 + I(mix_60_500^2) + 
-             pasture_60 + baa_60*year +  
-             (1|Region) + (1|WMU), data=dat1)
-m4 <- clmm(n.compounds.T ~ Age*Sex + mix_60_500 + I(mix_60_500^2) + 
-             pasture_60 + I(pasture_60^2) + baa_60*year +  
-             (1|Region) + (1|WMU), data=dat1)
-m5 <- clmm(n.compounds.T ~ Age*Sex + mix_60_500 + 
-             pasture_60 + baa_60*year +  
-             (1|Region) + (1|WMU), data=dat1)
+m1 <- clmm()
 
-sel <- model.sel(m1, m2, m3, m4, m5)
-sel
-
-summary(m3)
-
-library(sjPlot)
-library(sjmisc)
-
-pred <- plot_model(m3, type="pred", terms=c("Age [all]", "Sex"))
-plot(pred)
-
-pred <- plot_model(m3, type="pred", terms=c("year [all]"))
-plot(pred)
-
-pred <- plot_model(m3, type="pred", terms=c("mix_60_500 [all]"))
-plot(pred)
-
-pred <- plot_model(m3, type="pred", terms=c("pasture_60"))
-plot(pred)
 
