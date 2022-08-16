@@ -354,3 +354,8 @@ coef_summary <- data.frame(coef=coefs, coef_summary)
 # Write to file
 write_csv(coef_summary, "results/binaryT_coef-summary.csv")
 
+
+
+
+
+
