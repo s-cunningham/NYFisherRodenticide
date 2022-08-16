@@ -35,7 +35,7 @@ dat[,c(10,19:30)] <- scale(dat[,c(10,19:30)])
 ## Use all the data
 
 ## Percent AG
-pctAG1 <- dat[, c(1:3, 6, 7, 16, 17, 19:21)]
+pctAG1 <- dat[, c(1:3, 6:8, 16, 17, 19:21)]
 pctAG1 <- distinct(pctAG1)
 pctAG1 <- pctAG1 %>% group_by(RegionalID) %>% 
   pivot_wider(names_from=buffsize, values_from=c(pasture, crops, totalag)) %>% as.data.frame()
