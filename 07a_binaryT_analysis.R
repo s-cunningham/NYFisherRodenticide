@@ -237,6 +237,7 @@ clusterExport(cl, c("dat1","g1","g2"))
 g1_dredge <- MuMIn:::.dredge.par(g1, cluster=cl, trace=2, subset=dc(baa_30, laggedBMI, baa_30:laggedBMI) &&
                                                 dc(baa_30, I(baa_30^2), I(baa_30^2):laggedBMI) &&
                                                 dc(mix_60_150, I(mix_60_500^2)) &&
+                                                dc(face_60_500, I(face_60_500^2)) &&
                                                 !(mix_60_500 && face_60_500) &&
                                                 !(mix_60_500 && face_60_100) &&
                                                 !(face_60_100 && face_60_500) &&
@@ -264,4 +265,42 @@ dh <- as.data.frame(dh)
 dh2 <- read_csv("output/models_binaryT2.csv")
 dh2 <- as.data.frame(dh2)
 
+# Combine and reorder
+dh <- bind_rows(dh, dh2)
 
+# Reorder columns
+dh <- dh[,c(1:15, 21:28, 16:20)]
+
+# Clear deltaAIC and model weights
+dh$delta <- NA
+dh$weight <- NA
+
+# Reorder according to AICc
+N.order <- order(dh$AICc)
+dh <- dh[N.order,]
+
+# Remove some that didn't end up in subset of dredge
+dh <- dh[!(is.na(dh$face_60_500) & !is.na(dh$`I(face_60_500^2)`)),]
+
+# Recalculate deltaAIC and model weights
+dh$delta <- dh$AICc - dh$AICc[1]
+w <- qpcR::akaike.weights(dh$AICc)
+dh$weight <- w$weights
+
+#### Running final models ####
+
+# See summary for top models (deltaAICc < 2)
+m1 <- clmm(n.compounds.T ~ Sex*Age + baa_60 + laggedBMI + baa_60:laggedBMI +
+             I(baa_60^2) + totalag_60 + wui_60_100 + (1|Region), data=dat1)
+
+m2 <- clmm(n.compounds.T ~ Sex*Age + baa_30 + I(baa_30^2) + 
+             wui_60_100 + I(wui_60_100^2) +
+             crops_60 + I(crops_60^2) + (1|Region), data=dat1)
+
+m3 <- clmm(n.compounds.T ~ Sex*Age + baa_60 + I(baa_60^2) + 
+             wui_60_100 + I(wui_60_100^2) +
+             crops_60 + I(crops_60^2) + (1|Region), data=dat1)
+
+m4 <- clmm(n.compounds.T ~ Sex*Age + baa_60 + I(baa_60^2) + 
+             wui_60_100 + I(wui_60_100^2) +
+             crops_60 + I(crops_60^2) + (1|Region), data=dat1)
