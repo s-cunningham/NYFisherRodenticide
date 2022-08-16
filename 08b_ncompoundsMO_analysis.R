@@ -451,6 +451,7 @@ coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)], na.rm=TRUE)
 pct2.5_avg <- colMeans(pct2.5[sapply(pct2.5, is.numeric)], na.rm=TRUE)
 pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)], na.rm=TRUE)
 
+# Combine and clean up data frame
 coef_summary <- bind_rows(coef_avg, pct2.5_avg, pct97.5_avg)
 coef_summary <- as.data.frame(coef_summary)
 coefs <- c("coef_mean", "2.5CI", "97.5CI")
