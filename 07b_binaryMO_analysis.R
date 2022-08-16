@@ -7,14 +7,14 @@ set.seed(123)
 
 #### Set up parallel processing ####
 
-# Determine cluster type (mine is a PSOCK)
+# Determine cluster type 
 clusterType <- if(length(find.package("snow", quiet = TRUE))) "SOCK" else "PSOCK"
 
 # Detect number of cores and create cluster (leave a couple out to not overwhelm pc)
-nCores <- detectCores() - 2
+nCores <- detectCores() - 4
 cl <- makeCluster(nCores, type=clusterType)
 
-clusterEvalQ(cl,library(ordinal))
+clusterEvalQ(cl,library(lme4))
 clusterEvalQ(cl,library(MuMIn))
 
 #### Read in data ####
@@ -230,13 +230,16 @@ g2 <- glmer(binary.MO ~ Sex*Age + laggedBMI +
                         baa_60:laggedBMI + I(baa_60^2):laggedBMI +
                         (1|Region:WMU), family=binomial(link="logit"), data=dat1, na.action="na.fail")
 
+# Export data and model into the cluster worker nodes
+clusterExport(cl, c("dat1","g1","g2"))
+
 ## Build model sets
-g1_dredge <- dredge(g1, subset=dc(baa_30, laggedBMI, baa_30:laggedBMI) &&
+g1_dredge <- MuMIn:::.dredge.par(g1, cluster=cl, trace=2,subset=dc(baa_30, laggedBMI, baa_30:laggedBMI) &&
                                dc(baa_30, I(baa_30^2), I(baa_30^2):laggedBMI) &&
                                dc(mix_60_100, I(mix_60_100^2)) &&
                                dc(face_60_100, I(face_60_100^2)))
 
-g2_dredge <- dredge(g1, subset=dc(baa_60, laggedBMI, baa_60:laggedBMI) &&
+g2_dredge <- MuMIn:::.dredge.par(g2, cluster=cl, trace=2, subset=dc(baa_60, laggedBMI, baa_60:laggedBMI) &&
                                dc(baa_60, I(baa_60^2), I(baa_60^2):laggedBMI) &&
                                dc(wui_60_100, I(wui_60_100^2)) &&
                                dc(pasture_60, I(pasture_60^2)))
@@ -250,3 +253,97 @@ dh <- as.data.frame(g1_dredge)
 write_csv(dh, "output/models_binaryMO.csv")
 dh2 <- as.data.frame(g2_dredge)
 write_csv(dh2, "output/models_binaryMO2.csv")
+
+# Read tables back in
+dh <- read_csv("output/models_binaryMO.csv")
+dh <- as.data.frame(dh)
+
+dh2 <- read_csv("output/models_binaryMO2.csv")
+dh2 <- as.data.frame(dh2)
+
+# Combine and reorder
+dh <- bind_rows(dh, dh2)
+
+# Reorder columns
+dh <- dh[,c(1:13, 19:26, 14:18)]
+
+# Clear deltaAIC and model weights
+dh$delta <- NA
+dh$weight <- NA
+
+# Reorder according to AICc
+N.order <- order(dh$AICc)
+dh <- dh[N.order,]
+
+# Recalculate deltaAIC and model weights
+dh$delta <- dh$AICc - dh$AICc[1]
+w <- qpcR::akaike.weights(dh$AICc)
+dh$weight <- w$weights
+
+#### Running final models ####
+
+# See summary for top models (deltaAICc < 2)
+m1 <- glmer(binary.MO  ~ Sex*Age + laggedBMI + baa_60 + I(baa_60^2) + 
+                              baa_60:laggedBMI + I(baa_60^2):laggedBMI +
+                              wui_60_100 + pasture_60 + I(pasture_60^2) + (1|Region), 
+                              family=binomial(link="logit"), data=dat1)
+
+m2 <- glmer(binary.MO  ~ Sex*Age + laggedBMI + baa_60 + I(baa_60^2) + 
+                              baa_60:laggedBMI + I(baa_60^2):laggedBMI +
+                              wui_60_100 + pasture_60 + (1|Region), 
+                              family=binomial(link="logit"), data=dat1)
+
+## Loop over each set of random points
+
+m_est <- data.frame()
+pct2.5 <- data.frame()
+pct97.5 <- data.frame()
+
+# Loop over each point set
+for (i in 1:10) {
+  
+  # Subset to one point set at a time
+  pt <- dat1[dat1$pt_index==i,]
+  
+  # Run both models with deltaAICc < 2
+  m1_pt <- glmer(binary.MO  ~ Sex*Age + laggedBMI + baa_60 + I(baa_60^2) + 
+                baa_60:laggedBMI + I(baa_60^2):laggedBMI +
+                wui_60_100 + pasture_60 + I(pasture_60^2) + (1|Region),
+                family=binomial(link="logit"), data=pt)
+  
+  m2_pt <- glmer(binary.MO  ~ Sex*Age + laggedBMI + baa_60 + I(baa_60^2) + 
+                baa_60:laggedBMI + I(baa_60^2):laggedBMI +
+                wui_60_100 + pasture_60 + (1|Region), 
+                family=binomial(link="logit"), data=pt)
+  
+
+  # Create model selection object for averaging
+  mod_pt <- model.sel(m1_pt, m2_pt)
+  
+  # Model average estimates
+  avgd <- model.avg(mod_pt)
+  avg_smry <- summary(avgd)
+  
+  # save averaged confidence intervals
+  pct2.5 <- rbind(pct2.5, t(confint(avgd, full=TRUE))[1,])
+  pct97.5 <- rbind(pct97.5, t(confint(avgd, full=TRUE))[2,])
+  
+  # Save point set estimates
+  m_est <- rbind(m_est, avgd$coefficients[row.names(avgd$coefficients)=="full"])
+  
+  # Rename (only need to do once)
+  if (i==1) {
+    names(m_est) <- c(colnames(avgd$coefficients))
+    names(pct2.5) <- c(colnames(avgd$coefficients))
+    names(pct97.5) <- c(colnames(avgd$coefficients))
+  }
+  
+}
+
+# Calculate averages for each coefficient
+coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)])
+pct2.5_avg <- colMeans(pct2.5[sapply(pct2.5, is.numeric)])
+pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)])
+
+
+
