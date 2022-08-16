@@ -83,7 +83,7 @@ baa1  <- baa1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffsize, val
 names(baa1)[20:22] <- c("baa_15", "baa_30", "baa_60") 
 
 ## Scale and center variables
-baa1[,c(20:22)] <- scale(baa1[,c(20:22)])
+baa1[,c(18, 20:22)] <- scale(baa1[,c(18, 20:22)])
 
 baa15 <- clmm(n.compounds.MO ~ baa_15 + (1|WMUA_code/WMU), data=baa1)
 baa15sq <- clmm(n.compounds.MO ~ baa_15 + I(baa_15^2) + (1|WMUA_code/WMU), data=baa1)
@@ -110,7 +110,6 @@ baa_sel <- model.sel(baa15, baa30, baa60, baa15sq, baa30sq, baa60sq,
                      baa15lBMI, baa15sqlBMI, baa30lBMI, baa30sqlBMI, baa60lBMI, baa60sqlBMI,
                      baa15M, baa15sqM, baa30M, baa30sqM, baa60M, baa60sqM)
 baa_sel
-
 
 ## Wildland-urban interface
 intermix1 <- dat[, c(1:19, 28)]
