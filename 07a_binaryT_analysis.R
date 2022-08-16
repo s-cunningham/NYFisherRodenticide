@@ -10,10 +10,10 @@ set.seed(123)
 clusterType <- if(length(find.package("snow", quiet = TRUE))) "SOCK" else "PSOCK"
 
 # Detect number of cores and create cluster (leave a couple out to not overwhelm pc)
-nCores <- detectCores() - 2
+nCores <- detectCores() - 4
 cl <- makeCluster(nCores, type=clusterType)
 
-clusterEvalQ(cl,library(ordinal))
+clusterEvalQ(cl,library(lme4))
 clusterEvalQ(cl,library(MuMIn))
 
 #### Read in data ####
@@ -230,19 +230,22 @@ g2 <- glmer(binary.T ~ Sex*Age + laggedBMI +
               baa_60:laggedBMI + I(baa_60^2):laggedBMI +
               (1|Region:WMU), family=binomial(link="logit"), data=dat1, na.action="na.fail")
 
-## Build model sets
-g1_dredge <- dredge(g1, subset=dc(baa_30, laggedBMI, baa_30:laggedBMI) &&
-                      dc(baa_30, I(baa_30^2), I(baa_30^2):laggedBMI) &&
-                      dc(mix_60_100, I(mix_60_100^2)) &&
-                      !(mix_60_100 && face_60_500) &&
-                      !(mix_60_100 && face_60_100) &&
-                      !(face_60_100 && face_60_500) &&
-                      dc(face_60_100, I(face_60_100^2)))
+# Export data and model into the cluster worker nodes
+clusterExport(cl, c("dat1","g1","g2"))
 
-g2_dredge <- dredge(g1, subset=dc(baa_60, laggedBMI, baa_60:laggedBMI) &&
-                      dc(baa_60, I(baa_60^2), I(baa_60^2):laggedBMI) &&
-                      dc(wui_60_100, I(wui_60_100^2)) &&
-                      dc(totalag_60, I(totalag_60^2)))
+## Build model sets
+g1_dredge <- MuMIn:::.dredge.par(g1, cluster=cl, trace=2, subset=dc(baa_30, laggedBMI, baa_30:laggedBMI) &&
+                                                dc(baa_30, I(baa_30^2), I(baa_30^2):laggedBMI) &&
+                                                dc(mix_60_150, I(mix_60_500^2)) &&
+                                                !(mix_60_500 && face_60_500) &&
+                                                !(mix_60_500 && face_60_100) &&
+                                                !(face_60_100 && face_60_500) &&
+                                                dc(face_60_100, I(face_60_100^2)))
+
+g2_dredge <- MuMIn:::.dredge.par(g2, cluster=cl, trace=2, subset=dc(baa_60, laggedBMI, baa_60:laggedBMI) &&
+                                                dc(baa_60, I(baa_60^2), I(baa_60^2):laggedBMI) &&
+                                                dc(wui_60_100, I(wui_60_100^2)) &&
+                                                dc(totalag_60, I(totalag_60^2)))
 
 # Save dredge tables
 save(file="output/dredge_tables_binaryT.Rdata", list="g1_dredge")
@@ -253,3 +256,12 @@ dh <- as.data.frame(g1_dredge)
 write_csv(dh, "output/models_binaryT.csv")
 dh2 <- as.data.frame(g2_dredge)
 write_csv(dh2, "output/models_binaryT2.csv")
+
+#### Read tables back in
+dh <- read_csv("output/models_binaryT.csv")
+dh <- as.data.frame(dh)
+
+dh2 <- read_csv("output/models_binaryT2.csv")
+dh2 <- as.data.frame(dh2)
+
+
