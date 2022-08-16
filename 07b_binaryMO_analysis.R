@@ -345,5 +345,12 @@ coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)])
 pct2.5_avg <- colMeans(pct2.5[sapply(pct2.5, is.numeric)])
 pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)])
 
+# Combine and clean up data frame
+coef_summary <- bind_rows(coef_avg, pct2.5_avg, pct97.5_avg)
+coef_summary <- as.data.frame(coef_summary)
+coefs <- c("coef_mean", "2.5CI", "97.5CI")
+coef_summary <- data.frame(coef=coefs, coef_summary)
 
+# Write to file
+write_csv(coef_summary, "results/binaryT_coef-summary.csv")
 
