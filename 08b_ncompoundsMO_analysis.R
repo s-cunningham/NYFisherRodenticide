@@ -338,9 +338,9 @@ save(file="output/dredge_tables_humansMO.Rdata", list="g_dredge")
 save(file="output/dredge_tables_humansMO2.Rdata", list="g_dredge2")
 
 # Save as csv file
-dh <- as.data.frame(humans_dredge)
+dh <- as.data.frame(g_dredge)
 write_csv(dh, "output/human-models_ncompMO.csv")
-dh2 <- as.data.frame(humans_dredge2)
+dh2 <- as.data.frame(g_dredge2)
 write_csv(dh2, "output/human-models_ncompMO2.csv")
 
 ## Read tables back in
@@ -385,9 +385,69 @@ dh$weight <- w$weights
 
 #### Running final models ####
 
-# See summary for top model (deltaAICc < 2)
-m1 <- clmm(n.compounds.T ~ Sex*Age + baa_15 + I(baa_15^2) +
-             crops_60 + I(crops_60^2) +
-             wui_60_100 + I(wui_60_100^2) + (1|Region), data=dat1)
+# See summary for top models (deltaAICc < 2)
+m1 <- clmm(n.compounds.MO ~ Sex*Age + baa_15 + I(baa_15^2) + 
+                            wui_60_100 + I(wui_60_100^2) +
+                            crops_60 + I(crops_60^2) + (1|Region), data=dat1)
 
+m2 <- clmm(n.compounds.MO ~ Sex*Age + baa_30 + I(baa_30^2) + 
+             wui_60_100 + I(wui_60_100^2) +
+             crops_60 + I(crops_60^2) + (1|Region), data=dat1)
+
+m3 <- clmm(n.compounds.MO ~ Sex*Age + baa_60 + I(baa_60^2) + 
+             wui_60_100 + I(wui_60_100^2) +
+             crops_60 + I(crops_60^2) + (1|Region), data=dat1)
+
+## Loop over each set of random points
+
+m_est <- data.frame()
+pct2.5 <- data.frame()
+pct97.5 <- data.frame()
+
+# Loop over each point set
+for (i in 1:10) {
+  
+  # Subset to one point set at a time
+  pt <- dat1[dat1$pt_index==i,]
+  
+  # Run both models with deltaAICc < 2
+  m1_pt <- clmm(n.compounds.MO ~ Sex*Age + baa_15 + I(baa_15^2) + 
+                                 wui_60_100 + I(wui_60_100^2) +
+                                 crops_60 + I(crops_60^2) + (1|Region), data=pt)
+  
+  m2_pt <- clmm(n.compounds.MO ~ Sex*Age + baa_30 + I(baa_30^2) + 
+                                 wui_60_100 + I(wui_60_100^2) +
+                                 crops_60 + I(crops_60^2) + (1|Region), data=pt)
+  
+  m3_pt <- clmm(n.compounds.MO ~ Sex*Age + baa_60 + I(baa_60^2) + 
+                                 wui_60_100 + I(wui_60_100^2) +
+                                 crops_60 + I(crops_60^2) + (1|Region), data=pt)
+  
+  # Create model selection object for averaging
+  mod_pt <- model.sel(m1_pt, m2_pt, m3_pt)
+  
+  # Model average estimates
+  avgd <- model.avg(mod_pt)
+  avg_smry <- summary(avgd)
+  
+  # save averaged confidence intervals
+  pct2.5 <- rbind(pct2.5, t(confint(avgd, full=TRUE))[1,])
+  pct97.5 <- rbind(pct97.5, t(confint(avgd, full=TRUE))[2,])
+  
+  # Save point set estimates
+  m_est <- rbind(m_est, avgd$coefficients[row.names(avgd$coefficients)=="full"])
+  
+  # Rename (only need to do once)
+  if (i==1) {
+    names(m_est) <- c(colnames(avgd$coefficients))
+    names(pct2.5) <- c(colnames(avgd$coefficients))
+    names(pct97.5) <- c(colnames(avgd$coefficients))
+  }
+  
+}
+
+# Calculate averages for each coefficient
+coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)])
+pct2.5_avg <- colMeans(pct2.5[sapply(pct2.5, is.numeric)])
+pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)])
 
