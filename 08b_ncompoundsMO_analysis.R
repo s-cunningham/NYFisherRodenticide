@@ -11,7 +11,7 @@ set.seed(123)
 clusterType <- if(length(find.package("snow", quiet = TRUE))) "SOCK" else "PSOCK"
 
 # Detect number of cores and create cluster (leave a couple out to not overwhelm pc)
-nCores <- detectCores() - 2
+nCores <- detectCores() - 3
 cl <- makeCluster(nCores, type=clusterType)
 
 clusterEvalQ(cl,library(ordinal))
@@ -40,6 +40,8 @@ dat$mast[dat$year==2018] <- "intermediate"
 dat$mast[dat$year==2019] <- "fail"
 dat$mast[dat$year==2020] <- "high"
 dat$mast <-  ordered(dat$mast, levels=c("fail", "intermediate", "high"))
+
+dat$fyear <- factor(dat$year)
 
 ## Percent AG
 pctAG1 <- dat[, c(1:18, 20:22)]
@@ -78,12 +80,12 @@ pctAG_sel <- model.sel(ag15, ag30, ag60, ag15sq, ag30sq, ag60sq,
 pctAG_sel
 
 ## Beech basal area
-baa1 <- dat[, c(1:18, 27, 31, 32)]
+baa1 <- dat[, c(1:18, 27, 31, 32, 33)]
 baa1  <- baa1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffsize, values_from=baa, values_fn=unique) %>% as.data.frame()
-names(baa1)[20:22] <- c("baa_15", "baa_30", "baa_60") 
+names(baa1)[21:23] <- c("baa_15", "baa_30", "baa_60") 
 
 ## Scale and center variables
-baa1[,c(18, 20:22)] <- scale(baa1[,c(18, 20:22)])
+baa1[,c(18, 21:23)] <- scale(baa1[,c(18, 21:23)])
 
 baa15 <- clmm(n.compounds.MO ~ baa_15 + (1|WMUA_code/WMU), data=baa1)
 baa15sq <- clmm(n.compounds.MO ~ baa_15 + I(baa_15^2) + (1|WMUA_code/WMU), data=baa1)
@@ -106,9 +108,17 @@ baa30sqM <- clmm(n.compounds.MO ~ baa_30*mast + I(baa_30^2)*mast + (1|WMUA_code/
 baa60M <- clmm(n.compounds.MO ~ baa_60*mast + (1|WMUA_code/WMU), data=baa1)
 baa60sqM <- clmm(n.compounds.MO ~ baa_60*mast + I(baa_60^2)*mast + (1|WMUA_code/WMU), data=baa1)
 
+baa15y <- clmm(n.compounds.MO ~ baa_15*fyear + (1|WMUA_code/WMU), data=baa1)
+baa15sqy <- clmm(n.compounds.MO ~ baa_15*fyear + I(baa_15^2)*fyear + (1|WMUA_code/WMU), data=baa1)
+baa30y <- clmm(n.compounds.MO ~ baa_30*fyear + (1|WMUA_code/WMU), data=baa1)
+baa30sqy <- clmm(n.compounds.MO ~ baa_30*fyear + I(baa_30^2)*fyear + (1|WMUA_code/WMU), data=baa1)
+baa60y <- clmm(n.compounds.MO ~ baa_60*fyear + (1|WMUA_code/WMU), data=baa1)
+baa60sqy <- clmm(n.compounds.MO ~ baa_60*fyear + I(baa_60^2)*fyear + (1|WMUA_code/WMU), data=baa1)
+
 baa_sel <- model.sel(baa15, baa30, baa60, baa15sq, baa30sq, baa60sq, 
                      baa15lBMI, baa15sqlBMI, baa30lBMI, baa30sqlBMI, baa60lBMI, baa60sqlBMI,
-                     baa15M, baa15sqM, baa30M, baa30sqM, baa60M, baa60sqM)
+                     baa15M, baa15sqM, baa30M, baa30sqM, baa60M, baa60sqM,
+                     baa15y, baa15sqy, baa30y, baa30sqy, baa60y, baa60sqy)
 baa_sel
 
 ## Wildland-urban interface
@@ -222,7 +232,7 @@ wui_sel <- model.sel(wui_15100, wui_30100, wui_60100, wui_15100sq, wui_30100sq, 
 wui_sel
 
 #### Set up data to run for each combination of covariates ####
-dat1 <- dat[,c(1:17,31)]
+dat1 <- dat[,c(1:16,32)]
 dat1 <- distinct(dat1)
 
 # Join percent agriculture
@@ -230,89 +240,43 @@ pctAG1 <- pctAG1[,c(1:3, 23)]
 dat1 <- left_join(dat1, pctAG1, by=c("RegionalID", "pt_name", "pt_index"))
 
 # Join beech basal area
-baa1 <- baa1[,c(1:3, 18:20)]
+baa1 <- baa1[,c(1:3, 22)]
 dat1 <- left_join(dat1, baa1, by=c("RegionalID", "pt_name", "pt_index"))
 
 # Join total WUI
-wui1 <- wui1[,c(1:3, 20)]
+wui1 <- wui1[,c(1:3, 29)]
 dat1 <- left_join(dat1, wui1, by=c("RegionalID", "pt_name", "pt_index"))
 
-# join forest
-# pctFOR1 <- pctFOR1[,c(1:3, 20, 24, 26)]
-# dat1 <- left_join(dat1, pctFOR1, by=c("RegionalID", "pt_name", "pt_index"))
-
 ## Check correlation matrix
-cor(dat1[,19:26])
-
-## Different way of accounting for year/mast cycle
-dat1$fBMI <- ordered(dat1$year, levels=c(2019, 2018, 2020))
-dat1$year <- as.factor(dat1$year)
+cor(dat1[,18:20])
 
 ## Set up global models
 # Human-driven hypothesis
-g1 <- clmm(n.compounds.MO ~ Sex*Age + crops_60 + I(crops_60^2) +
-                   wui_60_100 + I(wui_60_100^2) + laggedBMI + 
-                   baa_15 + I(baa_15^2) +
-                   baa_30 + I(baa_30^2) +
-                   baa_60 + I(baa_60^2) +
-                   baa_15:laggedBMI + baa_30:laggedBMI + baa_60:laggedBMI +
-                   (1|Region) + (1|WMU), data=dat1, na.action="na.fail")
-
-g2 <- clmm(n.compounds.MO ~ Sex*Age + mix_60_100 + I(mix_60_100 ^2) +
-                   face_60_100 + I(face_60_100^2) + face_60_500 + laggedBMI + 
-                   baa_15 + I(baa_15^2) + I(baa_15^2):laggedBMI +
-                   baa_30 + I(baa_30^2) + I(baa_30^2):laggedBMI +
-                   baa_60 + I(baa_60^2) + I(baa_60^2):laggedBMI +
-                   baa_15:laggedBMI + baa_30:laggedBMI + baa_60:laggedBMI +
-                   (1|Region) + (1|WMU), data=dat1, na.action="na.fail")
+g1 <- clmm(n.compounds.MO ~ Sex*Age + crops_60 + I(crops_60^2) +  
+                            mix_60_100 + I(mix_60_100^2) + 
+                            baa_60 + I(baa_60^2) + mast +
+                            baa_60:mast + I(baa_60^2):mast +
+                            (1|WMUA_code/WMU), data=dat1, na.action="na.fail")
 
 # Export data and model into the cluster worker nodes
-clusterExport(cl, c("dat1","g1","g2"))
+clusterExport(cl, c("dat1","g1"))
 
 # Had to split because "column rank deficient" so it dropped a coefficient
 
-g_dredge <- MuMIn:::.dredge.par(g1, cluster=cl, trace=2, subset=dc(wui_60_100, I(wui_60_100^2)) &&
-                                       dc(crops_60, I(crops_60^2)) &&
-                                       !(baa_15 && baa_30) &&
-                                       !(baa_15 && baa_60) &&
-                                       !(baa_30 && baa_60) &&
-                                       dc(baa_15, I(baa_15^2)) &&
-                                       dc(baa_30, I(baa_30^2)) &&
-                                       dc(baa_60, I(baa_60^2)) &&
-                                       dc(baa_15, laggedBMI, baa_15:laggedBMI) &&
-                                       dc(baa_30, laggedBMI, baa_30:laggedBMI) &&
-                                       dc(baa_60, laggedBMI, baa_60:laggedBMI))
-
-g_dredge2 <- MuMIn:::.dredge.par(g2, cluster=cl, trace=2, subset=!(mix_60_100 && face_60_100) &&
-                                        !(mix_60_100 && face_60_500) &&
-                                        !(face_60_100 && face_60_500) &&
-                                        dc(face_60_100, I(face_60_100^2)) &&
-                                        dc(mix_60_100, I(mix_60_100^2)) &&
-                                        dc(baa_15, I(baa_15^2)) &&
-                                        dc(baa_30, I(baa_30^2)) &&
-                                        dc(baa_60, I(baa_60^2)) &&
-                                        dc(baa_15:laggedBMI, baa_30:laggedBMI) &&
-                                        dc(baa_15:laggedBMI, baa_60:laggedBMI) &&
-                                        dc(baa_30:laggedBMI, baa_60:laggedBMI) &&
-                                        dc(baa_15, laggedBMI, baa_15:laggedBMI) &&
-                                        dc(baa_30, laggedBMI, baa_30:laggedBMI) &&
-                                        dc(baa_15, I(baa_15^2), I(baa_15^2):laggedBMI) &&
-                                        dc(baa_30, I(baa_30^2), I(baa_30^2):laggedBMI) &&
-                                        dc(baa_60, I(baa_60^2), I(baa_60^2):laggedBMI) &&
-                                        dc(baa_60, laggedBMI, baa_60:laggedBMI))
+g_dredge <- MuMIn:::.dredge.par(g1, cluster=cl, trace=2, subset=dc(mix_60_100, I(mix_60_100^2)) &&
+                                                                dc(crops_60, I(crops_60^2)) &&
+                                                                dc(I(baa_60^2), mast, I(baa_60^2):mast) &&
+                                                                dc(baa_60, mast, baa_60:mast))
 
 # Save dredge tables
 save(file="output/dredge_tables_humansMO.Rdata", list="g_dredge")
-save(file="output/dredge_tables_humansMO2.Rdata", list="g_dredge2")
 
 # Save as csv file
 dh <- as.data.frame(g_dredge)
-write_csv(dh, "output/human-models_ncompMO.csv")
-dh2 <- as.data.frame(g_dredge2)
-write_csv(dh2, "output/human-models_ncompMO2.csv")
+write_csv(dh, "output/ncompMO_dredgetable.csv")
 
 ## Read tables back in
-dh <- read_csv("output/human-models_ncompMO.csv")
+dh <- read_csv("output/ncompMO_dredgetable.csv")
 dh <- as.data.frame(dh)
 
 dh2 <- read_csv("output/human-models_ncompMO2.csv")
