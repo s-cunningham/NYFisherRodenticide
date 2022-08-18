@@ -11,7 +11,7 @@ set.seed(123)
 clusterType <- if(length(find.package("snow", quiet = TRUE))) "SOCK" else "PSOCK"
 
 # Detect number of cores and create cluster (leave a couple out to not overwhelm pc)
-nCores <- detectCores() - 2
+nCores <- detectCores() - 3
 cl <- makeCluster(nCores, type=clusterType)
 
 clusterEvalQ(cl,library(ordinal))
@@ -40,6 +40,8 @@ dat$mast[dat$year==2018] <- "intermediate"
 dat$mast[dat$year==2019] <- "fail"
 dat$mast[dat$year==2020] <- "high"
 dat$mast <-  ordered(dat$mast, levels=c("fail", "intermediate", "high"))
+
+dat$fyear <- factor(dat$year)
 
 ## Percent AG
 pctAG1 <- dat[, c(1:18, 20:22)]
@@ -79,12 +81,12 @@ pctAG_sel <- model.sel(ag15, ag30, ag60, ag15sq, ag30sq, ag60sq,
 pctAG_sel
 
 ## Beech basal area
-baa1 <- dat[, c(1:18, 27, 31, 32)]
+baa1 <- dat[, c(1:18, 27, 31, 32, 33)]
 baa1  <- baa1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffsize, values_from=baa, values_fn=unique) %>% as.data.frame()
-names(baa1)[20:22] <- c("baa_15", "baa_30", "baa_60") 
+names(baa1)[21:23] <- c("baa_15", "baa_30", "baa_60") 
 
 ## Scale and center variables
-baa1[,c(18, 20:22)] <- scale(baa1[,c(18, 20:22)])
+baa1[,c(18, 21:23)] <- scale(baa1[,c(18, 21:23)])
 
 baa15 <- clmm(n.compounds.T ~ baa_15 + (1|WMUA_code/WMU), data=baa1)
 baa15sq <- clmm(n.compounds.T ~ baa_15 + I(baa_15^2) + (1|WMUA_code/WMU), data=baa1)
@@ -107,11 +109,18 @@ baa30sqM <- clmm(n.compounds.T ~ baa_30*mast + I(baa_30^2)*mast + (1|WMUA_code/W
 baa60M <- clmm(n.compounds.T ~ baa_60*mast + (1|WMUA_code/WMU), data=baa1)
 baa60sqM <- clmm(n.compounds.T ~ baa_60*mast + I(baa_60^2)*mast + (1|WMUA_code/WMU), data=baa1)
 
+baa15y <- clmm(n.compounds.T ~ baa_15*fyear + (1|WMUA_code/WMU), data=baa1)
+baa15sqy <- clmm(n.compounds.T ~ baa_15*fyear + I(baa_15^2)*fyear + (1|WMUA_code/WMU), data=baa1)
+baa30y <- clmm(n.compounds.T ~ baa_30*fyear + (1|WMUA_code/WMU), data=baa1)
+baa30sqy <- clmm(n.compounds.T ~ baa_30*fyear + I(baa_30^2)*fyear + (1|WMUA_code/WMU), data=baa1)
+baa60y <- clmm(n.compounds.T ~ baa_60*fyear + (1|WMUA_code/WMU), data=baa1)
+baa60sqy <- clmm(n.compounds.T ~ baa_60*fyear + I(baa_60^2)*fyear + (1|WMUA_code/WMU), data=baa1)
+
 baa_sel <- model.sel(baa15, baa30, baa60, baa15sq, baa30sq, baa60sq, 
                      baa15lBMI, baa15sqlBMI, baa30lBMI, baa30sqlBMI, baa60lBMI, baa60sqlBMI,
-                     baa15M, baa15sqM, baa30M, baa30sqM, baa60M, baa60sqM)
+                     baa15M, baa15sqM, baa30M, baa30sqM, baa60M, baa60sqM,
+                     baa15y, baa15sqy, baa30y, baa30sqy, baa60y, baa60sqy)
 baa_sel
-
 
 ## Wildland-urban interface
 intermix1 <- dat[, c(1:19, 28)]
@@ -224,7 +233,7 @@ wui_sel <- model.sel(wui_15100, wui_30100, wui_60100, wui_15100sq, wui_30100sq, 
 wui_sel
 
 #### Set up data to run for each combination of covariates ####
-dat1 <- dat[,c(1:17,31)]
+dat1 <- dat[,c(1:15, 17,33)]
 dat1 <- distinct(dat1)
 
 # Join percent agriculture
@@ -232,83 +241,51 @@ pctAG1 <- pctAG1[,c(1:3, 20, 26)]
 dat1 <- left_join(dat1, pctAG1, by=c("RegionalID", "pt_name", "pt_index"))
 
 # Join beech basal area
-baa1 <- baa1[,c(1:3, 20)]
+baa1 <- baa1[,c(1:3, 23)]
 dat1 <- left_join(dat1, baa1, by=c("RegionalID", "pt_name", "pt_index"))
 
 # Join total WUI
-wui1 <- wui1[,c(1:3, 23, 25, 26)]
+wui1 <- wui1[,c(1:3, 35)]
 dat1 <- left_join(dat1, wui1, by=c("RegionalID", "pt_name", "pt_index"))
 
-# join forest
-# pctFOR1 <- pctFOR1[,c(1:3, 24, 29)]
-# dat1 <- left_join(dat1, pctFOR1, by=c("RegionalID", "pt_name", "pt_index"))
-
-## Scale age and laggedBMI
+## Scale age 
 dat1$Age <- scale(dat1$Age)
-dat1$laggedBMI <- scale(dat1$laggedBMI)
 
 ## Check correlation matrix
-cor(dat1[,18:26])
-
-## Different way of accounting for year/mast cycle
-dat1$fBMI <- ordered(dat1$year, levels=c(2019, 2018, 2020))
-dat1$year <- as.factor(dat1$year)
+cor(dat1[,18:21])
 
 ## Set up global models
-# Human-driven hypothesis
 g1 <- clmm(n.compounds.T ~ Sex*Age + 
                 pasture_60 + I(pasture_60^2) + 
                 totalag_60 + I(totalag_60^2) +
                 mix_60_500 + I(mix_60_500 ^2) +
-                face_60_100 + I(face_60_100^2) +
-                wui_60_250 + I(wui_60_250^2) +
-                wui_30k_500 + I(wui_30k_500^2) +
-                wui_60_500 +I(wui_60_500^2) +
-                baa_60 + laggedBMI + I(baa_60^2) +
-                baa_60:laggedBMI + I(baa_60^2):laggedBMI +
-                (1|Region) + (1|WMU), data=dat1, na.action="na.fail")
-
+                baa_60 + fyear + I(baa_60^2) +
+                baa_60:fyear + I(baa_60^2):fyear +
+                (1|WMUA_code/WMU), data=dat1, na.action="na.fail")
 
 # Export data and model into the cluster worker nodes
 clusterExport(cl, c("dat1","g1"))
 
-g1_dredge <- MuMIn:::.dredge.par(g1, cluster=cl, trace=2, subset=!(pasture_60 && totalag_60) &&
-                                                                          !(wui_60_250 && wui_30k_500) &&
-                                                                          !(wui_60_250 && wui_60_500) &&
-                                                                          !(wui_60_250 && mix_60_500) &&
-                                                                          !(wui_60_250 && face_60_100) &&
-                                                                          !(mix_60_500 && face_60_100) && 
-                                                                          !(wui_30k_500 && face_60_100) &&
-                                                                          !(wui_60_500 && face_60_100) &&
-                                                                          !(wui_60_500 && mix_60_500) &&
-                                                                          !(wui_30k_500 && mix_60_500) &&
-                                                                          dc(face_60_100, I(face_60_100^2)) &&
-                                                                          dc(mix_60_500, I(mix_60_500^2)) &&
-                                                                          dc(wui_60_250, I(wui_60_250^2)) &&
-                                                                          dc(wui_60_500, I(wui_60_500^2)) &&
-                                                                          dc(wui_30k_500, I(wui_30k_500^2)) &&
-                                                                          dc(pasture_60, I(pasture_60^2)) &&
-                                                                          dc(totalag_60, I(totalag_60^2)) &&
-                                                                          dc(baa_60:laggedBMI, I(baa_60^2):laggedBMI) &&
-                                                                          dc(baa_60, I(baa_60^2), I(baa_60^2):laggedBMI))
+g1_dredge <- MuMIn:::.dredge.par(g1, cluster=cl, trace=2, rank="BIC", subset=!(pasture_60 && totalag_60) &&
+                                                                                        dc(mix_60_500, I(mix_60_500^2)) &&
+                                                                                        dc(pasture_60, I(pasture_60^2)) &&
+                                                                                        dc(totalag_60, I(totalag_60^2)) &&
+                                                                                        dc(baa_60:fyear, I(baa_60^2):fyear) &&
+                                                                                        dc(baa_60, I(baa_60^2), I(baa_60^2):fyear))
 
 # Save dredge tables
-save(file="output/dredge_tables_humansT.Rdata", list="g1_dredge")
+save(file="output/dredge_tables_ncompT.Rdata", list="g1_dredge")
 
+# Save as csv file
 dh <- as.data.frame(g1_dredge)
-write_csv(dh, "output/human-models_ncompT.csv")
+write_csv(dh, "output/ncompT_dredgetable.csv")
 
-## Read table back in...hopefully simple data frame
-dh <- read_csv("output/human-models_ncompT.csv")
+## Read tables back in
+dh <- read_csv("output/ncompT_dredgetable.csv")
 dh <- as.data.frame(dh)
 
-# Remove rows where the quadratic total ag was included without the linear
-dh <- dh[!(is.na(dh$totalag_60) & dh$`I(totalag_60^2)`>0),]
-dh <- dh[!is.na(dh$AICc),]
-
-# Remove rows where quadratic interaction was included but not the linear interaction
-dh <- dh[!(is.na(dh$`baa_60:laggedBMI`) & dh$`I(baa_60^2):laggedBMI`>0),]
-dh <- dh[!is.na(dh$AICc),]
+# Didn't remove all of the combinations that should have been removed
+dh <- dh[!(is.na(dh$`baa_60:fyear`) & !is.na(dh$`fyear:I(baa_60^2)`)),]
 
 # Clear deltaAIC and model weights
 dh$delta <- NA
@@ -319,23 +296,13 @@ dh$delta <- dh$AICc - dh$AICc[1]
 w <- qpcR::akaike.weights(dh$AICc)
 dh$weight <- w$weights
 
+
 #### Running final models ####
-
-# See summary for top models (deltaAICc < 2)
-m1 <- clmm(n.compounds.T ~ Sex*Age + baa_60 + laggedBMI + I(baa_60^2) +
-             baa_60:laggedBMI + I(baa_60^2):laggedBMI +
-             mix_60_500 + I(mix_60_500^2) +
-             totalag_60 + (1|Region) + (1|WMU), data=dat1)
-
-m2 <- clmm(n.compounds.T ~ Sex*Age + baa_60 + laggedBMI + I(baa_60^2) +
-             baa_60:laggedBMI + I(baa_60^2):laggedBMI +
-             mix_60_500 + I(mix_60_500^2) +
-             totalag_60 + I(totalag_60^2) +
-             (1|Region) + (1|WMU), data=dat1)
 
 ## Loop over each set of random points
 
 m_est <- data.frame()
+m_stderr <- data.frame()
 pct2.5 <- data.frame()
 pct97.5 <- data.frame()
 
@@ -345,55 +312,47 @@ for (i in 1:10) {
   # Subset to one point set at a time
   pt <- dat1[dat1$pt_index==i,]
   
-  # Run both models with deltaAICc < 2
-  m1_pt <- clmm(n.compounds.T ~ Sex*Age + baa_60 + laggedBMI + I(baa_60^2) +
-               baa_60:laggedBMI + I(baa_60^2):laggedBMI + mix_60_500 + I(mix_60_500^2) +
-               totalag_60 + (1|Region), data=pt)
+  # Run model with deltaAICc < 2
+  m1_pt <- clmm(n.compounds.T ~ Sex*Age + pasture_60 + 
+                  mix_60_500 + I(mix_60_500^2) + 
+                  baa_60 + I(baa_60^2) + fyear +
+                  baa_60:fyear + I(baa_60^2):fyear +
+                  (1|WMUA_code/WMU), data=pt, na.action="na.fail")
   
-  m2_pt <- clmm(n.compounds.T ~ Sex*Age + baa_60 + laggedBMI + I(baa_60^2) +
-               baa_60:laggedBMI + I(baa_60^2):laggedBMI +
-               mix_60_500 + I(mix_60_500^2) + totalag_60 + I(totalag_60^2) +
-               (1|Region), data=pt)
-  
-  # Create model selection object for averaging
-  mod_pt <- model.sel(m1_pt, m2_pt)
-  
-  # Model average estimates
-  avgd <- model.avg(mod_pt)
-  avg_smry <- summary(avgd)
+  m1s <- summary(m1_pt)
   
   # save averaged confidence intervals
-  pct2.5 <- rbind(pct2.5, t(confint(avgd, full=TRUE))[1,])
-  pct97.5 <- rbind(pct97.5, t(confint(avgd, full=TRUE))[2,])
-
+  pct2.5 <- rbind(pct2.5, t(confint(m1_pt))[1,])
+  pct97.5 <- rbind(pct97.5, t(confint(m1_pt))[2,])
+  
   # Save point set estimates
-  m_est <- rbind(m_est, avgd$coefficients[row.names(avgd$coefficients)=="full"])
+  m_est <- rbind(m_est, coef(m1s)[,1])
+  m_stderr <- rbind(m_stderr, coef(m1s)[,2])
   
   # Rename (only need to do once)
   if (i==1) {
-    names(m_est) <- c(colnames(avgd$coefficients))
-    names(pct2.5) <- c(colnames(avgd$coefficients))
-    names(pct97.5) <- c(colnames(avgd$coefficients))
-    }
+    names(m_est) <- c(names(coef(m1_pt)))
+    names(m_stderr) <- c(names(coef(m1_pt)))
+    names(pct2.5) <- c(names(coef(m1_pt)))
+    names(pct97.5) <- c(names(coef(m1_pt)))
+  }
   
 }
 
 # Calculate averages for each coefficient
-coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)])
-pct2.5_avg <- colMeans(pct2.5[sapply(pct2.5, is.numeric)])
-pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)])
-
+coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)], na.rm=TRUE)
+stderr_avg <- colMeans(m_stderr[sapply(m_stderr, is.numeric)], na.rm=TRUE)
+pct2.5_avg <- colMeans(pct2.5[sapply(pct2.5, is.numeric)], na.rm=TRUE)
+pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)], na.rm=TRUE)
 
 # Combine and clean up data frame
-coef_summary <- bind_rows(coef_avg, pct2.5_avg, pct97.5_avg)
+coef_summary <- bind_rows(coef_avg, stderr_avg, pct2.5_avg, pct97.5_avg)
 coef_summary <- as.data.frame(coef_summary)
-coefs <- c("coef_mean", "2.5CI", "97.5CI")
+coefs <- c("param_est", "std_error", "2.5CI", "97.5CI")
 coef_summary <- data.frame(coef=coefs, coef_summary)
 
 # Write to file
 write_csv(coef_summary, "results/ncompT_coef-summary.csv")
-
-
 
 
 

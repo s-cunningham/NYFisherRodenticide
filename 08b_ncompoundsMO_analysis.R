@@ -232,7 +232,7 @@ wui_sel <- model.sel(wui_15100, wui_30100, wui_60100, wui_15100sq, wui_30100sq, 
 wui_sel
 
 #### Set up data to run for each combination of covariates ####
-dat1 <- dat[,c(1:16,32)]
+dat1 <- dat[,c(1:16,32,33)]
 dat1 <- distinct(dat1)
 
 # Join percent agriculture
@@ -240,7 +240,7 @@ pctAG1 <- pctAG1[,c(1:3, 23)]
 dat1 <- left_join(dat1, pctAG1, by=c("RegionalID", "pt_name", "pt_index"))
 
 # Join beech basal area
-baa1 <- baa1[,c(1:3, 22)]
+baa1 <- baa1[,c(1:3, 23)]
 dat1 <- left_join(dat1, baa1, by=c("RegionalID", "pt_name", "pt_index"))
 
 # Join total WUI
@@ -248,14 +248,14 @@ wui1 <- wui1[,c(1:3, 29)]
 dat1 <- left_join(dat1, wui1, by=c("RegionalID", "pt_name", "pt_index"))
 
 ## Check correlation matrix
-cor(dat1[,18:20])
+cor(dat1[,19:21])
 
 ## Set up global models
 # Human-driven hypothesis
 g1 <- clmm(n.compounds.MO ~ Sex*Age + crops_60 + I(crops_60^2) +  
                             mix_60_100 + I(mix_60_100^2) + 
-                            baa_60 + I(baa_60^2) + mast +
-                            baa_60:mast + I(baa_60^2):mast +
+                            baa_60 + I(baa_60^2) + fyear +
+                            baa_60:fyear + I(baa_60^2):fyear +
                             (1|WMUA_code/WMU), data=dat1, na.action="na.fail")
 
 # Export data and model into the cluster worker nodes
@@ -265,11 +265,11 @@ clusterExport(cl, c("dat1","g1"))
 
 g_dredge <- MuMIn:::.dredge.par(g1, cluster=cl, trace=2, subset=dc(mix_60_100, I(mix_60_100^2)) &&
                                                                 dc(crops_60, I(crops_60^2)) &&
-                                                                dc(I(baa_60^2), mast, I(baa_60^2):mast) &&
-                                                                dc(baa_60, mast, baa_60:mast))
+                                                                dc(I(baa_60^2), fyear, I(baa_60^2):fyear) &&
+                                                                dc(baa_60, fyear, baa_60:fyear))
 
 # Save dredge tables
-save(file="output/dredge_tables_humansMO.Rdata", list="g_dredge")
+save(file="output/dredge_tables_ncompMO.Rdata", list="g_dredge")
 
 # Save as csv file
 dh <- as.data.frame(g_dredge)
@@ -279,60 +279,12 @@ write_csv(dh, "output/ncompMO_dredgetable.csv")
 dh <- read_csv("output/ncompMO_dredgetable.csv")
 dh <- as.data.frame(dh)
 
-dh2 <- read_csv("output/human-models_ncompMO2.csv")
-dh2 <- as.data.frame(dh2)
-
-# Combine and reorder
-dh <- bind_rows(dh, dh2)
- 
-# Clear deltaAIC and model weights
-dh$delta <- NA
-dh$weight <- NA
-
-# Reorder columns
-dh <- dh[,c(1:18, 24:28, 19:23)]
-
-# Remove rows with multiple baa scales, did not do a good job of setting subsets for dredge
-dh <- dh[!(!is.na(dh$`baa_15:laggedBMI`) & !is.na(dh$`baa_30:laggedBMI`)),]
-dh <- dh[!(!is.na(dh$`baa_15:laggedBMI`) & !is.na(dh$`baa_60:laggedBMI`)),]
-dh <- dh[!(!is.na(dh$`baa_30:laggedBMI`) & !is.na(dh$`baa_60:laggedBMI`)),]
-dh <- dh[!(!is.na(dh$baa_30) & !is.na(dh$`baa_60:laggedBMI`)),]
-dh <- dh[!(!is.na(dh$baa_15) & !is.na(dh$`baa_60:laggedBMI`)),]
-dh <- dh[!(!is.na(dh$baa_60) & !is.na(dh$`baa_30:laggedBMI`)),]
-dh <- dh[!(!is.na(dh$baa_15) & !is.na(dh$`baa_30:laggedBMI`)),]
-dh <- dh[!(!is.na(dh$baa_60) & !is.na(dh$`baa_15:laggedBMI`)),]
-dh <- dh[!(!is.na(dh$baa_30) & !is.na(dh$`baa_15:laggedBMI`)),]
-dh <- dh[!(!is.na(dh$baa_15) & !is.na(dh$baa_30)),]
-dh <- dh[!(!is.na(dh$baa_60) & !is.na(dh$baa_15)),]
-dh <- dh[!(!is.na(dh$baa_30) & !is.na(dh$baa_60)),]
-
-# Reorder according to AICc
-N.order <- order(dh$AICc)
-dh <- dh[N.order,]
-
-# Recalculate deltaAIC and model weights
-dh$delta <- dh$AICc - dh$AICc[1]
-w <- qpcR::akaike.weights(dh$AICc)
-dh$weight <- w$weights
-
 #### Running final models ####
-
-# See summary for top models (deltaAICc < 2)
-m1 <- clmm(n.compounds.MO ~ Sex*Age + baa_15 + I(baa_15^2) + 
-                            wui_60_100 + I(wui_60_100^2) +
-                            crops_60 + I(crops_60^2) + (1|Region), data=dat1)
-
-m2 <- clmm(n.compounds.MO ~ Sex*Age + baa_30 + I(baa_30^2) + 
-             wui_60_100 + I(wui_60_100^2) +
-             crops_60 + I(crops_60^2) + (1|Region), data=dat1)
-
-m3 <- clmm(n.compounds.MO ~ Sex*Age + baa_60 + I(baa_60^2) + 
-             wui_60_100 + I(wui_60_100^2) +
-             crops_60 + I(crops_60^2) + (1|Region), data=dat1)
 
 ## Loop over each set of random points
 
 m_est <- data.frame()
+m_stderr <- data.frame()
 pct2.5 <- data.frame()
 pct97.5 <- data.frame()
 
@@ -342,51 +294,43 @@ for (i in 1:10) {
   # Subset to one point set at a time
   pt <- dat1[dat1$pt_index==i,]
   
-  # Run both models with deltaAICc < 2
-  m1_pt <- clmm(n.compounds.MO ~ Sex*Age + baa_15 + I(baa_15^2) + 
-                                 wui_60_100 + I(wui_60_100^2) +
-                                 crops_60 + I(crops_60^2) + (1|Region), data=pt)
+  # Run model with deltaAICc < 2
+  m1_pt <- clmm(n.compounds.MO ~ Sex*Age + crops_60 + I(crops_60^2) +  
+               mix_60_100 + I(mix_60_100^2) + 
+               baa_60 + I(baa_60^2) + fyear +
+               baa_60:fyear + I(baa_60^2):fyear +
+               (1|WMUA_code/WMU), data=pt, na.action="na.fail")
   
-  m2_pt <- clmm(n.compounds.MO ~ Sex*Age + baa_30 + I(baa_30^2) + 
-                                 wui_60_100 + I(wui_60_100^2) +
-                                 crops_60 + I(crops_60^2) + (1|Region), data=pt)
-  
-  m3_pt <- clmm(n.compounds.MO ~ Sex*Age + baa_60 + I(baa_60^2) + 
-                                 wui_60_100 + I(wui_60_100^2) +
-                                 crops_60 + I(crops_60^2) + (1|Region), data=pt)
-  
-  # Create model selection object for averaging
-  mod_pt <- model.sel(m1_pt, m2_pt, m3_pt)
-  
-  # Model average estimates
-  avgd <- model.avg(mod_pt)
-  avg_smry <- summary(avgd)
-  
+  m1s <- summary(m1_pt)
+
   # save averaged confidence intervals
-  pct2.5 <- rbind(pct2.5, t(confint(avgd, full=TRUE))[1,])
-  pct97.5 <- rbind(pct97.5, t(confint(avgd, full=TRUE))[2,])
+  pct2.5 <- rbind(pct2.5, t(confint(m1_pt))[1,])
+  pct97.5 <- rbind(pct97.5, t(confint(m1_pt))[2,])
   
   # Save point set estimates
-  m_est <- rbind(m_est, avgd$coefficients[row.names(avgd$coefficients)=="full"])
+  m_est <- rbind(m_est, coef(m1s)[,1])
+  m_stderr <- rbind(m_stderr, coef(m1s)[,2])
   
   # Rename (only need to do once)
   if (i==1) {
-    names(m_est) <- c(colnames(avgd$coefficients))
-    names(pct2.5) <- c(colnames(avgd$coefficients))
-    names(pct97.5) <- c(colnames(avgd$coefficients))
+    names(m_est) <- c(names(coef(m1_pt)))
+    names(m_stderr) <- c(names(coef(m1_pt)))
+    names(pct2.5) <- c(names(coef(m1_pt)))
+    names(pct97.5) <- c(names(coef(m1_pt)))
   }
   
 }
 
 # Calculate averages for each coefficient
 coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)], na.rm=TRUE)
+stderr_avg <- colMeans(m_stderr[sapply(m_stderr, is.numeric)], na.rm=TRUE)
 pct2.5_avg <- colMeans(pct2.5[sapply(pct2.5, is.numeric)], na.rm=TRUE)
 pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)], na.rm=TRUE)
 
 # Combine and clean up data frame
-coef_summary <- bind_rows(coef_avg, pct2.5_avg, pct97.5_avg)
+coef_summary <- bind_rows(coef_avg, stderr_avg, pct2.5_avg, pct97.5_avg)
 coef_summary <- as.data.frame(coef_summary)
-coefs <- c("coef_mean", "2.5CI", "97.5CI")
+coefs <- c("param_est", "std_error", "2.5CI", "97.5CI")
 coef_summary <- data.frame(coef=coefs, coef_summary)
 
 # Write to file
