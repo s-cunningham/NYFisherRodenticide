@@ -2,6 +2,7 @@ library(tidyverse)
 library(lme4)
 library(parallel)
 library(MuMIn)
+library(broom.mixed)
 
 set.seed(123)
 #### Set up parallel processing ####
@@ -317,18 +318,51 @@ dh$weight <- w$weights
 
 #### Running final models ####
 
-# See summary for top models (deltaAICc < 2)
-m1 <- glmer(binary.T ~ Sex*Age + baa_60 + laggedBMI + baa_60:laggedBMI +
-             I(baa_60^2) + totalag_60 + wui_60_100 + (1|Region), data=dat1)
 
-m2 <- glmer(binary.T ~ Sex*Age + baa_30 + I(baa_30^2) + 
-             wui_60_100 + I(wui_60_100^2) +
-             crops_60 + I(crops_60^2) + (1|Region), data=dat1)
+## Loop over each set of random points
 
-m3 <- glmer(binary.T ~ Sex*Age + baa_60 + I(baa_60^2) + 
-             wui_60_100 + I(wui_60_100^2) +
-             crops_60 + I(crops_60^2) + (1|Region), data=dat1)
+# Empty array for saving data
+resultsF <- list()
+resultsR <- data.frame()
 
-m4 <- glmer(binary.T ~ Sex*Age + baa_60 + I(baa_60^2) + 
-             wui_60_100 + I(wui_60_100^2) +
-             crops_60 + I(crops_60^2) + (1|Region), data=dat1)
+# Loop over each point set
+for (i in 1:10) {
+  
+  # Subset to one point set at a time
+  pt <- dat1[dat1$pt_index==i,]
+  
+  # Run model with deltaAICc < 2
+  m1_pt <- glmer(binary.T ~ Sex*Age + totalag_60 + 
+                  mix_60_500 + I(mix_60_500^2) + 
+                  baa_60 + I(baa_60^2) + mast +
+                  baa_60:mast + I(baa_60^2):mast +
+                  (1|WMUA_code), family=binomial(link="logit"), data=pt)
+  
+  # Save estimates
+  fixed <- tidy(m1_pt, conf.int=TRUE, exponentiate=TRUE, effects="fixed")
+  fixed$term <- as.factor(fixed$term)
+  random <- tidy(m1_pt, conf.int=TRUE, exponentiate=TRUE, effects="ran_pars")[,1:4]
+  
+  # Add to list
+  resultsF[[i]] <- fixed
+  resultsR <- rbind(resultsR, random)
+}
+
+# Calculate averages for each coefficient
+
+param_avg
+stderr_avg 
+pct2.5_avg 
+pct97.5_avg
+zstat_avg
+pvalue_avg
+
+
+
+# Write to file
+write_csv(coef_summary, "results/binaryT_coef-summary.csv")
+
+
+
+
+
