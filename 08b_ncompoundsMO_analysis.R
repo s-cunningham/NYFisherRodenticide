@@ -11,7 +11,7 @@ set.seed(123)
 clusterType <- if(length(find.package("snow", quiet = TRUE))) "SOCK" else "PSOCK"
 
 # Detect number of cores and create cluster (leave a couple out to not overwhelm pc)
-nCores <- detectCores() - 3
+nCores <- detectCores() - 4
 cl <- makeCluster(nCores, type=clusterType)
 
 clusterEvalQ(cl,library(ordinal))
@@ -28,7 +28,7 @@ dat$n.compounds.MO <- ordered(dat$n.compounds.MO, levels=c(0,1,2,3))
 dat$n.compounds.T <- ordered(dat$n.compounds.T, levels=c(0,1,2,3,4,5))
 
 # Resort columns
-dat <- dat[,c(1:7,30,31,10:12,8,9,13:29)]
+dat <- dat[,c(1:7,30,31,10:12,8,9,13,14,16:29)]
 
 # Make random effects factors
 dat$WMU <- as.factor(dat$WMU)
@@ -44,13 +44,13 @@ dat$mast <-  ordered(dat$mast, levels=c("fail", "intermediate", "high"))
 dat$fyear <- factor(dat$year)
 
 ## Percent AG
-pctAG1 <- dat[, c(1:18, 20:22)]
+pctAG1 <- dat[, c(1:17, 19:21)]
 pctAG1 <- distinct(pctAG1)
 pctAG1 <- pctAG1 %>% group_by(RegionalID) %>% 
   pivot_wider(names_from=buffsize, values_from=c(pasture, crops, totalag)) %>% as.data.frame()
 
 ## Scale and center variables
-pctAG1[,c(18:26)] <- scale(pctAG1[,c(18:26)])
+pctAG1[,c(17:25)] <- scale(pctAG1[,c(17:25)])
 
 # Run models
 ag15 <- clmm(n.compounds.MO ~ totalag_15 + (1|WMUA_code/WMU), data=pctAG1)
@@ -80,12 +80,12 @@ pctAG_sel <- model.sel(ag15, ag30, ag60, ag15sq, ag30sq, ag60sq,
 pctAG_sel
 
 ## Beech basal area
-baa1 <- dat[, c(1:18, 27, 31, 32, 33)]
+baa1 <- dat[, c(1:17, 26, 30:32)]
 baa1  <- baa1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffsize, values_from=baa, values_fn=unique) %>% as.data.frame()
-names(baa1)[21:23] <- c("baa_15", "baa_30", "baa_60") 
+names(baa1)[20:22] <- c("baa_15", "baa_30", "baa_60") 
 
 ## Scale and center variables
-baa1[,c(18, 21:23)] <- scale(baa1[,c(18, 21:23)])
+baa1[,c(17, 20:22)] <- scale(baa1[,c(17, 20:22)])
 
 baa15 <- clmm(n.compounds.MO ~ baa_15 + (1|WMUA_code/WMU), data=baa1)
 baa15sq <- clmm(n.compounds.MO ~ baa_15 + I(baa_15^2) + (1|WMUA_code/WMU), data=baa1)
@@ -122,37 +122,37 @@ baa_sel <- model.sel(baa15, baa30, baa60, baa15sq, baa30sq, baa60sq,
 baa_sel
 
 ## Wildland-urban interface
-intermix1 <- dat[, c(1:19, 28)]
-intermix1 <- unite(intermix1, "buffrad", 18:19, sep="_")
+intermix1 <- dat[, c(1:18, 27)]
+intermix1 <- unite(intermix1, "buffrad", 17:18, sep="_")
 intermix1  <- intermix1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffrad, values_from=intermix) %>% as.data.frame()
-names(intermix1)[18:26] <- c("mix_15_100", "mix_30_100", "mix_60_100",
+names(intermix1)[17:25] <- c("mix_15_100", "mix_30_100", "mix_60_100",
                              "mix_15_250", "mix_30_250", "mix_60_250",
                              "mix_15_500", "mix_30_500", "mix_60_500") 
 
-interface1 <- dat[, c(1:19, 29)]
-interface1 <- unite(interface1, "buffrad", 18:19, sep="_")
+interface1 <- dat[, c(1:18, 28)]
+interface1 <- unite(interface1, "buffrad", 17:18, sep="_")
 interface1  <- interface1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffrad, values_from=interface) %>% as.data.frame()
-names(interface1)[18:26] <- c("face_15_100", "face_30_100", "face_60_100",
+names(interface1)[17:25] <- c("face_15_100", "face_30_100", "face_60_100",
                               "face_15_250", "face_30_250", "face_60_250",
                               "face_15_500", "face_30_500", "face_60_500") 
 
-wui1 <- dat[, c(1:19, 30)]
-wui1 <- unite(wui1, "buffrad", 18:19, sep="_")
+wui1 <- dat[, c(1:18, 29)]
+wui1 <- unite(wui1, "buffrad", 17:18, sep="_")
 wui1  <- wui1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffrad, values_from=totalWUI) %>% as.data.frame()
-names(wui1)[18:26] <- c("wui_15_100", "wui_30k_100", "wui_60_100",
+names(wui1)[17:25] <- c("wui_15_100", "wui_30k_100", "wui_60_100",
                         "wui_15_250", "wui_30k_250", "wui_60_250",
                         "wui_15_500", "wui_30k_500", "wui_60_500") 
 
 # Join intermix WUI
-intermix1 <- intermix1[,c(1:3, 18:26)]
+intermix1 <- intermix1[,c(1:3, 17:25)]
 wui1 <- left_join(wui1, intermix1, by=c("RegionalID", "pt_name", "pt_index"))
 
 # Join interface WUI
-interface1 <- interface1[, c(1:3, 18:26)]
+interface1 <- interface1[, c(1:3, 17:25)]
 wui1 <- left_join(wui1, interface1, by=c("RegionalID", "pt_name", "pt_index"))
 
 ## Scale and center variables
-wui1[,c(18:44)] <- scale(wui1[,c(18:44)])
+wui1[,c(17:43)] <- scale(wui1[,c(17:43)])
 
 # Intermix WUI
 mix_15100 <- clmm(n.compounds.MO ~ mix_15_100 + (1|WMUA_code/WMU), data=wui1)
@@ -246,6 +246,9 @@ dat1 <- left_join(dat1, baa1, by=c("RegionalID", "pt_name", "pt_index"))
 # Join total WUI
 wui1 <- wui1[,c(1:3, 29)]
 dat1 <- left_join(dat1, wui1, by=c("RegionalID", "pt_name", "pt_index"))
+
+# scale age
+dat1$age <- scale(dat1$age)
 
 ## Check correlation matrix
 cor(dat1[,19:21])
