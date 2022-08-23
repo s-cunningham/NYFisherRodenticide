@@ -2,6 +2,7 @@ library(tidyverse)
 library(lme4)
 library(parallel)
 library(MuMIn)
+library(broom.mixed)
 
 set.seed(123)
 
@@ -25,18 +26,27 @@ dat <- as.data.frame(dat)
 
 ## set up binary variable
 dat$binary.MO <- ifelse(dat$n.compounds.MO==0, 0, 1)
-dat$binary.MO <- ifelse(dat$n.compounds.T==0, 0, 1)
 
 ## Reorder columns
-dat <- dat[,c(1:7, 31, 8:13, 32, 33, 16:29)]
+dat <- dat[,c(1:7, 31, 8:13, 32, 16:29)]
 
 ## Scale and center variables
-dat[,c(10,19:30)] <- scale(dat[,c(10,19:30)])
+dat[,c(10,18:29)] <- scale(dat[,c(10,18:29)])
 
-## Use all the data
+# Change how beech mast is incorporated
+dat$mast <- NA 
+dat$mast[dat$year==2018] <- "intermediate"
+dat$mast[dat$year==2019] <- "fail"
+dat$mast[dat$year==2020] <- "high"
+dat$mast <-  ordered(dat$mast, levels=c("fail", "intermediate", "high"))
+
+dat$fyear <- factor(dat$year)
+
+
+## Use pooled data for initial variable and scale selection
 
 ## Percent AG
-pctAG1 <- dat[, c(1:3, 6, 7, 15, 17, 19:21)]
+pctAG1 <- dat[, c(1:3, 6:8, 15, 16, 18:20)]
 pctAG1 <- distinct(pctAG1)
 pctAG1 <- pctAG1 %>% group_by(RegionalID) %>% 
   pivot_wider(names_from=buffsize, values_from=c(pasture, crops, totalag)) %>% as.data.frame()
@@ -68,7 +78,7 @@ pctAG_sel <- model.sel(ag15, ag15sq, crops15, crops15sq, past15, past15sq,
 pctAG_sel
 
 ## Beech basal area  ## Check response variable!!!!!!
-baa1 <- dat[, c(1:3, 6:8, 16, 17, 26, 30:32)]
+baa1 <- dat[, c(1:3, 6:8, 15, 16, 25, 29:31)]
 baa1  <- baa1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffsize, values_from=baa, values_fn=unique) %>% as.data.frame()
 names(baa1)[11:13] <- c("baa_15", "baa_30", "baa_60") 
 
@@ -108,7 +118,7 @@ baa_sel
 
 
 ## Wildland-urban interface  ## Check response variable!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-intermix1 <- dat[, c(1:3, 6:8, 16:18, 27)]
+intermix1 <- dat[, c(1:3, 6:8, 15:17, 26)]
 intermix1 <- unite(intermix1, "buffrad", 8:9, sep="_")
 intermix1  <- intermix1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffrad, values_from=intermix) %>% as.data.frame()
 names(intermix1)[8:16] <- c("mix_15_100", "mix_30_100", "mix_60_100",
@@ -116,14 +126,14 @@ names(intermix1)[8:16] <- c("mix_15_100", "mix_30_100", "mix_60_100",
                             "mix_15_500", "mix_30_500", "mix_60_500")  
 
 
-interface1 <- dat[, c(1:3, 6:8, 16:18, 28)]
+interface1 <- dat[, c(1:3, 6:8, 15:17, 27)]
 interface1 <- unite(interface1, "buffrad", 8:9, sep="_")
 interface1  <- interface1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffrad, values_from=interface) %>% as.data.frame()
 names(interface1)[8:16] <- c("face_15_100", "face_30_100", "face_60_100",
                              "face_15_250", "face_30_250", "face_60_250",
                              "face_15_500", "face_30_500", "face_60_500") 
 
-wui1 <- dat[, c(1:3, 6:8, 16:18, 29)]
+wui1 <- dat[, c(1:3, 6:8, 15:17, 28)]
 wui1 <- unite(wui1, "buffrad", 8:9, sep="_")
 wui1  <- wui1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffrad, values_from=totalWUI) %>% as.data.frame()
 names(wui1)[8:16] <- c("wui_15_100", "wui_30k_100", "wui_60_100",
@@ -139,48 +149,48 @@ interface1 <- interface1[, c(1:3, 8:16)]
 wui1 <- left_join(wui1, interface1, by=c("RegionalID", "pt_name", "pt_index"))
 
 # Intermix 
-mix_15100 <- glmer(binary.MO ~ mix_15_100 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=intermix1)
-mix_15250 <- glmer(binary.MO ~ mix_15_250 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=intermix1)
-mix_15500 <- glmer(binary.MO ~ mix_15_500 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=intermix1)
-mix_15100sq <- glmer(binary.MO ~ mix_15_100 + I(mix_15_100^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=intermix1)
-mix_15250sq <- glmer(binary.MO ~ mix_15_250 + I(mix_15_250^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=intermix1)
-mix_15500sq <- glmer(binary.MO ~ mix_15_500 + I(mix_15_500^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=intermix1)
+mix_15100 <- glmer(binary.MO ~ mix_15_100 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
+mix_15250 <- glmer(binary.MO ~ mix_15_250 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
+mix_15500 <- glmer(binary.MO ~ mix_15_500 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
+mix_15100sq <- glmer(binary.MO ~ mix_15_100 + I(mix_15_100^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
+mix_15250sq <- glmer(binary.MO ~ mix_15_250 + I(mix_15_250^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
+mix_15500sq <- glmer(binary.MO ~ mix_15_500 + I(mix_15_500^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
 
-mix_30100 <- glmer(binary.MO  ~ mix_30_100 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=intermix1)
-mix_30250 <- glmer(binary.MO  ~ mix_30_250 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=intermix1)
-mix_30500 <- glmer(binary.MO  ~ mix_30_500 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=intermix1)
-mix_30100sq <- glmer(binary.MO ~ mix_30_100 + I(mix_30_100^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=intermix1)
-mix_30250sq <- glmer(binary.MO ~ mix_30_250 + I(mix_30_250^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=intermix1)
-mix_30500sq <- glmer(binary.MO ~ mix_30_500 + I(mix_30_500^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=intermix1)
+mix_30100 <- glmer(binary.MO  ~ mix_30_100 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
+mix_30250 <- glmer(binary.MO  ~ mix_30_250 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
+mix_30500 <- glmer(binary.MO  ~ mix_30_500 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
+mix_30100sq <- glmer(binary.MO ~ mix_30_100 + I(mix_30_100^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
+mix_30250sq <- glmer(binary.MO ~ mix_30_250 + I(mix_30_250^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
+mix_30500sq <- glmer(binary.MO ~ mix_30_500 + I(mix_30_500^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
 
-mix_60100 <- glmer(binary.MO ~ mix_60_100 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=intermix1)
-mix_60250 <- glmer(binary.MO ~ mix_60_250 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=intermix1)
-mix_60500 <- glmer(binary.MO ~ mix_60_500 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=intermix1)
-mix_60100sq <- glmer(binary.MO ~ mix_60_100 + I(mix_60_100^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=intermix1)
-mix_60250sq <- glmer(binary.MO ~ mix_60_250 + I(mix_60_250^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=intermix1)
-mix_60500sq <- glmer(binary.MO ~ mix_60_500 + I(mix_60_500^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=intermix1)
+mix_60100 <- glmer(binary.MO ~ mix_60_100 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
+mix_60250 <- glmer(binary.MO ~ mix_60_250 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
+mix_60500 <- glmer(binary.MO ~ mix_60_500 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
+mix_60100sq <- glmer(binary.MO ~ mix_60_100 + I(mix_60_100^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
+mix_60250sq <- glmer(binary.MO ~ mix_60_250 + I(mix_60_250^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
+mix_60500sq <- glmer(binary.MO ~ mix_60_500 + I(mix_60_500^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
 
 # Interface
-face_15100 <- glmer(binary.MO ~ face_15_100 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=interface1)
-face_15250 <- glmer(binary.MO ~ face_15_250 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=interface1)
-face_15500 <- glmer(binary.MO ~ face_15_500 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=interface1)
-face_15100sq <- glmer(binary.MO ~ face_15_100 + I(face_15_100^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=interface1)
-face_15250sq <- glmer(binary.MO ~ face_15_250 + I(face_15_250^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=interface1)
-face_15500sq <- glmer(binary.MO ~ face_15_500 + I(face_15_500^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=interface1)
+face_15100 <- glmer(binary.MO ~ face_15_100 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
+face_15250 <- glmer(binary.MO ~ face_15_250 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
+face_15500 <- glmer(binary.MO ~ face_15_500 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
+face_15100sq <- glmer(binary.MO ~ face_15_100 + I(face_15_100^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
+face_15250sq <- glmer(binary.MO ~ face_15_250 + I(face_15_250^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
+face_15500sq <- glmer(binary.MO ~ face_15_500 + I(face_15_500^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
 
-face_30100 <- glmer(binary.MO  ~ face_30_100 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=interface1)
-face_30250 <- glmer(binary.MO  ~ face_30_250 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=interface1)
-face_30500 <- glmer(binary.MO  ~ face_30_500 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=interface1)
-face_30100sq <- glmer(binary.MO ~ face_30_100 + I(face_30_100^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=interface1)
-face_30250sq <- glmer(binary.MO ~ face_30_250 + I(face_30_250^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=interface1)
-face_30500sq <- glmer(binary.MO ~ face_30_500 + I(face_30_500^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=interface1)
+face_30100 <- glmer(binary.MO  ~ face_30_100 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
+face_30250 <- glmer(binary.MO  ~ face_30_250 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
+face_30500 <- glmer(binary.MO  ~ face_30_500 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
+face_30100sq <- glmer(binary.MO ~ face_30_100 + I(face_30_100^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
+face_30250sq <- glmer(binary.MO ~ face_30_250 + I(face_30_250^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
+face_30500sq <- glmer(binary.MO ~ face_30_500 + I(face_30_500^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
 
-face_60100 <- glmer(binary.MO ~ face_60_100 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=interface1)
-face_60250 <- glmer(binary.MO ~ face_60_250 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=interface1)
-face_60500 <- glmer(binary.MO ~ face_60_500 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=interface1)
-face_60100sq <- glmer(binary.MO ~ face_60_100 + I(face_60_100^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=interface1)
-face_60250sq <- glmer(binary.MO ~ face_60_250 + I(face_60_250^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=interface1)
-face_60500sq <- glmer(binary.MO ~ face_60_500 + I(face_60_500^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=interface1)
+face_60100 <- glmer(binary.MO ~ face_60_100 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
+face_60250 <- glmer(binary.MO ~ face_60_250 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
+face_60500 <- glmer(binary.MO ~ face_60_500 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
+face_60100sq <- glmer(binary.MO ~ face_60_100 + I(face_60_100^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
+face_60250sq <- glmer(binary.MO ~ face_60_250 + I(face_60_250^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
+face_60500sq <- glmer(binary.MO ~ face_60_500 + I(face_60_500^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
 
 # WUI
 wui_15100 <- glmer(binary.MO ~ wui_15_100 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=wui1)
@@ -216,109 +226,63 @@ wui_sel <- model.sel(wui_15100, wui_30100, wui_60100, wui_15100sq, wui_30100sq, 
 wui_sel
 
 #### Set up data to run for each combination of covariates ####
-dat1 <- dat[,c(1:15,30)]
+dat1 <- dat[,c(1:15,30,31)]
 dat1 <- distinct(dat1)
 
 # Join percent agriculture
-pctAG1 <- pctAG1[,c(1:3, 9)]
+pctAG1 <- pctAG1[,c(1:3, 10)]
 dat1 <- left_join(dat1, pctAG1, by=c("RegionalID", "pt_name", "pt_index"))
 
 # Join beech basal area
-baa1 <- baa1[,c(1:3, 8:9)]
+baa1 <- baa1[,c(1:3, 13)]
 dat1 <- left_join(dat1, baa1, by=c("RegionalID", "pt_name", "pt_index"))
 
 # Join total WUI
-wui1 <- wui1[,c(1:3, 25)]
+wui1 <- wui1[,c(1:3, 19)]
 dat1 <- left_join(dat1, wui1, by=c("RegionalID", "pt_name", "pt_index"))
 
 #### Run models ####
 
 ## Check correlation matrix
-cor(dat1[,16:22])
+cor(dat1[,18:20])
 
 ## Set up global model
-g1 <- glmer(binary.MO ~ Sex*Age + laggedBMI + 
-                        mix_60_100 + I(mix_60_100^2) +
-                        face_60_100 + I(face_60_100^2) +
-                        baa_30 + I(baa_30^2) +
-                        baa_30:laggedBMI + I(baa_30^2):laggedBMI + 
-                        (1|WMUA_code/WMU), family=binomial(link="logit"), data=dat1, na.action="na.fail")
-
-g2 <- glmer(binary.MO ~ Sex*Age + laggedBMI + 
+g1 <- glmer(binary.MO ~ Sex*Age + fyear + 
                         pasture_60 + I(pasture_60^2) +
-                        wui_60_100 + I(wui_60_100^2) + 
+                        mix_60_100 + I(mix_60_100^2) +
                         baa_60 + I(baa_60^2) +
-                        baa_60:laggedBMI + I(baa_60^2):laggedBMI +
+                        baa_60:fyear + I(baa_60^2):fyear + 
                         (1|WMUA_code/WMU), family=binomial(link="logit"), data=dat1, na.action="na.fail")
 
 # Export data and model into the cluster worker nodes
-clusterExport(cl, c("dat1","g1","g2"))
+clusterExport(cl, c("dat1","g1"))
 
 ## Build model sets
-g1_dredge <- MuMIn:::.dredge.par(g1, cluster=cl, trace=2,subset=dc(baa_30, laggedBMI, baa_30:laggedBMI) &&
-                               dc(baa_30, I(baa_30^2), I(baa_30^2):laggedBMI) &&
-                               dc(mix_60_100, I(mix_60_100^2)) &&
-                               dc(face_60_100, I(face_60_100^2)))
+g1_dredge <- MuMIn:::.dredge.par(g1, cluster=cl, trace=2,  subset=dc(mix_60_500, I(mix_60_500^2)) &&
+                                   dc(pasture_60, I(pasture_60^2)) &&
+                                   dc(baa_60:fyear, I(baa_60^2):fyear) &&
+                                   dc(baa_60, I(baa_60^2), I(baa_60^2):fyear))
 
-g2_dredge <- MuMIn:::.dredge.par(g2, cluster=cl, trace=2, subset=dc(baa_60, laggedBMI, baa_60:laggedBMI) &&
-                               dc(baa_60, I(baa_60^2), I(baa_60^2):laggedBMI) &&
-                               dc(wui_60_100, I(wui_60_100^2)) &&
-                               dc(pasture_60, I(pasture_60^2)))
 
 # Save dredge tables
 save(file="output/dredge_tables_binaryMO.Rdata", list="g1_dredge")
-save(file="output/dredge_tables_binaryMO2.Rdata", list="g2_dredge")
 
 # Save as csv file
 dh <- as.data.frame(g1_dredge)
 write_csv(dh, "output/models_binaryMO.csv")
-dh2 <- as.data.frame(g2_dredge)
-write_csv(dh2, "output/models_binaryMO2.csv")
 
 # Read tables back in
 dh <- read_csv("output/models_binaryMO.csv")
 dh <- as.data.frame(dh)
 
-dh2 <- read_csv("output/models_binaryMO2.csv")
-dh2 <- as.data.frame(dh2)
-
-# Combine and reorder
-dh <- bind_rows(dh, dh2)
-
-# Reorder columns
-dh <- dh[,c(1:13, 19:26, 14:18)]
-
-# Clear deltaAIC and model weights
-dh$delta <- NA
-dh$weight <- NA
-
-# Reorder according to AICc
-N.order <- order(dh$AICc)
-dh <- dh[N.order,]
-
-# Recalculate deltaAIC and model weights
-dh$delta <- dh$AICc - dh$AICc[1]
-w <- qpcR::akaike.weights(dh$AICc)
-dh$weight <- w$weights
-
 #### Running final models ####
 
-# See summary for top models (deltaAICc < 2)
-m1 <- glmer(binary.MO  ~ Sex*Age + laggedBMI + baa_60 + I(baa_60^2) + 
-                              baa_60:laggedBMI + I(baa_60^2):laggedBMI +
-                              wui_60_100 + pasture_60 + I(pasture_60^2) + (1|Region), 
-                              family=binomial(link="logit"), data=dat1)
-
-m2 <- glmer(binary.MO  ~ Sex*Age + laggedBMI + baa_60 + I(baa_60^2) + 
-                              baa_60:laggedBMI + I(baa_60^2):laggedBMI +
-                              wui_60_100 + pasture_60 + (1|Region), 
-                              family=binomial(link="logit"), data=dat1)
 
 ## Loop over each set of random points
 
-m_est <- data.frame()
-pct2.5 <- data.frame()
-pct97.5 <- data.frame()
+# Empty array for saving data
+resultsF <- list()
+resultsR <- data.frame()
 
 # Loop over each point set
 for (i in 1:10) {
@@ -326,57 +290,34 @@ for (i in 1:10) {
   # Subset to one point set at a time
   pt <- dat1[dat1$pt_index==i,]
   
-  # Run both models with deltaAICc < 2
-  m1_pt <- glmer(binary.MO  ~ Sex*Age + laggedBMI + baa_60 + I(baa_60^2) + 
-                baa_60:laggedBMI + I(baa_60^2):laggedBMI +
-                wui_60_100 + pasture_60 + I(pasture_60^2) + (1|Region),
-                family=binomial(link="logit"), data=pt)
+  # Run model with deltaAICc < 2
+  m1_pt <- glmer(binary.MO ~ Sex*Age + # pasture_60 + 
+                   # mix_60_100 +
+                   baa_60 + fyear  +
+                   baa_60:fyear +
+                   (1|WMUA_code), family=binomial(link="logit"), data=pt)
   
-  m2_pt <- glmer(binary.MO  ~ Sex*Age + laggedBMI + baa_60 + I(baa_60^2) + 
-                baa_60:laggedBMI + I(baa_60^2):laggedBMI +
-                wui_60_100 + pasture_60 + (1|Region), 
-                family=binomial(link="logit"), data=pt)
+  # Save estimates
+  fixed <- tidy(m1_pt, conf.int=TRUE, exponentiate=TRUE, effects="fixed")
+  fixed$term <- as.factor(fixed$term)
+  random <- tidy(m1_pt, conf.int=TRUE, exponentiate=TRUE, effects="ran_pars")[,1:4]
   
-
-  # Create model selection object for averaging
-  mod_pt <- model.sel(m1_pt, m2_pt)
-  
-  # Model average estimates
-  avgd <- model.avg(mod_pt)
-  avg_smry <- summary(avgd)
-  
-  # save averaged confidence intervals
-  pct2.5 <- rbind(pct2.5, t(confint(avgd, full=TRUE))[1,])
-  pct97.5 <- rbind(pct97.5, t(confint(avgd, full=TRUE))[2,])
-  
-  # Save point set estimates
-  m_est <- rbind(m_est, avgd$coefficients[row.names(avgd$coefficients)=="full"])
-  
-  # Rename (only need to do once)
-  if (i==1) {
-    names(m_est) <- c(colnames(avgd$coefficients))
-    names(pct2.5) <- c(colnames(avgd$coefficients))
-    names(pct97.5) <- c(colnames(avgd$coefficients))
-  }
-  
+  # Add to list
+  resultsF[[i]] <- fixed
+  resultsR <- rbind(resultsR, random)
 }
 
 # Calculate averages for each coefficient
-coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)])
-pct2.5_avg <- colMeans(pct2.5[sapply(pct2.5, is.numeric)])
-pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)])
 
-# Combine and clean up data frame
-coef_summary <- bind_rows(coef_avg, pct2.5_avg, pct97.5_avg)
-coef_summary <- as.data.frame(coef_summary)
-coefs <- c("coef_mean", "2.5CI", "97.5CI")
-coef_summary <- data.frame(coef=coefs, coef_summary)
+param_avg
+stderr_avg 
+pct2.5_avg 
+pct97.5_avg
+zstat_avg
+pvalue_avg
+
+
 
 # Write to file
-write_csv(coef_summary, "results/binaryT_coef-summary.csv")
-
-
-
-
-
+write_csv(coef_summary, "results/binaryMO_coef-summary.csv")
 
