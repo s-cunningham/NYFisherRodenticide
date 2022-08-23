@@ -287,6 +287,7 @@ m_est <- data.frame()
 m_stderr <- data.frame()
 pct2.5 <- data.frame()
 pct97.5 <- data.frame()
+pvalue <- data.frame()
 
 # Loop over each point set
 for (i in 1:10) {
@@ -302,10 +303,11 @@ for (i in 1:10) {
                (1|WMUA_code/WMU), data=pt, na.action="na.fail")
   
   m1s <- summary(m1_pt)
-
+  
   # save averaged confidence intervals
   pct2.5 <- rbind(pct2.5, t(confint(m1_pt))[1,])
   pct97.5 <- rbind(pct97.5, t(confint(m1_pt))[2,])
+  pvalue <- rbind(pvalue, t(coef(m1s)[,4]))
   
   # Save point set estimates
   m_est <- rbind(m_est, coef(m1s)[,1])
@@ -317,6 +319,7 @@ for (i in 1:10) {
     names(m_stderr) <- c(names(coef(m1_pt)))
     names(pct2.5) <- c(names(coef(m1_pt)))
     names(pct97.5) <- c(names(coef(m1_pt)))
+    names(pvalue) <- c(names(coef(m1_pt)))
   }
   
 }
@@ -326,11 +329,12 @@ coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)], na.rm=TRUE)
 stderr_avg <- colMeans(m_stderr[sapply(m_stderr, is.numeric)], na.rm=TRUE)
 pct2.5_avg <- colMeans(pct2.5[sapply(pct2.5, is.numeric)], na.rm=TRUE)
 pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)], na.rm=TRUE)
+pvalue <- colMeans(pvalue[sapply(pvalue, is.numeric)], na.rm=TRUE)
 
 # Combine and clean up data frame
-coef_summary <- bind_rows(coef_avg, stderr_avg, pct2.5_avg, pct97.5_avg)
+coef_summary <- bind_rows(coef_avg, stderr_avg, pct2.5_avg, pct97.5_avg, pvalue)
 coef_summary <- as.data.frame(coef_summary)
-coefs <- c("param_est", "std_error", "2.5CI", "97.5CI")
+coefs <- c("param_est", "std_error", "2.5CI", "97.5CI", "p-value")
 coef_summary <- data.frame(coef=coefs, coef_summary)
 
 # Write to file
