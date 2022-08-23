@@ -316,8 +316,6 @@ pct97.5_avg
 zstat_avg
 pvalue_avg
 
-
-
 # Write to file
 write_csv(coef_summary, "results/binaryMO_coef-summary.csv")
 
