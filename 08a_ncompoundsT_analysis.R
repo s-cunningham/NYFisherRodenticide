@@ -23,18 +23,21 @@ dat <- as.data.frame(dat)
 
 #### Analysis Set-up ####
 
+# Categorical number of compounds (collapsing higher numbers)
+dat$catNcompT <- ifelse(dat$n.compounds.T>=3, "3+", as.character(dat$n.compounds.T))
+dat$catNcompT  <- ordered(dat$catNcompT , levels=c("0", "1", "2", "3+"))
+
 # Order response
-dat$n.compounds.MO <- ordered(dat$n.compounds.MO, levels=c(0,1,2,3))
 dat$n.compounds.T <- ordered(dat$n.compounds.T, levels=c(0,1,2,3,4,5))
 
 # Resort columns
-dat <- dat[,c(1:7,30,31,10:12,8,9,13:29)]
+dat <- dat[,c(1:7,30,31,10:12,8,9,13:29)] ## NEED TO UPDATE
 
 # Make random effects factors
 dat$WMU <- as.factor(dat$WMU)
 dat$WMUA_code <- as.factor(dat$WMUA_code)
 
-# Change how beech mast is incorporated
+# Change how beech mast is incorporated (lagged values)
 dat$mast <- NA 
 dat$mast[dat$year==2018] <- "mast"
 dat$mast[dat$year==2019] <- "fail"
@@ -42,7 +45,9 @@ dat$mast[dat$year==2020] <- "mast"
 dat$mast <- as.factor(dat$mast)
 
 # Make age a categorical variable
-dat$catAge <- ifelse(dat$Age>1.5, )
+dat$catAge[dat$Age>=3.5] <- "adult"
+dat$catAge[dat$Age==2.5] <- "subadult"
+dat$catAge[dat$Ag<2.5] <- "juvenile"
 
 ## Percent AG
 pctAG1 <- dat[, c(1:18, 20:22)]
@@ -74,7 +79,6 @@ past30 <- clmm(n.compounds.T ~ pasture_30 + (1|WMUA_code/WMU), data=pctAG1)
 past30sq <- clmm(n.compounds.T ~ pasture_30 + I(pasture_30^2) +(1|WMUA_code/WMU), data=pctAG1)
 past60 <- clmm(n.compounds.T ~ pasture_60 + (1|WMUA_code/WMU), data=pctAG1)
 past60sq <- clmm(n.compounds.T ~ pasture_60 + I(pasture_60^2) + (1|WMUA_code/WMU), data=pctAG1)
-
 
 pctAG_sel <- model.sel(ag15, ag30, ag60, ag15sq, ag30sq, ag60sq,
                        crop15, crop30, crop60, crop15sq, crop30sq, crop60sq,

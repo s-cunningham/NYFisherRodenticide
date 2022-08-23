@@ -23,25 +23,31 @@ dat <- as.data.frame(dat)
 
 #### Analysis Set-up ####
 
+# Categorical number of compounds (collapsing higher numbers)
+dat$catNcompMO <- ifelse(dat$n.compounds.MO>=2, "2+", as.character(dat$n.compounds.MO))
+dat$catNcompMO <- ordered(dat$catNcompMO, levels=c("0", "1", "2+"))
+
 # Order response
 dat$n.compounds.MO <- ordered(dat$n.compounds.MO, levels=c(0,1,2,3))
-dat$n.compounds.T <- ordered(dat$n.compounds.T, levels=c(0,1,2,3,4,5))
 
 # Resort columns
-dat <- dat[,c(1:7,30,31,10:12,8,9,13:29)]
+dat <- dat[,c(1:7,30,31,10:12,8,9,13:29)] ## NEED TO UPDATE
 
 # Make random effects factors
 dat$WMU <- as.factor(dat$WMU)
 dat$WMUA_code <- as.factor(dat$WMUA_code)
 
-# Change how beech mast is incorporated
+# Change how beech mast is incorporated (lagged values)
 dat$mast <- NA 
-dat$mast[dat$year==2018] <- "intermediate"
+dat$mast[dat$year==2018] <- "mast"
 dat$mast[dat$year==2019] <- "fail"
-dat$mast[dat$year==2020] <- "high"
-dat$mast <-  ordered(dat$mast, levels=c("fail", "intermediate", "high"))
+dat$mast[dat$year==2020] <- "mast"
+dat$mast <- as.factor(dat$mast)
 
-dat$fyear <- factor(dat$year)
+# Make age a categorical variable
+dat$catAge[dat$Age>=3.5] <- "adult"
+dat$catAge[dat$Age==2.5] <- "subadult"
+dat$catAge[dat$Ag<2.5] <- "juvenile"
 
 ## Percent AG
 pctAG1 <- dat[, c(1:18, 20:22)]
