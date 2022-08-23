@@ -322,7 +322,7 @@ dh$weight <- w$weights
 ## Loop over each set of random points
 
 # Empty array for saving data
-resultsF <- list()
+resultsF <- data.frame()
 resultsR <- data.frame()
 
 # Loop over each point set
@@ -344,7 +344,7 @@ for (i in 1:10) {
   random <- tidy(m1_pt, conf.int=TRUE, exponentiate=TRUE, effects="ran_pars")[,1:4]
   
   # Add to list
-  resultsF[[i]] <- fixed
+  resultsF<- rbind(resultsF, fixed)
   resultsR <- rbind(resultsR, random)
 }
 
@@ -357,12 +357,10 @@ pct97.5_avg
 zstat_avg
 pvalue_avg
 
-
-
 # Write to file
 write_csv(coef_summary, "results/binaryT_coef-summary.csv")
 
-
-
+resultsF[c(1,3)][1]
+resultsF[[1]]$estimate[1]
 
 
