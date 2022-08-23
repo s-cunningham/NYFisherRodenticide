@@ -10,6 +10,10 @@ theme_set(theme_bw())
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv")
 dat <- as.data.frame(dat)
 
+# Categorical number of compounds (collapsing higher numbers)
+dat$catNcompMO <- ifelse(dat$n.compounds.MO>=2, "2+", as.character(dat$n.compounds.MO))
+dat$catNcompT <- ifelse(dat$n.compounds.T>=3, "3+", as.character(dat$n.compounds.T))
+
 # Break down by age and sex
 dat1 <- dat[dat$pt_index==1 & dat$buffsize==60 & dat$radius==100,]
 dat1 %>% group_by(Age, Sex) %>% count()
@@ -25,6 +29,12 @@ ggplot(dat1, aes(x=rand_x, y=rand_y, color=factor(n.compounds.MO))) +
 cols6 <- c("#bfd3e6", "#9ebcda", "#8c96c6", "#8c6bb1", "#88419d", "#6e016b")
 ggplot(dat1, aes(x=rand_x, y=rand_y, color=factor(n.compounds.T))) + 
   geom_point(size=4) + scale_color_manual(values=cols6, name="# compounds") + ggtitle("Including trace")
+
+dat1 %>% group_by(n.compounds.MO, year) %>% count()
+dat1 %>% group_by(n.compounds.T, year) %>% count()
+
+
+
 
 ## Read data frame with town/wmu location
 loc <- read.csv("data/analysis-ready/ar_locations_only.csv")
