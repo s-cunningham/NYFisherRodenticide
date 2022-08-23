@@ -36,12 +36,13 @@ dat$WMUA_code <- as.factor(dat$WMUA_code)
 
 # Change how beech mast is incorporated
 dat$mast <- NA 
-dat$mast[dat$year==2018] <- "intermediate"
+dat$mast[dat$year==2018] <- "mast"
 dat$mast[dat$year==2019] <- "fail"
-dat$mast[dat$year==2020] <- "high"
-dat$mast <-  ordered(dat$mast, levels=c("fail", "intermediate", "high"))
+dat$mast[dat$year==2020] <- "mast"
+dat$mast <- as.factor(dat$mast)
 
-dat$fyear <- factor(dat$year)
+# Make age a categorical variable
+dat$catAge <- ifelse(dat$Age>1.5, )
 
 ## Percent AG
 pctAG1 <- dat[, c(1:18, 20:22)]
@@ -81,12 +82,12 @@ pctAG_sel <- model.sel(ag15, ag30, ag60, ag15sq, ag30sq, ag60sq,
 pctAG_sel
 
 ## Beech basal area
-baa1 <- dat[, c(1:18, 27, 31, 32, 33)]
+baa1 <- dat[, c(1:18, 27, 31, 32)]
 baa1  <- baa1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffsize, values_from=baa, values_fn=unique) %>% as.data.frame()
-names(baa1)[21:23] <- c("baa_15", "baa_30", "baa_60") 
+names(baa1)[20:22] <- c("baa_15", "baa_30", "baa_60") 
 
 ## Scale and center variables
-baa1[,c(18, 21:23)] <- scale(baa1[,c(18, 21:23)])
+baa1[,c(18, 20:22)] <- scale(baa1[,c(18, 20:22)])
 
 baa15 <- clmm(n.compounds.T ~ baa_15 + (1|WMUA_code/WMU), data=baa1)
 baa15sq <- clmm(n.compounds.T ~ baa_15 + I(baa_15^2) + (1|WMUA_code/WMU), data=baa1)
@@ -96,30 +97,16 @@ baa60 <- clmm(n.compounds.T ~ baa_60 + (1|WMUA_code/WMU), data=baa1)
 baa60sq <- clmm(n.compounds.T ~ baa_60 + I(baa_60^2) + (1|WMUA_code/WMU), data=baa1)
 
 baa15lBMI <- clmm(n.compounds.T ~ baa_15*laggedBMI + (1|WMUA_code/WMU), data=baa1)
-baa15sqlBMI <- clmm(n.compounds.T ~ baa_15*laggedBMI + I(baa_15^2)*laggedBMI + (1|WMUA_code/WMU), data=baa1)
 baa30lBMI <- clmm(n.compounds.T ~ baa_30*laggedBMI + (1|WMUA_code/WMU), data=baa1)
-baa30sqlBMI <- clmm(n.compounds.T ~ baa_30*laggedBMI + I(baa_30^2)*laggedBMI + (1|WMUA_code/WMU), data=baa1)
 baa60lBMI <- clmm(n.compounds.T ~ baa_60*laggedBMI + (1|WMUA_code/WMU), data=baa1)
-baa60sqlBMI <- clmm(n.compounds.T ~ baa_60*laggedBMI + I(baa_60^2)*laggedBMI + (1|WMUA_code/WMU), data=baa1)
 
 baa15M <- clmm(n.compounds.T ~ baa_15*mast + (1|WMUA_code/WMU), data=baa1)
-baa15sqM <- clmm(n.compounds.T ~ baa_15*mast + I(baa_15^2)*mast + (1|WMUA_code/WMU), data=baa1)
 baa30M <- clmm(n.compounds.T ~ baa_30*mast + (1|WMUA_code/WMU), data=baa1)
-baa30sqM <- clmm(n.compounds.T ~ baa_30*mast + I(baa_30^2)*mast + (1|WMUA_code/WMU), data=baa1)
 baa60M <- clmm(n.compounds.T ~ baa_60*mast + (1|WMUA_code/WMU), data=baa1)
-baa60sqM <- clmm(n.compounds.T ~ baa_60*mast + I(baa_60^2)*mast + (1|WMUA_code/WMU), data=baa1)
-
-baa15y <- clmm(n.compounds.T ~ baa_15*fyear + (1|WMUA_code/WMU), data=baa1)
-baa15sqy <- clmm(n.compounds.T ~ baa_15*fyear + I(baa_15^2)*fyear + (1|WMUA_code/WMU), data=baa1)
-baa30y <- clmm(n.compounds.T ~ baa_30*fyear + (1|WMUA_code/WMU), data=baa1)
-baa30sqy <- clmm(n.compounds.T ~ baa_30*fyear + I(baa_30^2)*fyear + (1|WMUA_code/WMU), data=baa1)
-baa60y <- clmm(n.compounds.T ~ baa_60*fyear + (1|WMUA_code/WMU), data=baa1)
-baa60sqy <- clmm(n.compounds.T ~ baa_60*fyear + I(baa_60^2)*fyear + (1|WMUA_code/WMU), data=baa1)
 
 baa_sel <- model.sel(baa15, baa30, baa60, baa15sq, baa30sq, baa60sq, 
-                     baa15lBMI, baa15sqlBMI, baa30lBMI, baa30sqlBMI, baa60lBMI, baa60sqlBMI,
-                     baa15M, baa15sqM, baa30M, baa30sqM, baa60M, baa60sqM,
-                     baa15y, baa15sqy, baa30y, baa30sqy, baa60y, baa60sqy)
+                     baa15lBMI, baa30lBMI, baa60lBMI, 
+                     baa15M, baa30M, baa60M)
 baa_sel
 
 ## Wildland-urban interface
@@ -305,6 +292,7 @@ m_est <- data.frame()
 m_stderr <- data.frame()
 pct2.5 <- data.frame()
 pct97.5 <- data.frame()
+pvalue <- data.frame()
 
 # Loop over each point set
 for (i in 1:10) {
@@ -324,7 +312,7 @@ for (i in 1:10) {
   # save averaged confidence intervals
   pct2.5 <- rbind(pct2.5, t(confint(m1_pt))[1,])
   pct97.5 <- rbind(pct97.5, t(confint(m1_pt))[2,])
-  
+
   # Save point set estimates
   m_est <- rbind(m_est, coef(m1s)[,1])
   m_stderr <- rbind(m_stderr, coef(m1s)[,2])
@@ -343,7 +331,6 @@ for (i in 1:10) {
 coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)], na.rm=TRUE)
 stderr_avg <- colMeans(m_stderr[sapply(m_stderr, is.numeric)], na.rm=TRUE)
 pct2.5_avg <- colMeans(pct2.5[sapply(pct2.5, is.numeric)], na.rm=TRUE)
-pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)], na.rm=TRUE)
 
 # Combine and clean up data frame
 coef_summary <- bind_rows(coef_avg, stderr_avg, pct2.5_avg, pct97.5_avg)
