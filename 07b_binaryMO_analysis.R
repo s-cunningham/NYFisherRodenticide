@@ -82,40 +82,25 @@ baa1 <- dat[, c(1:3, 6:8, 15, 16, 25, 29:31)]
 baa1  <- baa1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffsize, values_from=baa, values_fn=unique) %>% as.data.frame()
 names(baa1)[11:13] <- c("baa_15", "baa_30", "baa_60") 
 
-baa15 <- glmer(binary.MO ~ baa_15 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=baa1)
-baa30 <- glmer(binary.MO ~ baa_30 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=baa1)
-baa60 <- glmer(binary.MO ~ baa_60 + (1|WMUA_code/WMU), family=binomial(link="logit"), data=baa1)
-baa15sq <- glmer(binary.MO ~ baa_15 + I(baa_15^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=baa1)
-baa30sq <- glmer(binary.MO ~ baa_30 + I(baa_30^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=baa1)
-baa60sq <- glmer(binary.MO ~ baa_60 + I(baa_60^2) + (1|WMUA_code/WMU), family=binomial(link="logit"), data=baa1)
+baa15 <- clmm(binary.MO ~ baa_15 + (1|WMUA_code/WMU), data=baa1)
+baa15sq <- clmm(binary.MO ~ baa_15 + I(baa_15^2) + (1|WMUA_code/WMU), data=baa1)
+baa30 <- clmm(binary.MO ~ baa_30 + (1|WMUA_code/WMU), data=baa1)
+baa30sq <- clmm(binary.MO ~ baa_30 + I(baa_30^2) + (1|WMUA_code/WMU), data=baa1)
+baa60 <- clmm(binary.MO ~ baa_60 + (1|WMUA_code/WMU), data=baa1)
+baa60sq <- clmm(binary.MO ~ baa_60 + I(baa_60^2) + (1|WMUA_code/WMU), data=baa1)
 
-baa15lBMI <- glmer(binary.MO ~ baa_15*laggedBMI + (1|WMUA_code/WMU), family=binomial(link="logit"), data=baa1)
-baa15sqlBMI <- glmer(binary.MO ~ baa_15*laggedBMI + I(baa_15^2)*laggedBMI + (1|WMUA_code/WMU), family=binomial(link="logit"), data=baa1)
-baa30lBMI <- glmer(binary.MO ~ baa_30*laggedBMI + (1|WMUA_code/WMU), family=binomial(link="logit"), data=baa1)
-baa30sqlBMI <- glmer(binary.MO ~ baa_30*laggedBMI + I(baa_30^2)*laggedBMI + (1|WMUA_code/WMU), family=binomial(link="logit"), data=baa1)
-baa60lBMI <- glmer(binary.MO ~ baa_60*laggedBMI + (1|WMUA_code/WMU), family=binomial(link="logit"), data=baa1)
-baa60sqlBMI <- glmer(binary.MO ~ baa_60*laggedBMI + I(baa_60^2)*laggedBMI + (1|WMUA_code/WMU), family=binomial(link="logit"), data=baa1)
+baa15lBMI <- clmm(binary.MO ~ baa_15*laggedBMI + (1|WMUA_code/WMU), data=baa1)
+baa30lBMI <- clmm(binary.MO ~ baa_30*laggedBMI + (1|WMUA_code/WMU), data=baa1)
+baa60lBMI <- clmm(binary.MO ~ baa_60*laggedBMI + (1|WMUA_code/WMU), data=baa1)
 
-baa15M <- glmer(binary.MO ~ baa_15*mast + (1|WMUA_code/WMU), family=binomial(link="logit"), data=baa1)
-baa15sqM <- glmer(binary.MO ~ baa_15*mast + I(baa_15^2)*mast + (1|WMUA_code/WMU), family=binomial(link="logit"), data=baa1)
-baa30M <- glmer(binary.MO ~ baa_30*mast + (1|WMUA_code/WMU), family=binomial(link="logit"), data=baa1)
-baa30sqM <- glmer(binary.MO ~ baa_30*mast + I(baa_30^2)*mast + (1|WMUA_code/WMU), family=binomial(link="logit"), data=baa1)
-baa60M <- glmer(binary.MO ~ baa_60*mast + (1|WMUA_code/WMU), family=binomial(link="logit"), data=baa1)
-baa60sqM <- glmer(binary.MO ~ baa_60*mast + I(baa_60^2)*mast + (1|WMUA_code/WMU), family=binomial(link="logit"), data=baa1)
-
-baa15y <- glmer(binary.MO ~ baa_15*fyear + (1|WMUA_code/WMU), family=binomial(link="logit"), data=baa1)
-baa15sqy <- glmer(binary.MO ~ baa_15*fyear + I(baa_15^2)*fyear + (1|WMUA_code/WMU), family=binomial(link="logit"), data=baa1)
-baa30y <- glmer(binary.MO ~ baa_30*fyear + (1|WMUA_code/WMU), family=binomial(link="logit"), data=baa1)
-baa30sqy <- glmer(binary.MO ~ baa_30*fyear + I(baa_30^2)*fyear + (1|WMUA_code/WMU), family=binomial(link="logit"), data=baa1)
-baa60y <- glmer(binary.MO ~ baa_60*fyear + (1|WMUA_code/WMU), family=binomial(link="logit"), data=baa1)
-baa60sqy <- glmer(binary.MO ~ baa_60*fyear + I(baa_60^2)*fyear + (1|WMUA_code/WMU), family=binomial(link="logit"), data=baa1)
+baa15M <- clmm(binary.MO ~ baa_15*mast + (1|WMUA_code/WMU), data=baa1)
+baa30M <- clmm(binary.MO ~ baa_30*mast + (1|WMUA_code/WMU), data=baa1)
+baa60M <- clmm(binary.MO ~ baa_60*mast + (1|WMUA_code/WMU), data=baa1)
 
 baa_sel <- model.sel(baa15, baa30, baa60, baa15sq, baa30sq, baa60sq, 
-                     baa15lBMI, baa15sqlBMI, baa30lBMI, baa30sqlBMI, baa60lBMI, baa60sqlBMI,
-                     baa15M, baa15sqM, baa30M, baa30sqM, baa60M, baa60sqM,
-                     baa15y, baa15sqy, baa30y, baa30sqy, baa60y, baa60sqy)
+                     baa15lBMI, baa30lBMI, baa60lBMI, 
+                     baa15M, baa30M, baa60M)
 baa_sel
-
 
 ## Wildland-urban interface  ## Check response variable!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 intermix1 <- dat[, c(1:3, 6:8, 15:17, 26)]

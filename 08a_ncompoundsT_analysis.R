@@ -246,13 +246,12 @@ dat1$Age <- scale(dat1$Age)
 cor(dat1[,18:21])
 
 ## Set up global models
-g1 <- clmm(n.compounds.T ~ Sex*Age + 
+g1 <- clmm(n.compounds.T ~ Sex*catAge + 
                 pasture_60 + I(pasture_60^2) + 
                 totalag_60 + I(totalag_60^2) +
                 mix_60_500 + I(mix_60_500 ^2) +
-                baa_60 + fyear + I(baa_60^2) +
-                baa_60:fyear + I(baa_60^2):fyear +
-                (1|WMUA_code/WMU), data=dat1, na.action="na.fail")
+                baa_60 + fyear + baa_60:fyear + 
+                (1|WMUA_code), data=dat1, na.action="na.fail")
 
 # Export data and model into the cluster worker nodes
 clusterExport(cl, c("dat1","g1"))
