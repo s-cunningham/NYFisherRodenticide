@@ -101,30 +101,16 @@ baa60 <- clmm(n.compounds.MO ~ baa_60 + (1|WMUA_code/WMU), data=baa1)
 baa60sq <- clmm(n.compounds.MO ~ baa_60 + I(baa_60^2) + (1|WMUA_code/WMU), data=baa1)
 
 baa15lBMI <- clmm(n.compounds.MO ~ baa_15*laggedBMI + (1|WMUA_code/WMU), data=baa1)
-baa15sqlBMI <- clmm(n.compounds.MO ~ baa_15*laggedBMI + I(baa_15^2)*laggedBMI + (1|WMUA_code/WMU), data=baa1)
 baa30lBMI <- clmm(n.compounds.MO ~ baa_30*laggedBMI + (1|WMUA_code/WMU), data=baa1)
-baa30sqlBMI <- clmm(n.compounds.MO ~ baa_30*laggedBMI + I(baa_30^2)*laggedBMI + (1|WMUA_code/WMU), data=baa1)
 baa60lBMI <- clmm(n.compounds.MO ~ baa_60*laggedBMI + (1|WMUA_code/WMU), data=baa1)
-baa60sqlBMI <- clmm(n.compounds.MO ~ baa_60*laggedBMI + I(baa_60^2)*laggedBMI + (1|WMUA_code/WMU), data=baa1)
 
 baa15M <- clmm(n.compounds.MO ~ baa_15*mast + (1|WMUA_code/WMU), data=baa1)
-baa15sqM <- clmm(n.compounds.MO ~ baa_15*mast + I(baa_15^2)*mast + (1|WMUA_code/WMU), data=baa1)
 baa30M <- clmm(n.compounds.MO ~ baa_30*mast + (1|WMUA_code/WMU), data=baa1)
-baa30sqM <- clmm(n.compounds.MO ~ baa_30*mast + I(baa_30^2)*mast + (1|WMUA_code/WMU), data=baa1)
 baa60M <- clmm(n.compounds.MO ~ baa_60*mast + (1|WMUA_code/WMU), data=baa1)
-baa60sqM <- clmm(n.compounds.MO ~ baa_60*mast + I(baa_60^2)*mast + (1|WMUA_code/WMU), data=baa1)
-
-baa15y <- clmm(n.compounds.MO ~ baa_15*fyear + (1|WMUA_code/WMU), data=baa1)
-baa15sqy <- clmm(n.compounds.MO ~ baa_15*fyear + I(baa_15^2)*fyear + (1|WMUA_code/WMU), data=baa1)
-baa30y <- clmm(n.compounds.MO ~ baa_30*fyear + (1|WMUA_code/WMU), data=baa1)
-baa30sqy <- clmm(n.compounds.MO ~ baa_30*fyear + I(baa_30^2)*fyear + (1|WMUA_code/WMU), data=baa1)
-baa60y <- clmm(n.compounds.MO ~ baa_60*fyear + (1|WMUA_code/WMU), data=baa1)
-baa60sqy <- clmm(n.compounds.MO ~ baa_60*fyear + I(baa_60^2)*fyear + (1|WMUA_code/WMU), data=baa1)
 
 baa_sel <- model.sel(baa15, baa30, baa60, baa15sq, baa30sq, baa60sq, 
-                     baa15lBMI, baa15sqlBMI, baa30lBMI, baa30sqlBMI, baa60lBMI, baa60sqlBMI,
-                     baa15M, baa15sqM, baa30M, baa30sqM, baa60M, baa60sqM,
-                     baa15y, baa15sqy, baa30y, baa30sqy, baa60y, baa60sqy)
+                     baa15lBMI, baa30lBMI, baa60lBMI, 
+                     baa15M, baa30M, baa60M)
 baa_sel
 
 ## Wildland-urban interface
@@ -238,7 +224,7 @@ wui_sel <- model.sel(wui_15100, wui_30100, wui_60100, wui_15100sq, wui_30100sq, 
 wui_sel
 
 #### Set up data to run for each combination of covariates ####
-dat1 <- dat[,c(1:16,32,33)]
+dat1 <- dat[,c(1:16,31:33)]
 dat1 <- distinct(dat1)
 
 # Join percent agriculture
@@ -254,14 +240,13 @@ wui1 <- wui1[,c(1:3, 29)]
 dat1 <- left_join(dat1, wui1, by=c("RegionalID", "pt_name", "pt_index"))
 
 ## Check correlation matrix
-cor(dat1[,19:21])
+cor(dat1[,20:22])
 
 ## Set up global models
 # Human-driven hypothesis
-g1 <- clmm(n.compounds.MO ~ Sex*Age + crops_60 + I(crops_60^2) +  
+g1 <- clmm(n.compounds.MO ~ Sex*catAge + crops_60 + I(crops_60^2) +  
                             mix_60_100 + I(mix_60_100^2) + 
-                            baa_60 + I(baa_60^2) + fyear +
-                            baa_60:fyear + I(baa_60^2):fyear +
+                            baa_60 + laggedBMI + baa_60:laggedBMI + 
                             (1|WMUA_code/WMU), data=dat1, na.action="na.fail")
 
 # Export data and model into the cluster worker nodes
@@ -271,8 +256,7 @@ clusterExport(cl, c("dat1","g1"))
 
 g_dredge <- MuMIn:::.dredge.par(g1, cluster=cl, trace=2, subset=dc(mix_60_100, I(mix_60_100^2)) &&
                                                                 dc(crops_60, I(crops_60^2)) &&
-                                                                dc(I(baa_60^2), fyear, I(baa_60^2):fyear) &&
-                                                                dc(baa_60, fyear, baa_60:fyear))
+                                                                dc(baa_60, laggedBMI, baa_60:laggedBMI))
 
 # Save dredge tables
 save(file="output/dredge_tables_ncompMO.Rdata", list="g_dredge")
