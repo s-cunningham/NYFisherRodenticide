@@ -33,6 +33,38 @@ ggplot(dat1, aes(x=rand_x, y=rand_y, color=factor(n.compounds.T))) +
 dat1 %>% group_by(n.compounds.MO, year) %>% count()
 dat1 %>% group_by(n.compounds.T, year) %>% count()
 
+dat$catNcompT <- ifelse(dat$n.compounds.T>=3, "3+", as.character(dat$n.compounds.T))
+dat$catNcompT  <- ordered(dat$catNcompT , levels=c("0", "1", "2", "3+"))
+dat$catNcompMO <- ifelse(dat$n.compounds.MO>=2, "2+", as.character(dat$n.compounds.MO))
+dat$catNcompMO <- ordered(dat$catNcompMO, levels=c("0", "1", "2+"))
+
+## Box plots for covariates (according to number of compounds)
+# Agriculture
+pctAG <- dat[, c(1:16,32,33,18:20)]
+pctAG <- distinct(pctAG)
+pctAG <- pctAG %>% group_by(RegionalID) %>% 
+  pivot_longer(19:21, names_to="AG_category", values_to="value") %>% as.data.frame()
+
+ggplot(pctAG, aes(x=catNcompT, y=value, fill=AG_category)) + 
+  geom_boxplot() + facet_grid(buffsize~.) + 
+  coord_cartesian(ylim=c(0,1)) + ylab("Percent coverage in buffer area") + xlab("Number of Compounds Detected")
+  
+# Beech basal area per acre
+baa <- dat[, c(1:16,32,33,25)]
+baa <- distinct(baa)
+
+ggplot(baa, aes(x=catNcompT, y=baa, fill=factor(buffsize))) + 
+  geom_boxplot() + xlab("Number of Compounds Detected") +
+  ylab("Average beech basal area per acre")
+
+# Wildland-urban interface
+wui <- dat[,c(1:17,32,33,26:28)]
+wui <- wui %>% group_by(RegionalID) %>% 
+  pivot_longer(20:22, names_to="WUI_category", values_to="value") %>% as.data.frame()
+
+ggplot(wui, aes(x=catNcompT, y=value, fill=factor(WUI_category))) + 
+  geom_boxplot() + xlab("Number of Compounds Detected") +
+  ylab("WUI %") + facet_grid(factor(buffsize)~factor(radius))
 
 
 
