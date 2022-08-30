@@ -67,6 +67,46 @@ ggplot(wui, aes(x=catNcompT, y=value, fill=factor(WUI_category))) +
   ylab("WUI %") + facet_grid(factor(buffsize)~factor(radius))
 
 
+## Plot points colored by covariate value
+ggplot(dat, aes(x=rand_x, y=rand_y, color=totalWUI)) + geom_point() +
+  facet_grid(~buffsize) + theme(legend.position="bottom")
+
+ggplot(dat, aes(x=rand_x, y=rand_y, color=intermix)) + geom_point() +
+  facet_grid(~buffsize) + theme(legend.position="bottom")
+
+ggplot(dat, aes(x=rand_x, y=rand_y, color=interface)) + geom_point() +
+  facet_grid(~buffsize) + theme(legend.position="bottom")
+
+ggplot(dat, aes(x=rand_x, y=rand_y, color=pasture)) + geom_point() +
+  facet_grid(~buffsize) + theme(legend.position="bottom")
+
+ggplot(dat, aes(x=rand_x, y=rand_y, color=crops)) + geom_point() +
+  facet_grid(~buffsize) + theme(legend.position="bottom")
+
+ggplot(dat, aes(x=rand_x, y=rand_y, color=totalag)) + geom_point() +
+  facet_grid(~buffsize) + theme(legend.position="bottom")
+
+dat60 <- dat[dat$buffsize==60,]
+ggplot(dat60, aes(x=rand_x, y=rand_y, color=intermix)) + geom_point(size=2) +
+  theme(legend.position="bottom")
+
+ggplot(dat60, aes(x=rand_x, y=rand_y, color=interface)) + geom_point(size=2) +
+  theme(legend.position="bottom")
+
+ggplot(dat60, aes(x=rand_x, y=rand_y, color=totalWUI)) + geom_point(size=2) +
+  theme(legend.position="bottom")
+
+ggplot(dat60, aes(x=rand_x, y=rand_y, color=pasture)) + geom_point(size=2) +
+  theme(legend.position="bottom")
+
+ggplot(dat60, aes(x=rand_x, y=rand_y, color=crops)) + geom_point(size=2) +
+  theme(legend.position="bottom")
+
+ggplot(dat60, aes(x=rand_x, y=rand_y, color=totalag)) + geom_point(size=2) +
+  theme(legend.position="bottom")
+
+ggplot(dat60, aes(x=rand_x, y=rand_y, color=baa)) + geom_point(size=2) +
+  theme(legend.position="bottom")
 
 ## Read data frame with town/wmu location
 loc <- read.csv("data/analysis-ready/ar_locations_only.csv")
