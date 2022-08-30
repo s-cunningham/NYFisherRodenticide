@@ -29,10 +29,10 @@ dat$binary.MO <- ifelse(dat$n.compounds.MO==0, 0, 1)
 
 # Change how beech mast is incorporated
 dat$mast <- NA 
-dat$mast[dat$year==2018] <- "intermediate"
+dat$mast[dat$year==2018] <- "mast"
 dat$mast[dat$year==2019] <- "fail"
-dat$mast[dat$year==2020] <- "high"
-dat$mast <-  ordered(dat$mast, levels=c("fail", "intermediate", "high"))
+dat$mast[dat$year==2020] <- "mast"
+dat$mast <- as.factor(dat$mast)
 
 # Make age a categorical variable
 dat$catAge[dat$Age>=3.5] <- "adult"
@@ -84,7 +84,7 @@ pctAG_sel <- model.sel(ag15, ag15sq, crops15, crops15sq, past15, past15sq,
                        ag60, ag60sq, crops60, crops60sq, past60, past60sq)
 pctAG_sel
 
-## Beech basal area  ## Check response variable!!!!!!
+## Beech basal area  
 baa1 <- dat[, c(1:3, 6:8, 15:17,19:21)]
 baa1  <- baa1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffsize, values_from=baa, values_fn=unique) %>% as.data.frame()
 names(baa1)[11:13] <- c("baa_15", "baa_30", "baa_60") 
@@ -228,7 +228,7 @@ pctAG1 <- pctAG1[,c(1:3, 11)]
 dat1 <- left_join(dat1, pctAG1, by=c("RegionalID", "pt_name", "pt_index"))
 
 # Join beech basal area
-baa1 <- baa1[,c(1:3, 9, 13)]
+baa1 <- baa1[,c(1:3, 10, 13)]
 dat1 <- left_join(dat1, baa1, by=c("RegionalID", "pt_name", "pt_index"))
 
 # Join total WUI
@@ -241,10 +241,10 @@ dat1 <- left_join(dat1, wui1, by=c("RegionalID", "pt_name", "pt_index"))
 cor(dat1[,c(17,19:20)])
 
 ## Set up global model
-g1 <- glmer(binary.MO ~ Sex*catAge + mast + 
+g1 <- glmer(binary.MO ~ Sex*catAge + laggedBMI + 
                         pasture_60 + I(pasture_60^2) +
                         mix_60_100 + I(mix_60_100^2) +
-                        baa_60 + I(baa_60^2) + baa_60:mast +
+                        baa_60 + I(baa_60^2) + baa_60:laggedBMI +
                         (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=dat1, na.action="na.fail")
 
 # Export data and model into the cluster worker nodes
@@ -269,12 +269,12 @@ dh <- as.data.frame(dh)
 
 #### Running final models ####
 
-
 ## Loop over each set of random points
 
-# Empty array for saving data
-resultsF <- list()
-resultsR <- data.frame()
+m_est <- data.frame()
+m_stderr <- data.frame()
+pct2.5 <- data.frame()
+pct97.5 <- data.frame()
 
 # Loop over each point set
 for (i in 1:10) {
@@ -283,31 +283,44 @@ for (i in 1:10) {
   pt <- dat1[dat1$pt_index==i,]
   
   # Run model with deltaAICc < 2
-  m1_pt <- glmer(binary.MO ~ Sex*Age + # pasture_60 + 
-                   # mix_60_100 +
-                   baa_60 + fyear  +
-                   baa_60:fyear +
-                   (1|WMUA_code), family=binomial(link="logit"), data=pt)
+  m1_pt <- glm(binary.MO ~ Sex + catAge + baa_60 + I(baa_60^2) +
+                             laggedBMI + baa_60:laggedBMI + 
+                             pasture_60 + I(pasture_60^2) +
+                             mix_60_100 + I(mix_60_100^2), family=binomial(link="logit"), data=pt, na.action="na.fail")
   
-  # Save estimates
-  fixed <- tidy(m1_pt, conf.int=TRUE, exponentiate=TRUE, effects="fixed")
-  fixed$term <- as.factor(fixed$term)
-  random <- tidy(m1_pt, conf.int=TRUE, exponentiate=TRUE, effects="ran_pars")[,1:4]
+  m1s <- summary(m1_pt)
   
-  # Add to list
-  resultsF[[i]] <- fixed
-  resultsR <- rbind(resultsR, random)
+  # save averaged confidence intervals
+  pct2.5 <- rbind(pct2.5, t(confint(m1_pt))[1,])
+  pct97.5 <- rbind(pct97.5, t(confint(m1_pt))[2,])
+  
+  # Save point set estimates
+  m_est <- rbind(m_est, coef(m1s)[,1])
+  m_stderr <- rbind(m_stderr, coef(m1s)[,2])
+  
+  # Rename (only need to do once)
+  if (i==1) {
+    names(m_est) <- c(names(coef(m1_pt)))
+    names(m_stderr) <- c(names(coef(m1_pt)))
+    names(pct2.5) <- c(names(coef(m1_pt)))
+    names(pct97.5) <- c(names(coef(m1_pt)))
+  }
+  
 }
 
 # Calculate averages for each coefficient
+coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)], na.rm=TRUE)
+stderr_avg <- colMeans(m_stderr[sapply(m_stderr, is.numeric)], na.rm=TRUE)
+pct2.5_avg <- colMeans(pct2.5[sapply(pct2.5, is.numeric)], na.rm=TRUE)
+pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)], na.rm=TRUE)
 
-param_avg
-stderr_avg 
-pct2.5_avg 
-pct97.5_avg
-zstat_avg
-pvalue_avg
+# Combine and clean up data frame
+coef_summary <- bind_rows(coef_avg, stderr_avg, pct2.5_avg, pct97.5_avg)
+coef_summary <- as.data.frame(coef_summary)
+coefs <- c("param_est", "std_error", "2.5CI", "97.5CI")
+coef_summary <- data.frame(coef=coefs, coef_summary)
 
 # Write to file
-write_csv(coef_summary, "results/binaryMO_coef-summary.csv")
+write_csv(coef_summary, "results/ncompT_coef-summary.csv")
+
 
