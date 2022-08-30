@@ -14,6 +14,10 @@ dat <- as.data.frame(dat)
 dat$catNcompMO <- ifelse(dat$n.compounds.MO>=2, "2+", as.character(dat$n.compounds.MO))
 dat$catNcompT <- ifelse(dat$n.compounds.T>=3, "3+", as.character(dat$n.compounds.T))
 
+dat$catAge[dat$Age>=3.5] <- "adult"
+dat$catAge[dat$Age==2.5] <- "subadult"
+dat$catAge[dat$Ag<2.5] <- "juvenile"
+
 # Break down by age and sex
 dat1 <- dat[dat$pt_index==1 & dat$buffsize==60 & dat$radius==100,]
 dat1 %>% group_by(Age, Sex) %>% count()
@@ -39,6 +43,19 @@ dat$catNcompT <- ifelse(dat$n.compounds.T>=3, "3+", as.character(dat$n.compounds
 dat$catNcompT  <- ordered(dat$catNcompT , levels=c("0", "1", "2", "3+"))
 dat$catNcompMO <- ifelse(dat$n.compounds.MO>=2, "2+", as.character(dat$n.compounds.MO))
 dat$catNcompMO <- ordered(dat$catNcompMO, levels=c("0", "1", "2+"))
+
+# Age and sex plots
+ggplot(dat1, aes(x=catNcompT, y=Age, fill=Sex)) + 
+  geom_boxplot()
+
+ggplot(dat1, aes(x=catNcompMO, y=Age, fill=Sex)) + 
+  geom_boxplot()
+
+ggplot(dat1, aes(x=catAge, y=n.compounds.T, fill=Sex)) + 
+  geom_boxplot()
+
+ggplot(dat1, aes(x=catAge, y=n.compounds.MO, fill=Sex)) + 
+  geom_boxplot()
 
 ## Box plots for covariates (according to number of compounds)
 # Agriculture
