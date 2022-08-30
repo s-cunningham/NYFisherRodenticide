@@ -26,25 +26,33 @@ dat <- as.data.frame(dat)
 ## set up binary variable
 dat$binary.T <- ifelse(dat$n.compounds.T==0, 0, 1)
 
-## Reorder columns
-dat <- dat[,c(1:7, 31, 8:13, 32, 33, 16:29)]  # Check column numbers
-
-## Scale and center variables
-dat[,c(10,19:30)] <- scale(dat[,c(10,19:30)])
-
 # Change how beech mast is incorporated
 dat$mast <- NA 
-dat$mast[dat$year==2018] <- "intermediate"
+dat$mast[dat$year==2018] <- "mast"
 dat$mast[dat$year==2019] <- "fail"
-dat$mast[dat$year==2020] <- "high"
-dat$mast <-  ordered(dat$mast, levels=c("fail", "intermediate", "high"))
+dat$mast[dat$year==2020] <- "mast"
+dat$mast <- as.factor(dat$mast)
 
-dat$fyear <- factor(dat$year)
+# Make age a categorical variable
+dat$catAge[dat$Age>=3.5] <- "adult"
+dat$catAge[dat$Age==2.5] <- "subadult"
+dat$catAge[dat$Ag<2.5] <- "juvenile"
+
+# Make random effects factors
+dat$WMU <- as.factor(dat$WMU)
+dat$WMUA_code <- as.factor(dat$WMUA_code)
+dat$year <- factor(dat$year)
+
+## Reorder columns
+dat <- dat[,c(1:7, 31, 8, 9, 34, 10:13, 32, 16, 17, 33,29,25, 18:20, 26:28)]
+
+## Scale and center variables
+dat[,c(10,20:27)] <- scale(dat[,c(10,20:27)])
 
 ## Use pooled data to determine scale
 
 ## Percent AG
-pctAG1 <- dat[, c(1:3, 6:8, 16, 17, 19:21)]
+pctAG1 <- dat[, c(1:3, 6:8, 15:17, 22:24)]
 pctAG1 <- distinct(pctAG1)
 pctAG1 <- pctAG1 %>% group_by(RegionalID) %>% 
   pivot_wider(names_from=buffsize, values_from=c(pasture, crops, totalag)) %>% as.data.frame()
@@ -76,24 +84,24 @@ pctAG_sel <- model.sel(ag15, ag15sq, crops15, crops15sq, past15, past15sq,
 pctAG_sel
 
 ## Beech basal area
-baa1 <- dat[, c(1:3, 6:8, 16, 17, 26, 30:32)]
+baa1 <- dat[, c(1:3, 6:8, 15:17,19:21)]
 baa1  <- baa1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffsize, values_from=baa, values_fn=unique) %>% as.data.frame()
 names(baa1)[11:13] <- c("baa_15", "baa_30", "baa_60") 
 
-baa15 <- clmm(binary.T ~ baa_15 + (1|WMUA_code/WMU), data=baa1)
-baa15sq <- clmm(binary.T ~ baa_15 + I(baa_15^2) + (1|WMUA_code/WMU), data=baa1)
-baa30 <- clmm(binary.T ~ baa_30 + (1|WMUA_code/WMU), data=baa1)
-baa30sq <- clmm(binary.T ~ baa_30 + I(baa_30^2) + (1|WMUA_code/WMU), data=baa1)
-baa60 <- clmm(binary.T ~ baa_60 + (1|WMUA_code/WMU), data=baa1)
-baa60sq <- clmm(binary.T ~ baa_60 + I(baa_60^2) + (1|WMUA_code/WMU), data=baa1)
+baa15 <- glmer(binary.T ~ baa_15 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=baa1)
+baa15sq <- glmer(binary.T ~ baa_15 + I(baa_15^2) + (1|WMUA_code/WMU) + (1|year),family=binomial(link="logit"),  data=baa1)
+baa30 <- glmer(binary.T ~ baa_30 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=baa1)
+baa30sq <- glmer(binary.T ~ baa_30 + I(baa_30^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=baa1)
+baa60 <- glmer(binary.T ~ baa_60 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=baa1)
+baa60sq <- glmer(binary.T ~ baa_60 + I(baa_60^2) + (1|WMUA_code/WMU) + (1|year),family=binomial(link="logit"),  data=baa1)
 
-baa15lBMI <- clmm(binary.T ~ baa_15*laggedBMI + (1|WMUA_code/WMU), data=baa1)
-baa30lBMI <- clmm(binary.T ~ baa_30*laggedBMI + (1|WMUA_code/WMU), data=baa1)
-baa60lBMI <- clmm(binary.T ~ baa_60*laggedBMI + (1|WMUA_code/WMU), data=baa1)
+baa15lBMI <- glmer(binary.T ~ baa_15*laggedBMI + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=baa1)
+baa30lBMI <- glmer(binary.T ~ baa_30*laggedBMI + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=baa1)
+baa60lBMI <- glmer(binary.T ~ baa_60*laggedBMI + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=baa1)
 
-baa15M <- clmm(binary.T ~ baa_15*mast + (1|WMUA_code/WMU), data=baa1)
-baa30M <- clmm(binary.T ~ baa_30*mast + (1|WMUA_code/WMU), data=baa1)
-baa60M <- clmm(binary.T ~ baa_60*mast + (1|WMUA_code/WMU), data=baa1)
+baa15M <- glmer(binary.T ~ baa_15*mast + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=baa1)
+baa30M <- glmer(binary.T ~ baa_30*mast + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=baa1)
+baa60M <- glmer(binary.T ~ baa_60*mast + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=baa1)
 
 baa_sel <- model.sel(baa15, baa30, baa60, baa15sq, baa30sq, baa60sq, 
                      baa15lBMI, baa30lBMI, baa60lBMI, 
@@ -101,34 +109,36 @@ baa_sel <- model.sel(baa15, baa30, baa60, baa15sq, baa30sq, baa60sq,
 baa_sel
 
 ## Wildland-urban interface
-intermix1 <- dat[, c(1:3, 6:8, 16:18, 27)]
-intermix1 <- unite(intermix1, "buffrad", 8:9, sep="_")
+# Intermix
+intermix1 <- dat[, c(1:3, 6:8, 15:18, 25)]
+intermix1 <- unite(intermix1, "buffrad", 9:10, sep="_")
 intermix1  <- intermix1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffrad, values_from=intermix) %>% as.data.frame()
-names(intermix1)[8:16] <- c("mix_15_100", "mix_30_100", "mix_60_100",
+names(intermix1)[9:17] <- c("mix_15_100", "mix_30_100", "mix_60_100",
                             "mix_15_250", "mix_30_250", "mix_60_250",
                             "mix_15_500", "mix_30_500", "mix_60_500")  
 
-
-interface1 <- dat[, c(1:3, 6:8, 16:18, 28)]
-interface1 <- unite(interface1, "buffrad", 8:9, sep="_")
+# Interface
+interface1 <- dat[, c(1:3, 6:8, 15:18, 26)]
+interface1 <- unite(interface1, "buffrad", 9:10, sep="_")
 interface1  <- interface1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffrad, values_from=interface) %>% as.data.frame()
-names(interface1)[8:16] <- c("face_15_100", "face_30_100", "face_60_100",
+names(interface1)[9:17] <- c("face_15_100", "face_30_100", "face_60_100",
                              "face_15_250", "face_30_250", "face_60_250",
                              "face_15_500", "face_30_500", "face_60_500") 
 
-wui1 <- dat[, c(1:3, 6:8, 16:18, 29)]
-wui1 <- unite(wui1, "buffrad", 8:9, sep="_")
+# WUI total
+wui1 <- dat[, c(1:3, 6:8, 15:18, 27)]
+wui1 <- unite(wui1, "buffrad", 9:10, sep="_")
 wui1  <- wui1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffrad, values_from=totalWUI) %>% as.data.frame()
-names(wui1)[8:16] <- c("wui_15_100", "wui_30k_100", "wui_60_100",
+names(wui1)[9:17] <- c("wui_15_100", "wui_30k_100", "wui_60_100",
                        "wui_15_250", "wui_30k_250", "wui_60_250",
                        "wui_15_500", "wui_30k_500", "wui_60_500")
 
 # Join intermix WUI
-intermix1 <- intermix1[,c(1:3, 8:16)]
+intermix1 <- intermix1[,c(1:3, 9:17)]
 wui1 <- left_join(wui1, intermix1, by=c("RegionalID", "pt_name", "pt_index"))
 
 # Join interface WUI
-interface1 <- interface1[, c(1:3, 8:16)]
+interface1 <- interface1[, c(1:3, 9:17)]
 wui1 <- left_join(wui1, interface1, by=c("RegionalID", "pt_name", "pt_index"))
 
 # Intermix
