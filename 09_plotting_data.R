@@ -6,6 +6,7 @@ library(sf)
 
 theme_set(theme_bw())
 
+#### Full dataset (all compounds pooled) ####
 # read data
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv")
 dat <- as.data.frame(dat)
@@ -145,5 +146,37 @@ nloc <- loc %>% group_by(key) %>% count()
 twmu <- left_join(twmu, nloc, by="key")
 
 ggplot(twmu, aes(fill=n)) + geom_sf() 
+
+
+
+
+#### Subset to only the most common compounds ####
+
+# Read data
+dets <- read_csv("data/analysis-ready/combined_AR_covars.csv")
+dets <- as.data.frame(dets)
+dets <- dets[,c(1:5, 7:9, 13, 16:20, 25:29 )]
+
+dat <- read_csv("output/summarized_AR_results.csv")
+dat <- as.data.frame(dat[,2:23])
+
+# Subset to diphacinone, bromadiolone, brodifacoum
+dat <- dat[dat$compound=="Diphacinone" | dat$compound=="Brodifacoum" |
+             dat$compound=="Bromadiolone", c(1,18,20) ]
+
+dat <- left_join(dets, dat, by="RegionalID")
+
+dat <- pivot_wider(dat, values_from="exposure", names_from="compound") %>% as.data.frame()
+
+
+ggplot(dat, aes(x=rand_x, y=rand_y, color=factor(Diphacinone))) + geom_point() +
+  theme(legend.position="bottom")
+
+ggplot(dat, aes(x=rand_x, y=rand_y, color=factor(Bromadiolone))) + geom_point() +
+  theme(legend.position="bottom")
+
+ggplot(dat, aes(x=rand_x, y=rand_y, color=factor(Brodifacoum))) + geom_point() +
+  theme(legend.position="bottom")
+
 
 
