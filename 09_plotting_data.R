@@ -24,11 +24,13 @@ ggplot(dat1, aes(x=rand_x, y=rand_y, color=Sex)) + geom_point(size=2)
 # Plot by number of compounds
 cols4 <- c("#9ebcda", "#8c96c6", "#8856a7", "#810f7c")
 ggplot(dat1, aes(x=rand_x, y=rand_y, color=factor(n.compounds.MO))) + 
-  geom_point(size=4) + scale_color_manual(values=cols4, name="# compounds") + ggtitle("Measured-only")
+  geom_point(size=4) + scale_color_manual(values=cols4, name="# compounds") + 
+  ggtitle("Measured-only") + theme(legend.position="bottom")
 
 cols6 <- c("#bfd3e6", "#9ebcda", "#8c96c6", "#8c6bb1", "#88419d", "#6e016b")
 ggplot(dat1, aes(x=rand_x, y=rand_y, color=factor(n.compounds.T))) + 
-  geom_point(size=4) + scale_color_manual(values=cols6, name="# compounds") + ggtitle("Including trace")
+  geom_point(size=4) + scale_color_manual(values=cols6, name="# compounds") + 
+  ggtitle("Including trace") + theme(legend.position="bottom")
 
 dat1 %>% group_by(n.compounds.MO, year) %>% count()
 dat1 %>% group_by(n.compounds.T, year) %>% count()
