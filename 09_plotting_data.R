@@ -178,5 +178,17 @@ ggplot(dat, aes(x=rand_x, y=rand_y, color=factor(Bromadiolone))) + geom_point() 
 ggplot(dat, aes(x=rand_x, y=rand_y, color=factor(Brodifacoum))) + geom_point() +
   theme(legend.position="bottom")
 
+# Boxplots
 
+dat$diphac_binary <- ifelse(dat$Diphacinone=="ND", "not detected", "detected")
+dat$bromod_binary <- ifelse(dat$Bromadiolone=="ND", "not detected", "detected")
+dat$brodif_binary <- ifelse(dat$Brodifacoum=="ND", "not detected", "detected")
 
+ggplot(dat, aes(x=diphac_binary, y=totalag)) + geom_boxplot() + 
+  theme(legend.position="bottom") + facet_grid(buffsize~radius)
+
+ggplot(dat, aes(x=bromod_binary, y=totalag)) + geom_boxplot() + 
+  theme(legend.position="bottom") + facet_grid(buffsize~radius)
+
+ggplot(dat, aes(x=brodif_binary, y=totalag)) + geom_boxplot() + 
+  theme(legend.position="bottom") + facet_grid(buffsize~radius)

@@ -18,9 +18,16 @@ clusterEvalQ(cl,library(lme4))
 clusterEvalQ(cl,library(MuMIn))
 
 #### Read in data ####
+# Landscape covariates
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv")
 dat <- as.data.frame(dat)
 
+# Individual compounds
+dat2 <- read_csv("output/summarized_AR_results.csv")
+dat2 <- as.data.frame(dat2)
+
+dat2 <- dat[dat$compound=="Diphacinone" | dat$compound=="Brodifacoum" |
+             dat$compound=="Bromadiolone", c(1,18,20:22) ]
 #### Analysis ####
 
 ## set up binary variable
