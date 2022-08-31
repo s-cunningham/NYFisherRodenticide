@@ -1,0 +1,43 @@
+---
+title: "Rodenticide Tables"
+output:
+  html_document: default
+  pdf_document: default
+date: "2022-08-31"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r echo=FALSE, message=FALSE}
+library(tidyverse)
+library(kableExtra)
+
+# Number of compounds (including trace)
+dat1 <- read_csv("results/ncompT_coef-summary.csv")
+dat1 <- as.data.frame(t(dat1))
+
+dat1 <- read_csv("results/ncompT_coef-summary.csv")
+dat1 <- as.data.frame(t(dat1))
+dat1 <- tibble::rownames_to_column(dat1, "VALUE")
+names(dat1) <- dat1[1,]
+dat1 <- dat1[-1,]
+
+dat1[2:5] <- sapply(dat1[2:5], as.numeric)
+
+dat1 <- dat1[c(1:4,8:11,5:7,12),]
+dat1$coef <- c("Intercept", "SexM", "Juvenile", "Subadult", "Pasture (60km2)",
+               "Sq Past (60km2)", "Intermix (100m, 60km2)", "Sq Intermix", 
+               "Beech BAA", "Sq Beech BAA", "Beech Mast Index", "BeechBAA x BMI")
+
+```
+
+
+```{r,  echo=FALSE}
+kab <- knitr::kable(dat1, caption="Ncompounds with trace",
+                    booktabs=TRUE, lable="kable table1", digits=2)
+
+kable_classic_2(kab, full_width=F, latex_options="hold_position")
+```
+
