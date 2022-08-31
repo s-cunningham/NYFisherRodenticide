@@ -192,3 +192,15 @@ ggplot(dat, aes(x=bromod_binary, y=totalag)) + geom_boxplot() +
 
 ggplot(dat, aes(x=brodif_binary, y=totalag)) + geom_boxplot() + 
   theme(legend.position="bottom") + facet_grid(buffsize~radius)
+
+# crops
+ggplot(dat, aes(x=diphac_binary, y=crops)) + geom_boxplot() + 
+  theme(legend.position="bottom") + facet_grid(buffsize~radius)
+
+ggplot(dat, aes(x=bromod_binary, y=crops)) + geom_boxplot() + 
+  theme(legend.position="bottom") + facet_grid(buffsize~radius)
+
+ggplot(dat, aes(x=brodif_binary, y=crops)) + geom_boxplot() + 
+  theme(legend.position="bottom") + facet_grid(buffsize~radius)
+
+
