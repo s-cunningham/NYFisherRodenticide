@@ -617,6 +617,9 @@ std_error
 <th style="text-align:right;">
 97.5CI
 </th>
+<th style="text-align:right;">
+P-value
+</th>
 </tr>
 </thead>
 <tbody>
@@ -625,19 +628,22 @@ std_error
 2
 </td>
 <td style="text-align:left;">
-Intercept
+Threshold0_1
 </td>
 <td style="text-align:right;">
-1.05
+-2.41
 </td>
 <td style="text-align:right;">
-0.42
+0.46
 </td>
 <td style="text-align:right;">
-0.23
+-3.31
 </td>
 <td style="text-align:right;">
-1.89
+-1.50
+</td>
+<td style="text-align:right;">
+0
 </td>
 </tr>
 <tr>
@@ -645,19 +651,22 @@ Intercept
 3
 </td>
 <td style="text-align:left;">
-SexM
+Threshold1_2
 </td>
 <td style="text-align:right;">
-0.39
+-1.13
 </td>
 <td style="text-align:right;">
-0.25
+0.44
 </td>
 <td style="text-align:right;">
--0.10
+-1.99
 </td>
 <td style="text-align:right;">
-0.89
+-0.28
+</td>
+<td style="text-align:right;">
+0
 </td>
 </tr>
 <tr>
@@ -665,19 +674,22 @@ SexM
 4
 </td>
 <td style="text-align:left;">
-Juvenile
+Threshold2_3
 </td>
 <td style="text-align:right;">
--1.02
+0.66
 </td>
 <td style="text-align:right;">
-0.27
+0.42
 </td>
 <td style="text-align:right;">
--1.55
+-0.17
 </td>
 <td style="text-align:right;">
--0.50
+1.49
+</td>
+<td style="text-align:right;">
+0
 </td>
 </tr>
 <tr>
@@ -685,99 +697,22 @@ Juvenile
 5
 </td>
 <td style="text-align:left;">
-Subadult
+SexM
 </td>
 <td style="text-align:right;">
--0.05
+0.48
 </td>
 <td style="text-align:right;">
-0.53
+0.47
 </td>
 <td style="text-align:right;">
--1.07
+-0.44
 </td>
 <td style="text-align:right;">
-1.04
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-9
-</td>
-<td style="text-align:left;">
-Pasture (60km2)
+1.40
 </td>
 <td style="text-align:right;">
--0.06
-</td>
-<td style="text-align:right;">
-0.18
-</td>
-<td style="text-align:right;">
--0.42
-</td>
-<td style="text-align:right;">
-0.31
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-10
-</td>
-<td style="text-align:left;">
-Sq Past (60km2)
-</td>
-<td style="text-align:right;">
--0.01
-</td>
-<td style="text-align:right;">
-0.12
-</td>
-<td style="text-align:right;">
--0.25
-</td>
-<td style="text-align:right;">
-0.21
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-11
-</td>
-<td style="text-align:left;">
-Intermix (100m, 60km2)
-</td>
-<td style="text-align:right;">
--0.31
-</td>
-<td style="text-align:right;">
-1.00
-</td>
-<td style="text-align:right;">
--2.32
-</td>
-<td style="text-align:right;">
-1.71
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-12
-</td>
-<td style="text-align:left;">
-Sq Intermix
-</td>
-<td style="text-align:right;">
--1.08
-</td>
-<td style="text-align:right;">
-0.95
-</td>
-<td style="text-align:right;">
--2.97
-</td>
-<td style="text-align:right;">
-0.80
+0
 </td>
 </tr>
 <tr>
@@ -785,19 +720,22 @@ Sq Intermix
 6
 </td>
 <td style="text-align:left;">
-Beech BAA
+Juvenile
 </td>
 <td style="text-align:right;">
--0.03
+-1.08
 </td>
 <td style="text-align:right;">
-0.21
+0.31
 </td>
 <td style="text-align:right;">
--0.45
+-1.68
 </td>
 <td style="text-align:right;">
-0.38
+-0.48
+</td>
+<td style="text-align:right;">
+0
 </td>
 </tr>
 <tr>
@@ -805,19 +743,68 @@ Beech BAA
 7
 </td>
 <td style="text-align:left;">
-Sq Beech BAA
+Subadult
 </td>
 <td style="text-align:right;">
-0.10
+-0.29
 </td>
 <td style="text-align:right;">
-0.10
+0.55
 </td>
 <td style="text-align:right;">
--0.09
+-1.38
 </td>
 <td style="text-align:right;">
-0.30
+0.79
+</td>
+<td style="text-align:right;">
+0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+11
+</td>
+<td style="text-align:left;">
+SexM x Juv
+</td>
+<td style="text-align:right;">
+-0.16
+</td>
+<td style="text-align:right;">
+0.53
+</td>
+<td style="text-align:right;">
+-1.21
+</td>
+<td style="text-align:right;">
+0.88
+</td>
+<td style="text-align:right;">
+0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+12
+</td>
+<td style="text-align:left;">
+SexM X SubA
+</td>
+<td style="text-align:right;">
+0.60
+</td>
+<td style="text-align:right;">
+0.97
+</td>
+<td style="text-align:right;">
+-1.29
+</td>
+<td style="text-align:right;">
+2.50
+</td>
+<td style="text-align:right;">
+0
 </td>
 </tr>
 <tr>
@@ -825,39 +812,68 @@ Sq Beech BAA
 8
 </td>
 <td style="text-align:left;">
-Beech Mast Index
+Pasture (60km2)
 </td>
 <td style="text-align:right;">
-0.06
+-0.14
 </td>
 <td style="text-align:right;">
-0.12
+0.13
 </td>
 <td style="text-align:right;">
--0.17
+-0.40
 </td>
 <td style="text-align:right;">
-0.29
+0.11
+</td>
+<td style="text-align:right;">
+0
 </td>
 </tr>
 <tr>
 <td style="text-align:left;">
-13
+9
 </td>
 <td style="text-align:left;">
-BeechBAA x BMI
+Intermix (100m, 60km2)
 </td>
 <td style="text-align:right;">
-0.17
+0.40
 </td>
 <td style="text-align:right;">
-0.12
+0.19
 </td>
 <td style="text-align:right;">
--0.06
+0.03
 </td>
 <td style="text-align:right;">
-0.42
+0.77
+</td>
+<td style="text-align:right;">
+0
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+10
+</td>
+<td style="text-align:left;">
+Sq Intermix
+</td>
+<td style="text-align:right;">
+-0.19
+</td>
+<td style="text-align:right;">
+0.09
+</td>
+<td style="text-align:right;">
+-0.36
+</td>
+<td style="text-align:right;">
+-0.01
+</td>
+<td style="text-align:right;">
+0
 </td>
 </tr>
 </tbody>
