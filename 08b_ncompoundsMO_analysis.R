@@ -332,3 +332,7 @@ coef_summary <- data.frame(coef=coefs, coef_summary)
 write_csv(coef_summary, "results/ncompMO_coef-summary.csv")
 
 
+
+
+
+
