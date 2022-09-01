@@ -33,6 +33,7 @@ dat$n.compounds.MO <- ordered(dat$n.compounds.MO, levels=c(0,1,2,3))
 # Make random effects factors
 dat$WMU <- as.factor(dat$WMU)
 dat$WMUA_code <- as.factor(dat$WMUA_code)
+dat$year <- factor(dat$year)
 
 # Change how beech mast is incorporated (lagged values)
 dat$mast <- NA 
@@ -47,38 +48,38 @@ dat$catAge[dat$Age==2.5] <- "subadult"
 dat$catAge[dat$Ag<2.5] <- "juvenile"
 
 # Resort columns
-dat <- dat[,c(1:7,31,10:12,8,9,34,14,32,16:17,33,29,18:20,25:28)] ## NEED TO UPDATE
+dat <- dat[,c(1:7,31,10:12,8,9,34,32,13,16:17,33,29,25,18:20,26:28)] 
 
 # Scale/center covariates
 dat[,c(13,20:27)] <- scale(dat[,c(13,20:27)])
 
 ## Percent AG
-pctAG1 <- dat[, c(1:17, 21:23)]
+pctAG1 <- dat[, c(1:17, 22:24)]
 pctAG1 <- distinct(pctAG1)
 pctAG1 <- pctAG1 %>% group_by(RegionalID) %>% 
   pivot_wider(names_from=buffsize, values_from=c(pasture, crops, totalag)) %>% as.data.frame()
 
 # Run models
-ag15 <- clmm(catNcompMO ~ totalag_15 + (1|WMUA_code/WMU), data=pctAG1)
-ag15sq <- clmm(catNcompMO ~ totalag_15 + I(totalag_15^2) + (1|WMUA_code/WMU), data=pctAG1)
-ag30 <- clmm(catNcompMO ~ totalag_30 + (1|WMUA_code/WMU), data=pctAG1)
-ag30sq <- clmm(catNcompMO ~ totalag_30 + I(totalag_30^2) + (1|WMUA_code/WMU), data=pctAG1)
-ag60 <- clmm(catNcompMO ~ totalag_60 + (1|WMUA_code/WMU), data=pctAG1)
-ag60sq <- clmm(catNcompMO ~ totalag_60 + I(totalag_60^2) + (1|WMUA_code/WMU), data=pctAG1)
+ag15 <- clmm(catNcompMO ~ totalag_15 + (1|WMUA_code/WMU) + (1|year), data=pctAG1)
+ag15sq <- clmm(catNcompMO ~ totalag_15 + I(totalag_15^2) + (1|WMUA_code/WMU) + (1|year), data=pctAG1)
+ag30 <- clmm(catNcompMO ~ totalag_30 + (1|WMUA_code/WMU) + (1|year), data=pctAG1)
+ag30sq <- clmm(catNcompMO ~ totalag_30 + I(totalag_30^2) + (1|WMUA_code/WMU) + (1|year), data=pctAG1)
+ag60 <- clmm(catNcompMO ~ totalag_60 + (1|WMUA_code/WMU) + (1|year), data=pctAG1)
+ag60sq <- clmm(catNcompMO ~ totalag_60 + I(totalag_60^2) + (1|WMUA_code/WMU) + (1|year), data=pctAG1)
 
-crop15 <- clmm(catNcompMO ~ crops_15 + (1|WMUA_code/WMU), data=pctAG1)
-crop15sq <- clmm(catNcompMO ~ crops_15 + I(crops_15^2) + (1|WMUA_code/WMU), data=pctAG1)
-crop30 <- clmm(catNcompMO ~ crops_30 + (1|WMUA_code/WMU), data=pctAG1)
-crop30sq <- clmm(catNcompMO ~ crops_30 + I(crops_30^2) + (1|WMUA_code/WMU), data=pctAG1)
-crop60 <- clmm(catNcompMO ~ crops_60 + (1|WMUA_code/WMU), data=pctAG1)
-crop60sq <- clmm(catNcompMO ~ crops_60 + I(crops_60^2) + (1|WMUA_code/WMU), data=pctAG1)
+crop15 <- clmm(catNcompMO ~ crops_15 + (1|WMUA_code/WMU) + (1|year), data=pctAG1)
+crop15sq <- clmm(catNcompMO ~ crops_15 + I(crops_15^2) + (1|WMUA_code/WMU) + (1|year), data=pctAG1)
+crop30 <- clmm(catNcompMO ~ crops_30 + (1|WMUA_code/WMU) + (1|year), data=pctAG1)
+crop30sq <- clmm(catNcompMO ~ crops_30 + I(crops_30^2) + (1|WMUA_code/WMU) + (1|year), data=pctAG1)
+crop60 <- clmm(catNcompMO ~ crops_60 + (1|WMUA_code/WMU) + (1|year), data=pctAG1)
+crop60sq <- clmm(catNcompMO ~ crops_60 + I(crops_60^2) + (1|WMUA_code/WMU) + (1|year), data=pctAG1)
 
-past15 <- clmm(catNcompMO ~ pasture_15 + (1|WMUA_code/WMU), data=pctAG1)
-past15sq <- clmm(catNcompMO ~ pasture_15 + I(pasture_15^2) + (1|WMUA_code/WMU), data=pctAG1)
-past30 <- clmm(catNcompMO ~ pasture_30 + (1|WMUA_code/WMU), data=pctAG1)
-past30sq <- clmm(catNcompMO ~ pasture_30 + I(pasture_30^2) + (1|WMUA_code/WMU), data=pctAG1)
-past60 <- clmm(catNcompMO ~ pasture_60 + (1|WMUA_code/WMU), data=pctAG1)
-past60sq <- clmm(catNcompMO ~ pasture_60 + I(pasture_60^2) + (1|WMUA_code/WMU), data=pctAG1)
+past15 <- clmm(catNcompMO ~ pasture_15 + (1|WMUA_code/WMU) + (1|year), data=pctAG1)
+past15sq <- clmm(catNcompMO ~ pasture_15 + I(pasture_15^2) + (1|WMUA_code/WMU) + (1|year), data=pctAG1)
+past30 <- clmm(catNcompMO ~ pasture_30 + (1|WMUA_code/WMU) + (1|year), data=pctAG1)
+past30sq <- clmm(catNcompMO ~ pasture_30 + I(pasture_30^2) + (1|WMUA_code/WMU) + (1|year), data=pctAG1)
+past60 <- clmm(catNcompMO ~ pasture_60 + (1|WMUA_code/WMU) + (1|year), data=pctAG1)
+past60sq <- clmm(catNcompMO ~ pasture_60 + I(pasture_60^2) + (1|WMUA_code/WMU) + (1|year), data=pctAG1)
 
 pctAG_sel <- model.sel(ag15, ag30, ag60, ag15sq, ag30sq, ag60sq,
                        crop15, crop30, crop60, crop15sq, crop30sq, crop60sq,
@@ -86,24 +87,24 @@ pctAG_sel <- model.sel(ag15, ag30, ag60, ag15sq, ag30sq, ag60sq,
 pctAG_sel
 
 ## Beech basal area
-baa1 <- dat[, c(1:17,19,20,24)]
+baa1 <- dat[, c(1:17,19:21)]
 baa1  <- baa1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffsize, values_from=baa, values_fn=unique) %>% as.data.frame()
 names(baa1)[19:21] <- c("baa_15", "baa_30", "baa_60") 
 
-baa15 <- clmm(catNcompMO ~ baa_15 + (1|WMUA_code/WMU), data=baa1)
-baa15sq <- clmm(catNcompMO ~ baa_15 + I(baa_15^2) + (1|WMUA_code/WMU), data=baa1)
-baa30 <- clmm(catNcompMO ~ baa_30 + (1|WMUA_code/WMU), data=baa1)
-baa30sq <- clmm(catNcompMO ~ baa_30 + I(baa_30^2) + (1|WMUA_code/WMU), data=baa1)
-baa60 <- clmm(catNcompMO ~ baa_60 + (1|WMUA_code/WMU), data=baa1)
-baa60sq <- clmm(catNcompMO ~ baa_60 + I(baa_60^2) + (1|WMUA_code/WMU), data=baa1)
+baa15 <- clmm(catNcompMO ~ baa_15 + (1|WMUA_code/WMU) + (1|year), data=baa1)
+baa15sq <- clmm(catNcompMO ~ baa_15 + I(baa_15^2) + (1|WMUA_code/WMU) + (1|year), data=baa1)
+baa30 <- clmm(catNcompMO ~ baa_30 + (1|WMUA_code/WMU) + (1|year), data=baa1)
+baa30sq <- clmm(catNcompMO ~ baa_30 + I(baa_30^2) + (1|WMUA_code/WMU) + (1|year), data=baa1)
+baa60 <- clmm(catNcompMO ~ baa_60 + (1|WMUA_code/WMU) + (1|year), data=baa1)
+baa60sq <- clmm(catNcompMO ~ baa_60 + I(baa_60^2) + (1|WMUA_code/WMU) + (1|year), data=baa1)
 
-baa15lBMI <- clmm(catNcompMO ~ baa_15*laggedBMI + (1|WMUA_code/WMU), data=baa1)
-baa30lBMI <- clmm(catNcompMO ~ baa_30*laggedBMI + (1|WMUA_code/WMU), data=baa1)
-baa60lBMI <- clmm(catNcompMO ~ baa_60*laggedBMI + (1|WMUA_code/WMU), data=baa1)
+baa15lBMI <- clmm(catNcompMO ~ baa_15*laggedBMI + (1|WMUA_code/WMU) + (1|year), data=baa1)
+baa30lBMI <- clmm(catNcompMO ~ baa_30*laggedBMI + (1|WMUA_code/WMU) + (1|year), data=baa1)
+baa60lBMI <- clmm(catNcompMO ~ baa_60*laggedBMI + (1|WMUA_code/WMU) + (1|year), data=baa1)
 
-baa15M <- clmm(catNcompMO ~ baa_15*mast + (1|WMUA_code/WMU), data=baa1)
-baa30M <- clmm(catNcompMO ~ baa_30*mast + (1|WMUA_code/WMU), data=baa1)
-baa60M <- clmm(catNcompMO ~ baa_60*mast + (1|WMUA_code/WMU), data=baa1)
+baa15M <- clmm(catNcompMO ~ baa_15*mast + (1|WMUA_code/WMU) + (1|year), data=baa1)
+baa30M <- clmm(catNcompMO ~ baa_30*mast + (1|WMUA_code/WMU) + (1|year), data=baa1)
+baa60M <- clmm(catNcompMO ~ baa_60*mast + (1|WMUA_code/WMU) + (1|year), data=baa1)
 
 baa_sel <- model.sel(baa15, baa30, baa60, baa15sq, baa30sq, baa60sq, 
                      baa15lBMI, baa30lBMI, baa60lBMI, 
@@ -141,70 +142,70 @@ interface1 <- interface1[, c(1:3, 17:25)]
 wui1 <- left_join(wui1, interface1, by=c("RegionalID", "pt_name", "pt_index"))
 
 # Intermix WUI
-mix_15100 <- clmm(catNcompMO ~ mix_15_100 + (1|WMUA_code/WMU), data=wui1)
-mix_15250 <- clmm(catNcompMO ~ mix_15_250 + (1|WMUA_code/WMU), data=wui1)
-mix_15500 <- clmm(catNcompMO ~ mix_15_500 + (1|WMUA_code/WMU), data=wui1)
-mix_15100sq <- clmm(catNcompMO ~ mix_15_100 + I(mix_15_100^2) + (1|WMUA_code/WMU), data=wui1)
-mix_15250sq <- clmm(catNcompMO ~ mix_15_250 + I(mix_15_250^2) + (1|WMUA_code/WMU), data=wui1)
-mix_15500sq <- clmm(catNcompMO ~ mix_15_500 + I(mix_15_500^2) + (1|WMUA_code/WMU), data=wui1)
+mix_15100 <- clmm(catNcompMO ~ mix_15_100 + (1|WMUA_code/WMU) + (1|year), data=wui1)
+mix_15250 <- clmm(catNcompMO ~ mix_15_250 + (1|WMUA_code/WMU) + (1|year), data=wui1)
+mix_15500 <- clmm(catNcompMO ~ mix_15_500 + (1|WMUA_code/WMU) + (1|year), data=wui1)
+mix_15100sq <- clmm(catNcompMO ~ mix_15_100 + I(mix_15_100^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
+mix_15250sq <- clmm(catNcompMO ~ mix_15_250 + I(mix_15_250^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
+mix_15500sq <- clmm(catNcompMO ~ mix_15_500 + I(mix_15_500^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
 
-mix_30100 <- clmm(catNcompMO ~ mix_30_100 + (1|WMUA_code/WMU), data=wui1)
-mix_30250 <- clmm(catNcompMO ~ mix_30_250 + (1|WMUA_code/WMU), data=wui1)
-mix_30500 <- clmm(catNcompMO ~ mix_30_500 + (1|WMUA_code/WMU), data=wui1)
-mix_30100sq <- clmm(catNcompMO ~ mix_30_100 + I(mix_30_100^2) + (1|WMUA_code/WMU), data=wui1)
-mix_30250sq <- clmm(catNcompMO ~ mix_30_250 + I(mix_30_250^2) + (1|WMUA_code/WMU), data=wui1)
-mix_30500sq <- clmm(catNcompMO ~ mix_30_500 + I(mix_30_500^2) + (1|WMUA_code/WMU), data=wui1)
+mix_30100 <- clmm(catNcompMO ~ mix_30_100 + (1|WMUA_code/WMU) + (1|year), data=wui1)
+mix_30250 <- clmm(catNcompMO ~ mix_30_250 + (1|WMUA_code/WMU) + (1|year), data=wui1)
+mix_30500 <- clmm(catNcompMO ~ mix_30_500 + (1|WMUA_code/WMU) + (1|year), data=wui1)
+mix_30100sq <- clmm(catNcompMO ~ mix_30_100 + I(mix_30_100^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
+mix_30250sq <- clmm(catNcompMO ~ mix_30_250 + I(mix_30_250^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
+mix_30500sq <- clmm(catNcompMO ~ mix_30_500 + I(mix_30_500^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
 
-mix_60100 <- clmm(catNcompMO ~ mix_60_100 + (1|WMUA_code/WMU), data=wui1)
-mix_60250 <- clmm(catNcompMO ~ mix_60_250 + (1|WMUA_code/WMU), data=wui1)
-mix_60500 <- clmm(catNcompMO ~ mix_60_500 + (1|WMUA_code/WMU), data=wui1)
-mix_60100sq <- clmm(catNcompMO ~ mix_60_100 + I(mix_60_100^2) + (1|WMUA_code/WMU), data=wui1)
-mix_60250sq <- clmm(catNcompMO ~ mix_60_250 + I(mix_60_250^2) + (1|WMUA_code/WMU), data=wui1)
-mix_60500sq <- clmm(catNcompMO ~ mix_60_500 + I(mix_60_500^2) + (1|WMUA_code/WMU), data=wui1)
+mix_60100 <- clmm(catNcompMO ~ mix_60_100 + (1|WMUA_code/WMU) + (1|year), data=wui1)
+mix_60250 <- clmm(catNcompMO ~ mix_60_250 + (1|WMUA_code/WMU) + (1|year), data=wui1)
+mix_60500 <- clmm(catNcompMO ~ mix_60_500 + (1|WMUA_code/WMU) + (1|year), data=wui1)
+mix_60100sq <- clmm(catNcompMO ~ mix_60_100 + I(mix_60_100^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
+mix_60250sq <- clmm(catNcompMO ~ mix_60_250 + I(mix_60_250^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
+mix_60500sq <- clmm(catNcompMO ~ mix_60_500 + I(mix_60_500^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
 
 # Interface WUI
-face_15100 <- clmm(catNcompMO ~ face_15_100 + (1|WMUA_code/WMU), data=wui1)
-face_15250 <- clmm(catNcompMO ~ face_15_250 + (1|WMUA_code/WMU), data=wui1)
-face_15500 <- clmm(catNcompMO ~ face_15_500 + (1|WMUA_code/WMU), data=wui1)
-face_15100sq <- clmm(catNcompMO ~ face_15_100 + I(face_15_100^2) + (1|WMUA_code/WMU), data=wui1)
-face_15250sq <- clmm(catNcompMO ~ face_15_250 + I(face_15_250^2) + (1|WMUA_code/WMU), data=wui1)
-face_15500sq <- clmm(catNcompMO ~ face_15_500 + I(face_15_500^2) + (1|WMUA_code/WMU), data=wui1)
+face_15100 <- clmm(catNcompMO ~ face_15_100 + (1|WMUA_code/WMU) + (1|year), data=wui1)
+face_15250 <- clmm(catNcompMO ~ face_15_250 + (1|WMUA_code/WMU) + (1|year), data=wui1)
+face_15500 <- clmm(catNcompMO ~ face_15_500 + (1|WMUA_code/WMU) + (1|year), data=wui1)
+face_15100sq <- clmm(catNcompMO ~ face_15_100 + I(face_15_100^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
+face_15250sq <- clmm(catNcompMO ~ face_15_250 + I(face_15_250^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
+face_15500sq <- clmm(catNcompMO ~ face_15_500 + I(face_15_500^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
 
-face_30100 <- clmm(catNcompMO ~ face_30_100 + (1|WMUA_code/WMU), data=wui1)
-face_30250 <- clmm(catNcompMO ~ face_30_250 + (1|WMUA_code/WMU), data=wui1)
-face_30500 <- clmm(catNcompMO ~ face_30_500 + (1|WMUA_code/WMU), data=wui1)
-face_30100sq <- clmm(catNcompMO ~ face_30_100 + I(face_30_100^2) + (1|WMUA_code/WMU), data=wui1)
-face_30250sq <- clmm(catNcompMO ~ face_30_250 + I(face_30_250^2) + (1|WMUA_code/WMU), data=wui1)
-face_30500sq <- clmm(catNcompMO ~ face_30_500 + I(face_30_500^2) + (1|WMUA_code/WMU), data=wui1)
+face_30100 <- clmm(catNcompMO ~ face_30_100 + (1|WMUA_code/WMU) + (1|year), data=wui1)
+face_30250 <- clmm(catNcompMO ~ face_30_250 + (1|WMUA_code/WMU) + (1|year), data=wui1)
+face_30500 <- clmm(catNcompMO ~ face_30_500 + (1|WMUA_code/WMU) + (1|year), data=wui1)
+face_30100sq <- clmm(catNcompMO ~ face_30_100 + I(face_30_100^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
+face_30250sq <- clmm(catNcompMO ~ face_30_250 + I(face_30_250^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
+face_30500sq <- clmm(catNcompMO ~ face_30_500 + I(face_30_500^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
 
-face_60100 <- clmm(catNcompMO ~ face_60_100 + (1|WMUA_code/WMU), data=wui1)
-face_60250 <- clmm(catNcompMO ~ face_60_250 + (1|WMUA_code/WMU), data=wui1)
-face_60500 <- clmm(catNcompMO ~ face_60_500 + (1|WMUA_code/WMU), data=wui1)
-face_60100sq <- clmm(catNcompMO ~ face_60_100 + I(face_60_100^2) + (1|WMUA_code/WMU), data=wui1)
-face_60250sq <- clmm(catNcompMO ~ face_60_250 + I(face_60_250^2) + (1|WMUA_code/WMU), data=wui1)
-face_60500sq <- clmm(catNcompMO ~ face_60_500 + I(face_60_500^2) + (1|WMUA_code/WMU), data=wui1)
+face_60100 <- clmm(catNcompMO ~ face_60_100 + (1|WMUA_code/WMU) + (1|year), data=wui1)
+face_60250 <- clmm(catNcompMO ~ face_60_250 + (1|WMUA_code/WMU) + (1|year), data=wui1)
+face_60500 <- clmm(catNcompMO ~ face_60_500 + (1|WMUA_code/WMU) + (1|year), data=wui1)
+face_60100sq <- clmm(catNcompMO ~ face_60_100 + I(face_60_100^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
+face_60250sq <- clmm(catNcompMO ~ face_60_250 + I(face_60_250^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
+face_60500sq <- clmm(catNcompMO ~ face_60_500 + I(face_60_500^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
 
 # Total WUI
-wui_15100 <- clmm(catNcompMO ~ wui_15_100 + (1|WMUA_code/WMU), data=wui1)
-wui_15250 <- clmm(catNcompMO ~ wui_15_250 + (1|WMUA_code/WMU), data=wui1)
-wui_15500 <- clmm(catNcompMO ~ wui_15_500 + (1|WMUA_code/WMU), data=wui1)
-wui_15100sq <- clmm(catNcompMO ~ wui_15_100 + I(wui_15_100^2) + (1|WMUA_code/WMU), data=wui1)
-wui_15250sq <- clmm(catNcompMO ~ wui_15_250 + I(wui_15_250^2) + (1|WMUA_code/WMU), data=wui1)
-wui_15500sq <- clmm(catNcompMO ~ wui_15_500 + I(wui_15_500^2) + (1|WMUA_code/WMU), data=wui1)
+wui_15100 <- clmm(catNcompMO ~ wui_15_100 + (1|WMUA_code/WMU) + (1|year), data=wui1)
+wui_15250 <- clmm(catNcompMO ~ wui_15_250 + (1|WMUA_code/WMU) + (1|year), data=wui1)
+wui_15500 <- clmm(catNcompMO ~ wui_15_500 + (1|WMUA_code/WMU) + (1|year), data=wui1)
+wui_15100sq <- clmm(catNcompMO ~ wui_15_100 + I(wui_15_100^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
+wui_15250sq <- clmm(catNcompMO ~ wui_15_250 + I(wui_15_250^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
+wui_15500sq <- clmm(catNcompMO ~ wui_15_500 + I(wui_15_500^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
 
-wui_30100 <- clmm(catNcompMO ~ wui_30k_100 + (1|WMUA_code/WMU), data=wui1)
-wui_30250 <- clmm(catNcompMO ~ wui_30k_250 + (1|WMUA_code/WMU), data=wui1)
-wui_30500 <- clmm(catNcompMO ~ wui_30k_500 + (1|WMUA_code/WMU), data=wui1)
-wui_30100sq <- clmm(catNcompMO ~ wui_30k_100 + I(wui_30k_100^2) + (1|WMUA_code/WMU), data=wui1)
-wui_30250sq <- clmm(catNcompMO ~ wui_30k_250 + I(wui_30k_250^2) + (1|WMUA_code/WMU), data=wui1)
-wui_30500sq <- clmm(catNcompMO ~ wui_30k_500 + I(wui_30k_500^2) + (1|WMUA_code/WMU), data=wui1)
+wui_30100 <- clmm(catNcompMO ~ wui_30k_100 + (1|WMUA_code/WMU) + (1|year), data=wui1)
+wui_30250 <- clmm(catNcompMO ~ wui_30k_250 + (1|WMUA_code/WMU) + (1|year), data=wui1)
+wui_30500 <- clmm(catNcompMO ~ wui_30k_500 + (1|WMUA_code/WMU) + (1|year), data=wui1)
+wui_30100sq <- clmm(catNcompMO ~ wui_30k_100 + I(wui_30k_100^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
+wui_30250sq <- clmm(catNcompMO ~ wui_30k_250 + I(wui_30k_250^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
+wui_30500sq <- clmm(catNcompMO ~ wui_30k_500 + I(wui_30k_500^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
 
-wui_60100 <- clmm(catNcompMO ~ wui_60_100 + (1|WMUA_code/WMU), data=wui1)
-wui_60250 <- clmm(catNcompMO ~ wui_60_250 + (1|WMUA_code/WMU), data=wui1)
-wui_60500 <- clmm(catNcompMO ~ wui_60_500 + (1|WMUA_code/WMU), data=wui1)
-wui_60100sq <- clmm(catNcompMO ~ wui_60_100 + I(wui_60_100^2) + (1|WMUA_code/WMU), data=wui1)
-wui_60250sq <- clmm(catNcompMO ~ wui_60_250 + I(wui_60_250^2) + (1|WMUA_code/WMU), data=wui1)
-wui_60500sq <- clmm(catNcompMO ~ wui_60_500 + I(wui_60_500^2) + (1|WMUA_code/WMU), data=wui1)
+wui_60100 <- clmm(catNcompMO ~ wui_60_100 + (1|WMUA_code/WMU) + (1|year), data=wui1)
+wui_60250 <- clmm(catNcompMO ~ wui_60_250 + (1|WMUA_code/WMU) + (1|year), data=wui1)
+wui_60500 <- clmm(catNcompMO ~ wui_60_500 + (1|WMUA_code/WMU) + (1|year), data=wui1)
+wui_60100sq <- clmm(catNcompMO ~ wui_60_100 + I(wui_60_100^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
+wui_60250sq <- clmm(catNcompMO ~ wui_60_250 + I(wui_60_250^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
+wui_60500sq <- clmm(catNcompMO ~ wui_60_500 + I(wui_60_500^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
 
 wui_sel <- model.sel(wui_15100, wui_30100, wui_60100, wui_15100sq, wui_30100sq, wui_60100sq, 
                      wui_15250, wui_30250, wui_60250, wui_15250sq, wui_30250sq, wui_60250sq, 
@@ -226,24 +227,21 @@ pctAG1 <- pctAG1[,c(1:3, 22)]
 dat1 <- left_join(dat1, pctAG1, by=c("RegionalID", "pt_name", "pt_index"))
 
 # Join beech basal area
-baa1 <- baa1[,c(1:3, 17, 18, 21)]
+baa1 <- baa1[,c(1:3, 18, 21)]
 dat1 <- left_join(dat1, baa1, by=c("RegionalID", "pt_name", "pt_index"))
 
 # Join total WUI
 wui1 <- wui1[,c(1:3, 28)]
 dat1 <- left_join(dat1, wui1, by=c("RegionalID", "pt_name", "pt_index"))
 
-dat1 <- dat1[,c(1:16, 18, 19, 17, 20, 21)]
-
 ## Check correlation matrix
-cor(dat1[,19:21])
+cor(dat1[,17:20])
 
 ## Set up global models
-# Human-driven hypothesis
 g1 <- clmm(catNcompMO ~ Sex*catAge + crops_60 + I(crops_60^2) +  
                             mix_60_100 + I(mix_60_100^2) + 
                             baa_60 + laggedBMI + baa_60:laggedBMI + 
-                            (1|key), data=dat1, na.action="na.fail")
+                            (1|WMUA_code/WMU) + (1|year), data=dat1, na.action="na.fail")
 
 # Export data and model into the cluster worker nodes
 clusterExport(cl, c("dat1","g1"))
@@ -282,8 +280,10 @@ for (i in 1:10) {
   
   # Run model with deltaAICc < 2
   m1_pt <- clmm(catNcompMO ~ Sex + catAge + 
-               baa_60 + laggedBMI + baa_60:laggedBMI + 
-               (1|WMUA_code/WMU), data=pt, na.action="na.fail")
+                 crops_60 + I(crops_60^2) +
+                  mix_60_100 + I(mix_60_100^2) +
+                 baa_60 + laggedBMI + baa_60:laggedBMI + 
+                 (1|WMUA_code) + (1|year), data=pt, na.action="na.fail")
   
   m1s <- summary(m1_pt)
   
@@ -311,11 +311,21 @@ stderr_avg <- colMeans(m_stderr[sapply(m_stderr, is.numeric)], na.rm=TRUE)
 pct2.5_avg <- colMeans(pct2.5[sapply(pct2.5, is.numeric)], na.rm=TRUE)
 pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)], na.rm=TRUE)
 
+# One-sample t-test to determine "significance"
+pvalue <- c()
+for (i in 1:ncol(m_est)) {
+  
+  tresult <- t.test(m_est[,i], mu=0, alternative="two.sided")
+  pvalue <- c(pvalue, tresult$p.value)
+}
+pvalue <- as.data.frame(pvalue)
+pvalue <- cbind(names(coef_avg), pvalue)
+pvalue <- pivot_wider(pvalue, names_from="names(coef_avg)", values_from="pvalue") %>% as.data.frame()
 
 # Combine and clean up data frame
-coef_summary <- bind_rows(coef_avg, stderr_avg, pct2.5_avg, pct97.5_avg)
+coef_summary <- bind_rows(coef_avg, stderr_avg, pct2.5_avg, pct97.5_avg, pvalue)
 coef_summary <- as.data.frame(coef_summary)
-coefs <- c("param_est", "std_error", "2.5CI", "97.5CI")
+coefs <- c("param_est", "std_error", "2.5CI", "97.5CI", "P-value")
 coef_summary <- data.frame(coef=coefs, coef_summary)
 
 # Write to file
