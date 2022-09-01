@@ -3,6 +3,11 @@ data/
 docs/
 output/
 
+# Document types
+.tex
+.log
+.html
+
 # History files
 .Rhistory
 .Rapp.history
