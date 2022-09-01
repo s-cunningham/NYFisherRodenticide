@@ -7,6 +7,8 @@ output/
 .tex
 .log
 .html
+10_results_tables.log
+
 
 # History files
 .Rhistory
