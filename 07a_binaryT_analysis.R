@@ -290,6 +290,7 @@ m_est <- data.frame()
 m_stderr <- data.frame()
 pct2.5 <- data.frame()
 pct97.5 <- data.frame()
+set.seed(123)
 
 # Loop over each point set
 for (i in 1:10) {
@@ -300,13 +301,14 @@ for (i in 1:10) {
   # Run model with deltaAICc < 2
   m1_pt <- glmer(bin.exp ~ Sex + catAge + pasture_60 + I(pasture_60^2) + 
                   mix_60_500 + I(mix_60_500^2) + face_15_250 + (1|year), 
-                  family=binomial(link="logit"), data=pt)
+                  family=binomial(link="logit"), data=pt, nAGQ=0,
+                  control=glmerControl(optimizer=c("nloptwrap", "nloptwrap")))
   
   m1s <- summary(m1_pt)
   m1sdf <- m1s$coefficients
   
   # save averaged confidence intervals
-  ci <- confint(m1_pt)
+  ci <- confint.merMod(m1_pt, method="boot")
   pct2.5 <- rbind(pct2.5, t(ci)[1,])
   pct97.5 <- rbind(pct97.5, t(ci)[2,])
   
@@ -324,8 +326,7 @@ for (i in 1:10) {
   
 }
 
-# , method="boot"
-
+# 
 # Calculate averages for each coefficient
 coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)], na.rm=TRUE)
 stderr_avg <- colMeans(m_stderr[sapply(m_stderr, is.numeric)], na.rm=TRUE)
@@ -823,30 +824,28 @@ baa1 <- baa1[,c(1:3, 10, 13)]
 diph1 <- left_join(diph1, baa1, by=c("RegionalID", "pt_name", "pt_index"))
 
 # Join WUI
-wui1 <- wui1[,c(1:3, 26, 30)]
+wui1 <- wui1[,c(1:3, 9)]
 diph1 <- left_join(diph1, wui1, by=c("RegionalID", "pt_name", "pt_index"))
 
 ## Run models ##
 
 ## Check correlation matrix
-cor(diph1[,19:23])
+cor(diph1[,19:22])
 
 ## Set up global model
 g1 <- glmer(bin.exp ~ Sex*catAge + laggedBMI + 
-              mix_60_500 + I(mix_60_500^2) +
-              face_15_250 + I(face_15_250^2) +
+              wui_15_100 + I(wui_15_100^2) +
               pasture_60 + I(pasture_60^2) +
               baa_60 + I(baa_60^2) + baa_60:laggedBMI +  
-              (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=diph1, na.action="na.fail")
+              (1|year), family=binomial(link="logit"), data=diph1, na.action="na.fail")
 
 
 # Export data and model into the cluster worker nodes
 clusterExport(cl, c("diph1","g1"))
 
 ## Build model sets
-g1_dredge <- MuMIn:::.dredge.par(g1, cluster=cl, trace=2,  subset=dc(mix_60_500, I(mix_60_500^2)) &&
+g1_dredge <- MuMIn:::.dredge.par(g1, cluster=cl, trace=2,  subset=dc(wui_15_100, I(wui_15_100^2)) &&
                                    dc(pasture_60, I(pasture_60^2)) &&
-                                   dc(face_15_250, I(face_15_250^2)) &&
                                    dc(baa_60:laggedBMI, I(baa_60^2):laggedBMI))
 
 
