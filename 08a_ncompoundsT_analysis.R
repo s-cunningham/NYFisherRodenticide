@@ -33,6 +33,8 @@ dat$n.compounds.T <- ordered(dat$n.compounds.T, levels=c(0,1,2,3,4,5))
 # Make random effects factors
 dat$WMU <- as.factor(dat$WMU)
 dat$WMUA_code <- as.factor(dat$WMUA_code)
+dat$year <- factor(dat$year)
+dat$RegionalID <- factor(dat$RegionalID)
 
 # Change how beech mast is incorporated (lagged values)
 dat$mast <- NA 
@@ -45,8 +47,6 @@ dat$mast <- as.factor(dat$mast)
 dat$catAge[dat$Age>=3.5] <- "adult"
 dat$catAge[dat$Age==2.5] <- "subadult"
 dat$catAge[dat$Ag<2.5] <- "juvenile"
-
-dat$year <- factor(dat$year)
 
 # Resort columns
 dat <- dat[,c(1:7,31,10:13,8,9,34,15,32,16:17,29,33,18:28)] 
@@ -61,30 +61,23 @@ pctAG1 <- pctAG1 %>% group_by(RegionalID) %>%
   pivot_wider(names_from=buffsize, values_from=c(pasture, crops, totalag)) %>% as.data.frame()
 
 # Run models
-ag15 <- clmm(catNcompT ~ totalag_15 + (1|WMUA_code/WMU) + (1|year), data=pctAG1)
-ag15sq <- clmm(catNcompT ~ totalag_15 + I(totalag_15^2) + (1|WMUA_code/WMU) + (1|year), data=pctAG1)
-ag30 <- clmm(catNcompT ~ totalag_30 + (1|WMUA_code/WMU) + (1|year), data=pctAG1)
-ag30sq <- clmm(catNcompT ~ totalag_30 + I(totalag_30^2) +(1|WMUA_code/WMU) + (1|year), data=pctAG1)
-ag60 <- clmm(catNcompT ~ totalag_60 + (1|WMUA_code/WMU) + (1|year), data=pctAG1)
-ag60sq <- clmm(catNcompT ~ totalag_60 + I(totalag_60^2) + (1|WMUA_code/WMU) + (1|year), data=pctAG1)
+ag15 <- clmm(catNcompT ~ totalag_15 + (1|RegionalID), data=pctAG1)
+ag30 <- clmm(catNcompT ~ totalag_30 + (1|RegionalID), data=pctAG1)
+ag60 <- clmm(catNcompT ~ totalag_60 + (1|RegionalID), data=pctAG1)
 
-crop15 <- clmm(catNcompT ~ crops_15 + (1|WMUA_code/WMU) + (1|year), data=pctAG1)
-crop15sq <- clmm(catNcompT ~ crops_15 + I(crops_15^2) + (1|WMUA_code/WMU) + (1|year), data=pctAG1)
-crop30 <- clmm(catNcompT ~ crops_30 + (1|WMUA_code/WMU) + (1|year), data=pctAG1)
-crop30sq <- clmm(catNcompT ~ crops_30 + I(crops_30^2) +(1|WMUA_code/WMU) + (1|year), data=pctAG1)
-crop60 <- clmm(catNcompT ~ crops_60 + (1|WMUA_code/WMU) + (1|year), data=pctAG1)
-crop60sq <- clmm(catNcompT ~ crops_60 + I(crops_60^2) + (1|WMUA_code/WMU) + (1|year), data=pctAG1)
+crop15 <- clmm(catNcompT ~ crops_15 + (1|RegionalID), data=pctAG1)
+crop30 <- clmm(catNcompT ~ crops_30 + (1|RegionalID), data=pctAG1)
+crop60 <- clmm(catNcompT ~ crops_60 + (1|RegionalID), data=pctAG1)
 
-past15 <- clmm(catNcompT ~ pasture_15 + (1|WMUA_code/WMU) + (1|year), data=pctAG1)
-past15sq <- clmm(catNcompT ~ pasture_15 + I(pasture_15^2) + (1|WMUA_code/WMU) + (1|year), data=pctAG1)
-past30 <- clmm(catNcompT ~ pasture_30 + (1|WMUA_code/WMU) + (1|year), data=pctAG1)
-past30sq <- clmm(catNcompT ~ pasture_30 + I(pasture_30^2) +(1|WMUA_code/WMU) + (1|year), data=pctAG1)
-past60 <- clmm(catNcompT ~ pasture_60 + (1|WMUA_code/WMU) + (1|year), data=pctAG1)
-past60sq <- clmm(catNcompT ~ pasture_60 + I(pasture_60^2) + (1|WMUA_code/WMU) + (1|year), data=pctAG1)
+past15 <- clmm(catNcompT ~ pasture_15 + (1|RegionalID), data=pctAG1)
+past30 <- clmm(catNcompT ~ pasture_30 + (1|RegionalID), data=pctAG1)
+past60 <- clmm(catNcompT ~ pasture_60 + (1|RegionalID), data=pctAG1)
 
-pctAG_sel <- model.sel(ag15, ag30, ag60, ag15sq, ag30sq, ag60sq,
-                       crop15, crop30, crop60, crop15sq, crop30sq, crop60sq,
-                       past15, past30, past60, past15sq, past30sq, past60sq)
+
+pctAG_sel <- model.sel(ag15, ag30, ag60, 
+                       crop15, crop30, crop60,
+                       past15, past30, past60)
+
 pctAG_sel
 
 ## Beech basal area
@@ -92,22 +85,19 @@ baa1 <- dat[, c(1:18,20,21,29)]
 baa1  <- baa1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffsize, values_from=baa, values_fn=unique) %>% as.data.frame()
 names(baa1)[20:22] <- c("baa_15", "baa_30", "baa_60") 
 
-baa15 <- clmm(catNcompT ~ baa_15 + (1|WMUA_code/WMU) + (1|year), data=baa1)
-baa15sq <- clmm(catNcompT ~ baa_15 + I(baa_15^2) + (1|WMUA_code/WMU) + (1|year), data=baa1)
-baa30 <- clmm(catNcompT ~ baa_30 + (1|WMUA_code/WMU) + (1|year), data=baa1)
-baa30sq <- clmm(catNcompT ~ baa_30 + I(baa_30^2) + (1|WMUA_code/WMU) + (1|year), data=baa1)
-baa60 <- clmm(catNcompT ~ baa_60 + (1|WMUA_code/WMU) + (1|year), data=baa1)
-baa60sq <- clmm(catNcompT ~ baa_60 + I(baa_60^2) + (1|WMUA_code/WMU) + (1|year), data=baa1)
+baa15 <- clmm(catNcompT ~ baa_15 + (1|RegionalID), data=baa1)
+baa30 <- clmm(catNcompT ~ baa_30 + (1|RegionalID), data=baa1)
+baa60 <- clmm(catNcompT ~ baa_60 + (1|RegionalID), data=baa1)
 
-baa15lBMI <- clmm(catNcompT ~ baa_15*laggedBMI + (1|WMUA_code/WMU) + (1|year), data=baa1)
-baa30lBMI <- clmm(catNcompT ~ baa_30*laggedBMI + (1|WMUA_code/WMU) + (1|year), data=baa1)
-baa60lBMI <- clmm(catNcompT ~ baa_60*laggedBMI + (1|WMUA_code/WMU) + (1|year), data=baa1)
+baa15lBMI <- clmm(catNcompT ~laggedBMI + (1|RegionalID), data=baa1)
+baa30lBMI <- clmm(catNcompT ~laggedBMI + (1|RegionalID), data=baa1)
+baa60lBMI <- clmm(catNcompT ~laggedBMI + (1|RegionalID), data=baa1)
 
-baa15M <- clmm(catNcompT ~ baa_15*mast + (1|WMUA_code/WMU) + (1|year), data=baa1)
-baa30M <- clmm(catNcompT ~ baa_30*mast + (1|WMUA_code/WMU) + (1|year), data=baa1)
-baa60M <- clmm(catNcompT ~ baa_60*mast + (1|WMUA_code/WMU) + (1|year), data=baa1)
+baa15M <- clmm(catNcompT ~ mast + (1|RegionalID), data=baa1)
+baa30M <- clmm(catNcompT ~ mast + (1|RegionalID), data=baa1)
+baa60M <- clmm(catNcompT ~ mast + (1|RegionalID), data=baa1)
 
-baa_sel <- model.sel(baa15, baa30, baa60, baa15sq, baa30sq, baa60sq, 
+baa_sel <- model.sel(baa15, baa30, baa60,
                      baa15lBMI, baa30lBMI, baa60lBMI, 
                      baa15M, baa30M, baa60M)
 baa_sel
@@ -143,80 +133,46 @@ interface1 <- interface1[, c(1:3, 18:26)]
 wui1 <- left_join(wui1, interface1, by=c("RegionalID", "pt_name", "pt_index"))
 
 # Intermix WUI
-mix_15100 <- clmm(catNcompT ~ mix_15_100 + (1|WMUA_code/WMU) + (1|year), data=wui1)
-mix_15250 <- clmm(catNcompT ~ mix_15_250 + (1|WMUA_code/WMU) + (1|year), data=wui1)
-mix_15500 <- clmm(catNcompT ~ mix_15_500 + (1|WMUA_code/WMU) + (1|year), data=wui1)
-mix_15100sq <- clmm(catNcompT ~ mix_15_100 + I(mix_15_100^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
-mix_15250sq <- clmm(catNcompT ~ mix_15_250 + I(mix_15_250^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
-mix_15500sq <- clmm(catNcompT ~ mix_15_500 + I(mix_15_500^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
+mix_15100 <- clmm(catNcompT ~ mix_15_100 + (1|RegionalID), data=wui1)
+mix_15250 <- clmm(catNcompT ~ mix_15_250 + (1|RegionalID), data=wui1)
+mix_15500 <- clmm(catNcompT ~ mix_15_500 + (1|RegionalID), data=wui1)
 
-mix_30100 <- clmm(catNcompT ~ mix_30_100 + (1|WMUA_code/WMU) + (1|year), data=wui1)
-mix_30250 <- clmm(catNcompT ~ mix_30_250 + (1|WMUA_code/WMU) + (1|year), data=wui1)
-mix_30500 <- clmm(catNcompT ~ mix_30_500 + (1|WMUA_code/WMU) + (1|year), data=wui1)
-mix_30100sq <- clmm(catNcompT ~ mix_30_100 + I(mix_30_100^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
-mix_30250sq <- clmm(catNcompT ~ mix_30_250 + I(mix_30_250^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
-mix_30500sq <- clmm(catNcompT ~ mix_30_500 + I(mix_30_500^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
+mix_30100 <- clmm(catNcompT ~ mix_30_100 + (1|RegionalID), data=wui1)
+mix_30250 <- clmm(catNcompT ~ mix_30_250 + (1|RegionalID), data=wui1)
+mix_30500 <- clmm(catNcompT ~ mix_30_500 + (1|RegionalID), data=wui1)
 
-mix_60100 <- clmm(catNcompT ~ mix_60_100 + (1|WMUA_code/WMU) + (1|year), data=wui1)
-mix_60250 <- clmm(catNcompT ~ mix_60_250 + (1|WMUA_code/WMU) + (1|year), data=wui1)
-mix_60500 <- clmm(catNcompT ~ mix_60_500 + (1|WMUA_code/WMU) + (1|year), data=wui1)
-mix_60100sq <- clmm(catNcompT ~ mix_60_100 + I(mix_60_100^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
-mix_60250sq <- clmm(catNcompT ~ mix_60_250 + I(mix_60_250^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
-mix_60500sq <- clmm(catNcompT ~ mix_60_500 + I(mix_60_500^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
-
+mix_60100 <- clmm(catNcompT ~ mix_60_100 + (1|RegionalID), data=wui1)
+mix_60250 <- clmm(catNcompT ~ mix_60_250 + (1|RegionalID), data=wui1)
+mix_60500 <- clmm(catNcompT ~ mix_60_500 + (1|RegionalID), data=wui1)
 # Interface WUI
-face_15100 <- clmm(catNcompT ~ face_15_100 + (1|WMUA_code/WMU) + (1|year), data=wui1)
-face_15250 <- clmm(catNcompT ~ face_15_250 + (1|WMUA_code/WMU) + (1|year), data=wui1)
-face_15500 <- clmm(catNcompT ~ face_15_500 + (1|WMUA_code/WMU) + (1|year), data=wui1)
-face_15100sq <- clmm(catNcompT ~ face_15_100 + I(face_15_100^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
-face_15250sq <- clmm(catNcompT ~ face_15_250 + I(face_15_250^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
-face_15500sq <- clmm(catNcompT ~ face_15_500 + I(face_15_500^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
+face_15100 <- clmm(catNcompT ~ face_15_100 + (1|RegionalID), data=wui1)
+face_15250 <- clmm(catNcompT ~ face_15_250 + (1|RegionalID), data=wui1)
+face_15500 <- clmm(catNcompT ~ face_15_500 + (1|RegionalID), data=wui1)
 
-face_30100 <- clmm(catNcompT ~ face_30_100 + (1|WMUA_code/WMU) + (1|year), data=wui1)
-face_30250 <- clmm(catNcompT ~ face_30_250 + (1|WMUA_code/WMU) + (1|year), data=wui1)
-face_30500 <- clmm(catNcompT ~ face_30_500 + (1|WMUA_code/WMU) + (1|year), data=wui1)
-face_30100sq <- clmm(catNcompT ~ face_30_100 + I(face_30_100^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
-face_30250sq <- clmm(catNcompT ~ face_30_250 + I(face_30_250^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
-face_30500sq <- clmm(catNcompT ~ face_30_500 + I(face_30_500^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
+face_30100 <- clmm(catNcompT ~ face_30_100 + (1|RegionalID), data=wui1)
+face_30250 <- clmm(catNcompT ~ face_30_250 + (1|RegionalID), data=wui1)
+face_30500 <- clmm(catNcompT ~ face_30_500 + (1|RegionalID), data=wui1)
 
-face_60100 <- clmm(catNcompT ~ face_60_100 + (1|WMUA_code/WMU) + (1|year), data=wui1)
-face_60250 <- clmm(catNcompT ~ face_60_250 + (1|WMUA_code/WMU) + (1|year), data=wui1)
-face_60500 <- clmm(catNcompT ~ face_60_500 + (1|WMUA_code/WMU) + (1|year), data=wui1)
-face_60100sq <- clmm(catNcompT ~ face_60_100 + I(face_60_100^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
-face_60250sq <- clmm(catNcompT ~ face_60_250 + I(face_60_250^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
-face_60500sq <- clmm(catNcompT ~ face_60_500 + I(face_60_500^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
+face_60100 <- clmm(catNcompT ~ face_60_100 + (1|RegionalID), data=wui1)
+face_60250 <- clmm(catNcompT ~ face_60_250 + (1|RegionalID), data=wui1)
+face_60500 <- clmm(catNcompT ~ face_60_500 + (1|RegionalID), data=wui1)
 
 # Total WUI
-wui_15100 <- clmm(catNcompT ~ wui_15_100 + (1|WMUA_code/WMU) + (1|year), data=wui1)
-wui_15250 <- clmm(catNcompT ~ wui_15_250 + (1|WMUA_code/WMU) + (1|year), data=wui1)
-wui_15500 <- clmm(catNcompT ~ wui_15_500 + (1|WMUA_code/WMU) + (1|year), data=wui1)
-wui_15100sq <- clmm(catNcompT ~ wui_15_100 + I(wui_15_100^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
-wui_15250sq <- clmm(catNcompT ~ wui_15_250 + I(wui_15_250^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
-wui_15500sq <- clmm(catNcompT ~ wui_15_500 + I(wui_15_500^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
+wui_15100 <- clmm(catNcompT ~ wui_15_100 + (1|RegionalID), data=wui1)
+wui_15250 <- clmm(catNcompT ~ wui_15_250 + (1|RegionalID), data=wui1)
+wui_15500 <- clmm(catNcompT ~ wui_15_500 + (1|RegionalID), data=wui1)
 
-wui_30100 <- clmm(catNcompT ~ wui_30k_100 + (1|WMUA_code/WMU) + (1|year), data=wui1)
-wui_30250 <- clmm(catNcompT ~ wui_30k_250 + (1|WMUA_code/WMU) + (1|year), data=wui1)
-wui_30500 <- clmm(catNcompT ~ wui_30k_500 + (1|WMUA_code/WMU) + (1|year), data=wui1)
-wui_30100sq <- clmm(catNcompT ~ wui_30k_100 + I(wui_30k_100^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
-wui_30250sq <- clmm(catNcompT ~ wui_30k_250 + I(wui_30k_250^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
-wui_30500sq <- clmm(catNcompT ~ wui_30k_500 + I(wui_30k_500^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
+wui_30100 <- clmm(catNcompT ~ wui_30k_100 + (1|RegionalID), data=wui1)
+wui_30250 <- clmm(catNcompT ~ wui_30k_250 + (1|RegionalID), data=wui1)
+wui_30500 <- clmm(catNcompT ~ wui_30k_500 + (1|RegionalID), data=wui1)
 
-wui_60100 <- clmm(catNcompT ~ wui_60_100 + (1|WMUA_code/WMU) + (1|year), data=wui1)
-wui_60250 <- clmm(catNcompT ~ wui_60_250 + (1|WMUA_code/WMU) + (1|year), data=wui1)
-wui_60500 <- clmm(catNcompT ~ wui_60_500 + (1|WMUA_code/WMU) + (1|year), data=wui1)
-wui_60100sq <- clmm(catNcompT ~ wui_60_100 + I(wui_60_100^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
-wui_60250sq <- clmm(catNcompT ~ wui_60_250 + I(wui_60_250^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
-wui_60500sq <- clmm(catNcompT ~ wui_60_500 + I(wui_60_500^2) + (1|WMUA_code/WMU) + (1|year), data=wui1)
+wui_60100 <- clmm(catNcompT ~ wui_60_100 + (1|RegionalID), data=wui1)
+wui_60250 <- clmm(catNcompT ~ wui_60_250 + (1|RegionalID), data=wui1)
+wui_60500 <- clmm(catNcompT ~ wui_60_500 + (1|RegionalID), data=wui1)
 
-wui_sel <- model.sel(wui_15100, wui_30100, wui_60100, wui_15100sq, wui_30100sq, wui_60100sq, 
-                     wui_15250, wui_30250, wui_60250, wui_15250sq, wui_30250sq, wui_60250sq, 
-                     wui_15500, wui_30500, wui_60500, wui_15500sq, wui_30500sq, wui_60500sq,
-                     face_15100, face_30100, face_60100, face_15100sq, face_30100sq, face_60100sq,  
-                     face_15250, face_30250, face_60250, face_15250sq, face_30250sq, face_60250sq,  
-                     face_15500, face_30500, face_60500, face_15500sq, face_30500sq, face_60500sq,
-                     mix_15100, mix_30100, mix_60100, mix_15100sq, mix_30100sq, mix_60100sq,
-                     mix_15250, mix_30250, mix_60250, mix_15250sq, mix_30250sq, mix_60250sq,
-                     mix_15500, mix_30500, mix_60500, mix_15500sq, mix_30500sq, mix_60500sq)
+wui_sel <- model.sel(wui_15100, wui_30100, wui_60100, face_15100, face_30100, face_60100,mix_15100, mix_30100, mix_60100, 
+                     wui_15250, wui_30250, wui_60250, face_15250, face_30250, face_60250,mix_15250, mix_30250, mix_60250, 
+                     wui_15500, wui_30500, wui_60500, face_15500, face_30500, face_60500,mix_15500, mix_30500, mix_60500)
 wui_sel
 
 #### Set up data to run for each combination of covariates ####
@@ -243,7 +199,7 @@ g1 <- clmm(catNcompT ~ Sex*catAge +
                 pasture_60 + I(pasture_60^2) + 
                 mix_60_500 + I(mix_60_500 ^2) +
                 baa_60 + laggedBMI + baa_60:laggedBMI + 
-                (1|WMUA_code/WMU) + (1|year), data=dat1, na.action="na.fail")
+                (1|RegionalID) + (1|year), data=dat1, na.action="na.fail")
 
 # Export data and model into the cluster worker nodes
 clusterExport(cl, c("dat1","g1"))
@@ -282,7 +238,7 @@ for (i in 1:10) {
   # Run model with deltaAICc < 2
   m1_pt <- clmm(catNcompT ~ Sex*catAge + pasture_60 + 
                   mix_60_500 + I(mix_60_500^2) + 
-                  (1|WMUA_code/WMU) + (1|year), data=pt, na.action="na.fail")
+                  (1|RegionalID) + (1|year), data=pt, na.action="na.fail")
   
   m1s <- summary(m1_pt)
   
