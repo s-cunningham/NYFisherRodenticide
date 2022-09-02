@@ -4,6 +4,7 @@ library(parallel)
 library(MuMIn)
 library(broom.mixed)
 
+options(scipen=999, digits=3)
 set.seed(123)
 #### Set up parallel processing ####
 
@@ -308,9 +309,9 @@ for (i in 1:10) {
   m1sdf <- m1s$coefficients
   
   # save averaged confidence intervals
-  ci <- confint.merMod(m1_pt, method="boot")
-  pct2.5 <- rbind(pct2.5, t(ci)[1,])
-  pct97.5 <- rbind(pct97.5, t(ci)[2,])
+  ci <- confint.merMod(m1_pt, method="Wald")
+  pct2.5 <- rbind(pct2.5, t(ci)[1,2:10])
+  pct97.5 <- rbind(pct97.5, t(ci)[2,2:10])
   
   # Save point set estimates
   m_est <- rbind(m_est, coef(m1s)[,1])
@@ -320,13 +321,12 @@ for (i in 1:10) {
   if (i==1) {
     names(m_est) <- row.names(m1sdf)
     names(m_stderr) <- row.names(m1sdf)
-    # names(pct2.5) <- row.names(m1sdf)
-    # names(pct97.5) <- row.names(m1sdf)
+    names(pct2.5) <- row.names(m1sdf)
+    names(pct97.5) <- row.names(m1sdf)
   }
   
 }
 
-# 
 # Calculate averages for each coefficient
 coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)], na.rm=TRUE)
 stderr_avg <- colMeans(m_stderr[sapply(m_stderr, is.numeric)], na.rm=TRUE)
@@ -549,7 +549,9 @@ g1 <- glmer(bin.exp ~ Sex*catAge +
               mix_60_500 + I(mix_60_500^2) +
               pasture_60 + I(pasture_60^2) +
               baa_60 + I(baa_60^2) + 
-              (1|year), family=binomial(link="logit"), data=brom1, na.action="na.fail")
+              (1|year), family=binomial(link="logit"), 
+              data=brom1, na.action="na.fail", nAGQ=0,
+              control=glmerControl(optimizer=c("nloptwrap", "nloptwrap")))
 
 
 # Export data and model into the cluster worker nodes
@@ -561,7 +563,7 @@ g1_dredge <- MuMIn:::.dredge.par(g1, cluster=cl, trace=2,  subset=dc(mix_60_500,
 
 
 # Save dredge tables
-save(file="output/dredge_tables_binaryTbromo.Rdata", list="g1_dredge")
+save(file="output/dredge_tables_binaryTbroma.Rdata", list="g1_dredge")
 
 # Save as csv file
 dh <- as.data.frame(g1_dredge)
@@ -579,6 +581,7 @@ m_est <- data.frame()
 m_stderr <- data.frame()
 pct2.5 <- data.frame()
 pct97.5 <- data.frame()
+set.seed(123)
 
 # Loop over each point set
 for (i in 1:10) {
@@ -589,15 +592,16 @@ for (i in 1:10) {
   # Run model with deltaAICc < 2
   m1_pt <- glmer(bin.exp ~ Sex*catAge + pasture_60 + 
                    mix_60_500 + I(mix_60_500^2) + 
-                   (1|WMUA_code), family=binomial(link="logit"),data=pt)
+                   (1|WMUA_code), family=binomial(link="logit"),data=pt, nAGQ=0,
+                 control=glmerControl(optimizer=c("nloptwrap", "nloptwrap")))
   
   m1s <- summary(m1_pt)
   m1sdf <- m1s$coefficients
   
   # save averaged confidence intervals
-  ci <- confint(m1_pt)
-  pct2.5 <- rbind(pct2.5, t(ci)[1,])
-  pct97.5 <- rbind(pct97.5, t(ci)[2,])
+  ci <- confint.merMod(m1_pt, method="Wald")
+  pct2.5 <- rbind(pct2.5, t(ci)[1,2:10])
+  pct97.5 <- rbind(pct97.5, t(ci)[2,2:10])
   
   # Save point set estimates
   m_est <- rbind(m_est, coef(m1s)[,1])
@@ -638,8 +642,6 @@ coef_summary <- data.frame(coef=coefs, coef_summary)
 
 # Write to file
 write_csv(coef_summary, "results/binaryTbromadiolone_coef-summary.csv")
-
-
 
 
 #### Diphacinone ####
@@ -837,7 +839,8 @@ g1 <- glmer(bin.exp ~ Sex*catAge + laggedBMI +
               wui_15_100 + I(wui_15_100^2) +
               pasture_60 + I(pasture_60^2) +
               baa_60 + I(baa_60^2) + baa_60:laggedBMI +  
-              (1|year), family=binomial(link="logit"), data=diph1, na.action="na.fail")
+              (1|year), family=binomial(link="logit"), data=diph1, na.action="na.fail",
+              nAGQ=0, control=glmerControl(optimizer=c("nloptwrap", "nloptwrap")))
 
 
 # Export data and model into the cluster worker nodes
@@ -850,7 +853,7 @@ g1_dredge <- MuMIn:::.dredge.par(g1, cluster=cl, trace=2,  subset=dc(wui_15_100,
 
 
 # Save dredge tables
-save(file="output/dredge_tables_binaryT.Rdata", list="g1_dredge")
+save(file="output/dredge_tables_binaryTdiphacinone.Rdata", list="g1_dredge")
 
 # Save as csv file
 dh <- as.data.frame(g1_dredge)
@@ -860,6 +863,22 @@ write_csv(dh, "output/models_binaryTdipha.csv")
 dh <- read_csv("output/models_binaryTdipha.csv")
 dh <- as.data.frame(dh)
 
+# Clear deltaAIC and model weights
+dh$delta <- NA
+dh$weight <- NA
+
+# Reorder according to AICc
+N.order <- order(dh$AICc)
+dh <- dh[N.order,]
+
+# Remove some that didn't end up in subset of dredge
+dh <- dh[!(is.na(dh$baa_60) & !is.na(dh$`I(baa_60^2)`)),]
+
+# Recalculate deltaAIC and model weights
+dh$delta <- dh$AICc - dh$AICc[1]
+w <- qpcR::akaike.weights(dh$AICc)
+dh$weight <- w$weights
+
 ## Running final models ##
 
 ## Loop over each set of random points
@@ -868,6 +887,7 @@ m_est <- data.frame()
 m_stderr <- data.frame()
 pct2.5 <- data.frame()
 pct97.5 <- data.frame()
+set.seed(123)
 
 # Loop over each point set
 for (i in 1:10) {
@@ -876,17 +896,16 @@ for (i in 1:10) {
   pt <- diph1[diph1$pt_index==i,]
   
   # Run model with deltaAICc < 2
-  m1_pt <- glmer(bin.exp ~ Sex + catAge + pasture_60 + I(pasture_60^2) + 
-                   mix_60_500 + I(mix_60_500^2) + face_15_250 + 
-                   (1|WMUA_code), family=binomial(link="logit"),data=pt)
+  m1_pt <- glm(bin.exp ~ Sex + catAge + pasture_60 + wui_15_100 + baa_60, family=binomial(link="logit"), data=pt) #,
+                    # control=glmerControl(optimizer=c("nloptwrap", "nloptwrap")))
   
   m1s <- summary(m1_pt)
   m1sdf <- m1s$coefficients
   
   # save averaged confidence intervals
-  ci <- confint(m1_pt)
-  pct2.5 <- rbind(pct2.5, t(ci)[1,])
-  pct97.5 <- rbind(pct97.5, t(ci)[2,])
+  ci <- confint.merMod(m1_pt, method="Wald")
+  pct2.5 <- rbind(pct2.5, t(ci)[1,2:10])
+  pct97.5 <- rbind(pct97.5, t(ci)[2,2:10])
   
   # Save point set estimates
   m_est <- rbind(m_est, coef(m1s)[,1])
