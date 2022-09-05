@@ -89,17 +89,10 @@ baa15 <- clmm(catNcompT ~ baa_15 + (1|RegionalID), data=baa1)
 baa30 <- clmm(catNcompT ~ baa_30 + (1|RegionalID), data=baa1)
 baa60 <- clmm(catNcompT ~ baa_60 + (1|RegionalID), data=baa1)
 
-baa15lBMI <- clmm(catNcompT ~laggedBMI + (1|RegionalID), data=baa1)
-baa30lBMI <- clmm(catNcompT ~laggedBMI + (1|RegionalID), data=baa1)
-baa60lBMI <- clmm(catNcompT ~laggedBMI + (1|RegionalID), data=baa1)
+laggedBMI <- clmm(catNcompT ~ laggedBMI + (1|RegionalID), data=baa1)
+laggedMAST <- clmm(catNcompT ~ mast + (1|RegionalID), data=baa1)
 
-baa15M <- clmm(catNcompT ~ mast + (1|RegionalID), data=baa1)
-baa30M <- clmm(catNcompT ~ mast + (1|RegionalID), data=baa1)
-baa60M <- clmm(catNcompT ~ mast + (1|RegionalID), data=baa1)
-
-baa_sel <- model.sel(baa15, baa30, baa60,
-                     baa15lBMI, baa30lBMI, baa60lBMI, 
-                     baa15M, baa30M, baa60M)
+baa_sel <- model.sel(baa15, baa30, baa60,laggedBMI,laggedMAST)
 baa_sel
 
 ## Wildland-urban interface
