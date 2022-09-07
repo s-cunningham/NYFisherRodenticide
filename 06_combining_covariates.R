@@ -1,4 +1,4 @@
-## Set up rodenticide analysis
+## Set up rodenticide covariates
 ## 2022-06-27
 
 library(tidyverse)
@@ -64,7 +64,6 @@ ag <- mutate(ag, totalag=crops + pasture)
 ## reorganize beech
 names(baa)[1] <- "pt_name"
 baa$baa[is.na(baa$baa)] <- 0
-baa <- baa[baa$buffsize>10,]
 
 ## reorganize WUI
 wui100$radius <- 100
@@ -78,13 +77,6 @@ wui[is.na(wui)] <- 0
 wui <- mutate(wui, totalWUI=intermix + interface)
 names(wui)[1] <- "pt_name"
 wui <- wui[wui$buffsize>10,]
-
-# annual beech mast index
-mast <- read_csv("data/analysis-ready/ALTEMP26_beech-data.csv")
-mast_mean <- mean(mast$Total_Beechnuts)
-mast_median <- median(mast$Total_Beechnuts)
-mast_max <- max(mast$Total_Beechnuts)
-mast$devMean <- mast$Total_Beechnuts - mast_mean
 
 ## Joining data
 # Join location, age & sex details to random points
@@ -104,14 +96,17 @@ dat$radius <- rep(c(100,250,500), each=10110) # WUI radius sizes
 # join covariate data
 dat <- left_join(dat, ag, by=c("pt_name", "buffsize"))
 dat <- left_join(dat, forest, by=c("pt_name", "buffsize"))
-dat <- left_join(dat, baa, by=c("pt_name", "buffsize"))
 dat <- left_join(dat, wui, by=c("pt_name", "buffsize", "radius"))
 
 # Add beech mast index
-dat$laggedBMI <- NA
-dat$laggedBMI[dat$year==2018] <- mast$devMean[mast$year==2017]
-dat$laggedBMI[dat$year==2019] <- mast$devMean[mast$year==2018]
-dat$laggedBMI[dat$year==2020] <- mast$devMean[mast$year==2019]
+dat$laggedYear <- dat$year - 1
+baa$laggedYear <- baa$year - 1
+
+dat <- left_join(dat, baa[,c(1,3,4,5)], by=c("pt_name", "buffsize", "laggedYear"))
+names(dat)[29] <- "laggedBMI"
+
+dat <- left_join(dat, baa[,c(1,2,3,4)], by=c("pt_name", "buffsize", "year"))
+names(dat)[30] <- "BMI"
 
 # Fill in 0 for missing values (WUI)
 dat <- dat %>% mutate(interface = coalesce(interface, 0),
@@ -123,6 +118,9 @@ dat <- dat %>% mutate(interface = coalesce(interface, 0),
 
 # Add WMUA 
 dat <- left_join(dat, wmua, by="WMU")
+
+# Reorder columns
+dat <- dat[,c(1:6,32,7:9,13:21,25:27,29,30)]
 
 ### Save data to file ####
 write_csv(dat, "data/analysis-ready/combined_AR_covars.csv")
