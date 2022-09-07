@@ -284,79 +284,47 @@ wui500_fracs60$buffsize <- 60
 wui500_fracs <- rbind(wui500_fracs4p5, wui500_fracs15, wui500_fracs30, wui500_fracs60)
 write_csv(wui500_fracs, "data/analysis-ready/wui500_frac.csv")
 
-#### Read in housing layer to calculate density and extract values ####
-# build100 <- rast("data/rasters/BuildCount100m.tif")
-# build100 <- project(build100, nlcd) # Match projection to nlcd
-# 
-# build250 <- rast("data/rasters/BuildCount250m.tif")
-# build250 <- project(build250, nlcd) # Match projection to nlcd
-# 
-# build500 <- rast("data/rasters/BuildCount500m.tif")
-# build500 <- project(build500, nlcd) # Match projection to nlcd
-# 
-# buff60 <- st_transform(buff60, crs(nlcd))
-# buff15 <- st_transform(buff15, crs(nlcd)) 
-# buff30 <- st_transform(buff30, crs(nlcd))
-# 
-# ### Calculate average # buildings 
-# build100_avg60 <- exact_extract(build100, buff60, 'mean')
-# build100_avg60 <- data.frame(avg=build100_avg60)
-# build100_avg60$buffsize <- 60
-# build100_avg15 <- exact_extract(build100, buff15, 'mean')
-# build100_avg15 <- data.frame(avg=build100_avg15)
-# build100_avg15$buffsize <- 15
-# build100_avg30 <- exact_extract(build100, buff30, 'mean')
-# build100_avg30 <- data.frame(avg=build100_avg30)
-# build100_avg30$buffsize <- 30
-# build100_avg <- rbind(build100_avg60, build100_avg15, build100_avg30)
-# build100_avg$radius <- 100
-# 
-# build250_avg60 <- exact_extract(build250, buff60, 'mean')
-# build250_avg60 <- data.frame(avg=build250_avg60)
-# build250_avg60$buffsize <- 60
-# build250_avg15 <- exact_extract(build250, buff15, 'mean')
-# build250_avg15 <- data.frame(avg=build250_avg15)
-# build250_avg15$buffsize <- 15
-# build250_avg30 <- exact_extract(build250, buff30, 'mean')
-# build250_avg30 <- data.frame(avg=build250_avg30)
-# build250_avg30$buffsize <- 30
-# build250_avg <- rbind(build250_avg60, build250_avg15, build250_avg30)
-# build250_avg$radius <- 250
-# 
-# build500_avg60 <- exact_extract(build500, buff60, 'mean')
-# build500_avg60 <- data.frame(avg=build500_avg60)
-# build500_avg60$buffsize <- 60
-# build500_avg15 <- exact_extract(build500, buff15, 'mean')
-# build500_avg15 <- data.frame(avg=build500_avg15)
-# build500_avg15$buffsize <- 15
-# build500_avg30 <- exact_extract(build500, buff30, 'mean')
-# build500_avg30 <- data.frame(avg=build500_avg30)
-# build500_avg30$buffsize <- 30
-# build500_avg <- rbind(build500_avg60, build500_avg15, build500_avg30)
-# build500_avg$radius <- 500
-# 
-# build_avg <- rbind(build100_avg, build250_avg, build500_avg)
-# build_avg$name <- rep(buff60$name, 9)
-# write_csv(build_avg, "data/analysis-ready/build_avg.csv")
-
 #### Read in predicted beech layer ####
 
 ## Load raster layers
 beech <- rast("data/rasters/baa250_masked.tif")
 
-beech_mean4p5 <- exact_extract(beech, buff4p5, 'mean')
-beech_mean4p5 <- data.frame(name=buff4p5$name, baa=beech_mean4p5, buffsize=4.5)
+# Do math to get total beech mass (sq.ft) instead of basal area per acre
+# Cells are 65200 m^2, there are 15.444 acres in 65200 m^2
+beech <- beech * 15.444
 
-beech_mean15 <- exact_extract(beech, buff15, 'mean')
-beech_mean15 <- data.frame(name=buff15$name, baa=beech_mean15, buffsize=15)
+# annual beech mast index
+mast <- read_csv("data/analysis-ready/ALTEMP26_beech-data.csv")
+mast_mean <- mean(mast$Total_Beechnuts)
+mast_median <- median(mast$Total_Beechnuts)
+mast_max <- max(mast$Total_Beechnuts)
+mast$devMean <- mast$Total_Beechnuts - mast_mean
+mast$devMedian <- mast$Total_Beechnuts - mast_median
+mast <- mast[mast$year>2016 & mast$year<=2020,]
 
-beech_mean30 <- exact_extract(beech, buff30, 'mean')
-beech_mean30 <- data.frame(name=buff30$name, baa=beech_mean30, buffsize=30)
+# for each year, create a spatially-weighted beech layer
+beech17 <- beech * mast$Total_Beechnuts[1]
+beech18 <- beech * mast$Total_Beechnuts[2]
+beech19 <- beech * mast$Total_Beechnuts[3]
+beech20 <- beech * mast$Total_Beechnuts[4]
 
-beech_mean60 <- exact_extract(beech, buff60, 'mean')
-beech_mean60 <- data.frame(name=buff60$name, baa=beech_mean60, buffsize=60)
+# put rasters in a list to loop over them
+beech_list <- list(beech17, beech18, beech19, beech20)
+years <- c(2017, 2018, 2019, 2020)
 
-beech_mean <- bind_rows(beech_mean4p5, beech_mean15, beech_mean30, beech_mean60)
+for (i in 1:4) {
+  beech_sum15 <- exact_extract(beech_list[[i]], buff15, 'sum')
+  beech_sum15 <- data.frame(name=buff15$name, year=years[i], baa=beech_sum15, buffsize=15)
+  
+  beech_sum30 <- exact_extract(beech_list[[i]], buff30, 'sum')
+  beech_sum30 <- data.frame(name=buff30$name, year=years[i], baa=beech_sum30, buffsize=30)
+  
+  beech_sum60 <- exact_extract(beech_list[[i]], buff60, 'sum')
+  beech_sum60 <- data.frame(name=buff60$name, year=years[i], baa=beech_sum60, buffsize=60)
+  
+  beech_mean <- bind_rows(beech_sum15, beech_sum30, beech_sum60)
+}
+
 write_csv(beech_mean, "data/analysis-ready/baa_mean.csv")
 
 
