@@ -19,7 +19,7 @@ wui500 <- read_csv("data/analysis-ready/wui500_frac.csv")
 wui500 <- wui500[wui500$value==1 | wui500$value==2, -1]
 wui500 <- wui500[complete.cases(wui500),]
 ag <- read_csv("data/analysis-ready/nlcd_pct.csv")
-baa <- read_csv("data/analysis-ready/baa_mean.csv")
+baa <- read_csv("data/analysis-ready/baa_sum.csv")
 pts <- read_csv("output/random_point_locs.csv")
 wmua <- read_csv("data/analysis-ready/wmuas.csv")
 
@@ -98,17 +98,16 @@ dat <- left_join(dat, ag, by=c("pt_name", "buffsize"))
 dat <- left_join(dat, forest, by=c("pt_name", "buffsize"))
 dat <- left_join(dat, wui, by=c("pt_name", "buffsize", "radius"))
 
-# Add beech mast index
-dat$laggedYear <- dat$year - 1
-baa$laggedYear <- baa$year - 1
+## Add beech mast index
+dat <- left_join(dat, baa, by=c("pt_name", "buffsize", "year"))
+names(dat)[28] <- "BMI"
 
-dat <- left_join(dat, baa[,c(1,3,4,5)], by=c("pt_name", "buffsize", "laggedYear"))
+# add 1 to year to get lagged
+baa$year <- baa$year + 1
+dat <- left_join(dat, baa, by=c("pt_name", "buffsize", "year"))
 names(dat)[29] <- "laggedBMI"
 
-dat <- left_join(dat, baa[,c(1,2,3,4)], by=c("pt_name", "buffsize", "year"))
-names(dat)[30] <- "BMI"
-
-# Fill in 0 for missing values (WUI)
+## Fill in 0 for missing values (WUI)
 dat <- dat %>% mutate(interface = coalesce(interface, 0),
                       intermix = coalesce(intermix, 0),
                       totalWUI = coalesce(totalWUI, 0),
@@ -120,7 +119,7 @@ dat <- dat %>% mutate(interface = coalesce(interface, 0),
 dat <- left_join(dat, wmua, by="WMU")
 
 # Reorder columns
-dat <- dat[,c(1:6,32,7:9,13:21,25:27,29,30)]
+dat <- dat[,c(1:7,31,8:9,13:20,25:29)]
 
 ### Save data to file ####
 write_csv(dat, "data/analysis-ready/combined_AR_covars.csv")
