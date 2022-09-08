@@ -1,3 +1,6 @@
+## Running models
+## 2022-09-08
+
 library(tidyverse)
 library(MuMIn)
 library(ordinal)
@@ -27,35 +30,25 @@ dat <- as.data.frame(dat)
 dat$catNcompT <- ifelse(dat$n.compounds.T>=3, "3+", as.character(dat$n.compounds.T))
 dat$catNcompT  <- ordered(dat$catNcompT , levels=c("0", "1", "2", "3+"))
 
-# Order response
-dat$n.compounds.T <- ordered(dat$n.compounds.T, levels=c(0,1,2,3,4,5))
-
 # Make random effects factors
 dat$WMU <- as.factor(dat$WMU)
 dat$WMUA_code <- as.factor(dat$WMUA_code)
 dat$year <- factor(dat$year)
 dat$RegionalID <- factor(dat$RegionalID)
 
-# Change how beech mast is incorporated (lagged values)
-dat$mast <- NA 
-dat$mast[dat$year==2018] <- "mast"
-dat$mast[dat$year==2019] <- "fail"
-dat$mast[dat$year==2020] <- "mast"
-dat$mast <- as.factor(dat$mast)
-
 # Make age a categorical variable
-dat$catAge[dat$Age>=3.5] <- "adult"
-dat$catAge[dat$Age==2.5] <- "subadult"
-dat$catAge[dat$Ag<2.5] <- "juvenile"
+dat$catAge[dat$Age>=2.5] <- "adult"
+dat$catAge[dat$Age==1.5] <- "subadult"
+dat$catAge[dat$Ag==0.5] <- "juvenile"
 
 # Resort columns
-dat <- dat[,c(1:7,31,10:13,8,9,34,15,32,16:17,29,33,18:28)] 
+dat <- dat[,c(1:10,25,11,24,14:23)] 
 
 ## Scale and center variables
-dat[,c(14,20,22:32)] <- scale(dat[,c(14,20,22:32)])
+dat[,c(10,16:23)] <- scale(dat[,c(10,16:23)])
 
 ## Percent AG
-pctAG1 <- dat[, c(1:18, 22:24)]
+pctAG1 <- dat[, c(1:14, 16:18)]
 pctAG1 <- distinct(pctAG1)
 pctAG1 <- pctAG1 %>% group_by(RegionalID) %>% 
   pivot_wider(names_from=buffsize, values_from=c(pasture, crops, totalag)) %>% as.data.frame()
@@ -81,48 +74,48 @@ pctAG_sel <- model.sel(ag15, ag30, ag60,
 pctAG_sel
 
 ## Beech basal area
-baa1 <- dat[, c(1:18,20,21,29)]
-baa1  <- baa1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffsize, values_from=baa, values_fn=unique) %>% as.data.frame()
-names(baa1)[20:22] <- c("baa_15", "baa_30", "baa_60") 
+baa1 <- dat[, c(1:14,22,23)]
+baa1  <- baa1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffsize, values_from=c(BMI, laggedBMI), values_fn=unique) %>% as.data.frame()
 
-baa15 <- clmm(catNcompT ~ baa_15 + (1|RegionalID), data=baa1)
-baa30 <- clmm(catNcompT ~ baa_30 + (1|RegionalID), data=baa1)
-baa60 <- clmm(catNcompT ~ baa_60 + (1|RegionalID), data=baa1)
+bmi15 <- clmm(catNcompT ~ BMI_15 + (1|RegionalID), data=baa1)
+bmi30 <- clmm(catNcompT ~ BMI_30 + (1|RegionalID), data=baa1)
+bmi60 <- clmm(catNcompT ~ BMI_60 + (1|RegionalID), data=baa1)
 
-laggedBMI <- clmm(catNcompT ~ laggedBMI + (1|RegionalID), data=baa1)
-laggedMAST <- clmm(catNcompT ~ mast + (1|RegionalID), data=baa1)
+lbmi15 <- clmm(catNcompT ~ laggedBMI_15 + (1|RegionalID), data=baa1)
+lbmi30 <- clmm(catNcompT ~ laggedBMI_30 + (1|RegionalID), data=baa1)
+lbmi60 <- clmm(catNcompT ~ laggedBMI_60 + (1|RegionalID), data=baa1)
 
-baa_sel <- model.sel(baa15, baa30, baa60,laggedBMI,laggedMAST)
+baa_sel <- model.sel(bmi15,lbmi15, bmi30,lbmi30,bmi60,lbmi60)
 baa_sel
 
 ## Wildland-urban interface
-intermix1 <- dat[, c(1:19, 30)]
-intermix1 <- unite(intermix1, "buffrad", 18:19, sep="_")
+intermix1 <- dat[, c(1:15, 19)]
+intermix1 <- unite(intermix1, "buffrad", 14:15, sep="_")
 intermix1  <- intermix1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffrad, values_from=intermix) %>% as.data.frame()
-names(intermix1)[18:26] <- c("mix_15_100", "mix_30_100", "mix_60_100",
+names(intermix1)[14:22] <- c("mix_15_100", "mix_30_100", "mix_60_100",
                              "mix_15_250", "mix_30_250", "mix_60_250",
                              "mix_15_500", "mix_30_500", "mix_60_500") 
 
-interface1 <- dat[, c(1:19, 31)]
-interface1 <- unite(interface1, "buffrad", 18:19, sep="_")
+interface1 <- dat[, c(1:15, 20)]
+interface1 <- unite(interface1, "buffrad", 14:15, sep="_")
 interface1  <- interface1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffrad, values_from=interface) %>% as.data.frame()
-names(interface1)[18:26] <- c("face_15_100", "face_30_100", "face_60_100",
+names(interface1)[14:22] <- c("face_15_100", "face_30_100", "face_60_100",
                               "face_15_250", "face_30_250", "face_60_250",
                               "face_15_500", "face_30_500", "face_60_500") 
 
-wui1 <- dat[, c(1:19, 32)]
-wui1 <- unite(wui1, "buffrad", 18:19, sep="_")
+wui1 <- dat[, c(1:15, 21)]
+wui1 <- unite(wui1, "buffrad", 14:15, sep="_")
 wui1  <- wui1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffrad, values_from=totalWUI) %>% as.data.frame()
-names(wui1)[18:26] <- c("wui_15_100", "wui_30k_100", "wui_60_100",
+names(wui1)[14:22] <- c("wui_15_100", "wui_30k_100", "wui_60_100",
                         "wui_15_250", "wui_30k_250", "wui_60_250",
                         "wui_15_500", "wui_30k_500", "wui_60_500") 
 
 # Join intermix WUI
-intermix1 <- intermix1[,c(1:3, 18:26)]
+intermix1 <- intermix1[,c(1:3, 14:22)]
 wui1 <- left_join(wui1, intermix1, by=c("RegionalID", "pt_name", "pt_index"))
 
 # Join interface WUI
-interface1 <- interface1[, c(1:3, 18:26)]
+interface1 <- interface1[, c(1:3, 14:22)]
 wui1 <- left_join(wui1, interface1, by=c("RegionalID", "pt_name", "pt_index"))
 
 # Intermix WUI
@@ -137,6 +130,7 @@ mix_30500 <- clmm(catNcompT ~ mix_30_500 + (1|RegionalID), data=wui1)
 mix_60100 <- clmm(catNcompT ~ mix_60_100 + (1|RegionalID), data=wui1)
 mix_60250 <- clmm(catNcompT ~ mix_60_250 + (1|RegionalID), data=wui1)
 mix_60500 <- clmm(catNcompT ~ mix_60_500 + (1|RegionalID), data=wui1)
+
 # Interface WUI
 face_15100 <- clmm(catNcompT ~ face_15_100 + (1|RegionalID), data=wui1)
 face_15250 <- clmm(catNcompT ~ face_15_250 + (1|RegionalID), data=wui1)
@@ -169,49 +163,30 @@ wui_sel <- model.sel(wui_15100, wui_30100, wui_60100, face_15100, face_30100, fa
 wui_sel
 
 #### Set up data to run for each combination of covariates ####
-dat1 <- dat[,c(1:17)]
+dat1 <- dat[,c(1:13)]
 dat1 <- distinct(dat1)
 
 # Join percent agriculture
-pctAG1 <- pctAG1[,c(1:3, 20)]
+pctAG1 <- pctAG1[,c(1:3, 15)]
 dat1 <- left_join(dat1, pctAG1, by=c("RegionalID", "pt_name", "pt_index"))
 
 # Join beech basal area
-baa1 <- baa1[,c(1:3, 22, 18)]
+baa1 <- baa1[,c(1:3, 18)]
 dat1 <- left_join(dat1, baa1, by=c("RegionalID", "pt_name", "pt_index"))
 
 # Join total WUI
-wui1 <- wui1[,c(1:3, 35)]
+wui1 <- wui1[,c(1:3, 24)]
 dat1 <- left_join(dat1, wui1, by=c("RegionalID", "pt_name", "pt_index"))
 
 ## Check correlation matrix
-cor(dat1[,18:21])
+cor(dat1[,14:16])
 
 ## Set up global models
-g1 <- clmm(catNcompT ~ Sex*catAge + 
-                pasture_60 + I(pasture_60^2) + 
-                mix_60_500 + I(mix_60_500 ^2) +
-                baa_60 + laggedBMI + baa_60:laggedBMI + 
-                (1|RegionalID) + (1|year), data=dat1, na.action="na.fail")
+g1 <- clmm(catNcompT ~ Sex*catAge + pasture_30 + mix_30_100 + laggedBMI_30 +
+                (1|RegionalID), data=dat1, na.action="na.fail")
 
 # Export data and model into the cluster worker nodes
 clusterExport(cl, c("dat1","g1"))
-
-g1_dredge <- MuMIn:::.dredge.par(g1, cluster=cl, trace=2, rank="AIC", 
-                                 subset=dc(mix_60_500, I(mix_60_500^2)) &&
-                                        dc(pasture_60, I(pasture_60^2)) &&
-                                        dc(baa_60, laggedBMI, baa_60:laggedBMI))
-  
-# Save dredge tables
-save(file="output/dredge_tables_ncompT.Rdata", list="g1_dredge")
-
-# Save as csv file
-dh <- as.data.frame(g1_dredge)
-write_csv(dh, "output/ncompT_dredgetable.csv")
-
-## Read tables back in
-dh <- read_csv("output/ncompT_dredgetable.csv")
-dh <- as.data.frame(dh)
 
 #### Running final models ####
 
@@ -229,9 +204,7 @@ for (i in 1:10) {
   pt <- dat1[dat1$pt_index==i,]
   
   # Run model with deltaAICc < 2
-  m1_pt <- clmm(catNcompT ~ Sex*catAge + pasture_60 + 
-                  mix_60_500 + I(mix_60_500^2) + 
-                  (1|RegionalID) + (1|year), data=pt, na.action="na.fail")
+  m1_pt <- clmm(catNcompT ~ Sex*catAge + pasture_30 + mix_30_100 + laggedBMI_30 + (1|year), data=pt, na.action="na.fail")
   
   m1s <- summary(m1_pt)
   
