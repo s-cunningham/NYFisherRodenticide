@@ -312,6 +312,7 @@ beech20 <- beech * mast$Total_Beechnuts[4]
 beech_list <- list(beech17, beech18, beech19, beech20)
 years <- c(2017, 2018, 2019, 2020)
 
+beech_sum <- data.frame()
 for (i in 1:4) {
   beech_sum15 <- exact_extract(beech_list[[i]], buff15, 'sum')
   beech_sum15 <- data.frame(name=buff15$name, year=years[i], baa=beech_sum15, buffsize=15)
@@ -322,9 +323,9 @@ for (i in 1:4) {
   beech_sum60 <- exact_extract(beech_list[[i]], buff60, 'sum')
   beech_sum60 <- data.frame(name=buff60$name, year=years[i], baa=beech_sum60, buffsize=60)
   
-  beech_mean <- bind_rows(beech_sum15, beech_sum30, beech_sum60)
+  beech_sum <- bind_rows(beech_sum, beech_sum15, beech_sum30, beech_sum60)
 }
 
-write_csv(beech_mean, "data/analysis-ready/baa_mean.csv")
+write_csv(beech_sum, "data/analysis-ready/baa_sum.csv")
 
 
