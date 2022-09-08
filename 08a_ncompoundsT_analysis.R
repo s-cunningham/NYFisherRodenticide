@@ -258,7 +258,3 @@ write_csv(coef_summary, "results/ncompT_coef-summary.csv")
 
 
 
-
-
-
-
