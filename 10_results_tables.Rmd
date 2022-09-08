@@ -25,9 +25,10 @@ dat1 <- dat1[-1,]
 dat1[2:6] <- sapply(dat1[2:6], as.numeric)
 
 dat1 <- dat1[c(1:6,10,11,7:9),]
-dat1$coef <- c("Threshold0_1", "Threshold1_2", "Threshold2_3", 
-               "SexM", "Juvenile", "Subadult", "SexM x Juv", "SexM x SubA", 
-               "Pasture (60km2)", "Intermix (100m, 60km2)", "Sq Intermix")
+dat1$coef <- c("Threshold0_1", "Threshold1_2", "Threshold2_3+", 
+               "SexM", "Juvenile", "Subadult", "SexM x Juv", "SexM x SubAd", 
+               "Pasture (30km2)", "Intermix (100m, 30km2)", "Lagged BMI (30km2)")
+
 
 ```
 
@@ -40,23 +41,23 @@ kable_classic_2(kab, full_width=F, latex_options="hold_position")
 ```
 
 ```{r, echo=FALSE, message=FALSE}
-dat2 <- read_csv("results/ncompMO_coef-summary.csv") 
-dat2 <- as.data.frame(t(dat2))
-dat2 <- tibble::rownames_to_column(dat2, "VALUE")
-names(dat2) <- dat2[1,]
-dat2 <- dat2[-1,]
-dat2[2:6] <- sapply(dat2[2:6], as.numeric)
-
-dat2$coef <- c("Threshold0_1", "Threshold1_2", 
-               "SexM", "Juvenile", "Subadult", "Crops (60km2)", "Sq Crops (60km2)", 
-               "Intermix (100m, 60km2)", "Sq Intermix", "Beech BAA (60km2)", "Beech mast index",
-               "Beech BAA x BMI")
+# dat2 <- read_csv("results/ncompMO_coef-summary.csv") 
+# dat2 <- as.data.frame(t(dat2))
+# dat2 <- tibble::rownames_to_column(dat2, "VALUE")
+# names(dat2) <- dat2[1,]
+# dat2 <- dat2[-1,]
+# dat2[2:6] <- sapply(dat2[2:6], as.numeric)
+# 
+# dat2$coef <- c("Threshold0_1", "Threshold1_2", 
+#                "SexM", "Juvenile", "Subadult", "Crops (60km2)", "Sq Crops (60km2)", 
+#                "Intermix (100m, 60km2)", "Sq Intermix", "Beech BAA (60km2)", "Beech mast index",
+#                "Beech BAA x BMI")
 ```
 
 ```{r, echo=FALSE, message=FALSE}
-kab2 <- knitr::kable(dat2, caption="N compounds (without trace)",
-                    booktabs=TRUE, label="kable table1", digits=2)
-
-kable_classic_2(kab2, full_width=F, latex_options="hold_position")
+# kab2 <- knitr::kable(dat2, caption="N compounds (without trace)",
+#                     booktabs=TRUE, label="kable table1", digits=2)
+# 
+# kable_classic_2(kab2, full_width=F, latex_options="hold_position")
 ```
 
