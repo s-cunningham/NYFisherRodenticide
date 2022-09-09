@@ -3,10 +3,12 @@
 
 library(tidyverse)
 library(sf)
+library(stars)
+library(viridis)
 
 theme_set(theme_bw())
 
-#### Full dataset (all compounds pooled) ####
+#### Covariate plots (boxplots, xy plots) ####
 # read data
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv")
 dat <- as.data.frame(dat)
@@ -46,12 +48,6 @@ dat$catNcompMO <- ifelse(dat$n.compounds.MO>=2, "2+", as.character(dat$n.compoun
 dat$catNcompMO <- ordered(dat$catNcompMO, levels=c("0", "1", "2+"))
 
 # Age and sex plots
-ggplot(dat1, aes(x=catNcompT, y=Age, fill=Sex)) + 
-  geom_boxplot()
-
-ggplot(dat1, aes(x=catNcompMO, y=Age, fill=Sex)) + 
-  geom_boxplot()
-
 ggplot(dat1, aes(x=catAge, y=n.compounds.T, fill=Sex)) + 
   geom_boxplot()
 
@@ -65,7 +61,7 @@ pctAG <- distinct(pctAG)
 pctAG <- pctAG %>% group_by(RegionalID) %>% 
   pivot_longer(19:21, names_to="AG_category", values_to="value") %>% as.data.frame()
 
-ggplot(pctAG, aes(x=catNcompT, y=value, fill=AG_category)) + 
+ggplot(pctAG, aes(y=catNcompT, x=value, fill=AG_category)) + 
   geom_boxplot() + facet_grid(buffsize~.) + 
   coord_cartesian(ylim=c(0,1)) + ylab("Percent coverage in buffer area") + xlab("Number of Compounds Detected")
   
@@ -128,29 +124,8 @@ ggplot(dat60, aes(x=rand_x, y=rand_y, color=totalag)) + geom_point(size=2) +
 ggplot(dat60, aes(x=rand_x, y=rand_y, color=baa)) + geom_point(size=2) +
   theme(legend.position="bottom")
 
-## Read data frame with town/wmu location
-loc <- read.csv("data/analysis-ready/ar_locations_only.csv")
-loc <- loc[,-1]
-loc <- loc[loc$RegionalID!="2018-9211",] # Seems wrong
 
-## Read in polygon layer that has union of towns and WMUs
-twmu <- st_read("data/spatial", "WMUtown_union_Harv")
-aea <- "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-96 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs"
-twmu <- st_transform(twmu, aea)
-twmu <- unite(twmu, "key", 2:3, sep="-", remove=FALSE)
-# Remove town/WMU combos that don't have a fisher liver from them
-twmu <- twmu[twmu$key %in% loc$key,]
-
-# Count how many individual samples from each town-WMU combo
-nloc <- loc %>% group_by(key) %>% count()
-twmu <- left_join(twmu, nloc, by="key")
-
-ggplot(twmu, aes(fill=n)) + geom_sf() 
-
-
-
-
-#### Subset to only the most common compounds ####
+## Subset to only the most common compounds ##
 
 # Read data
 dets <- read_csv("data/analysis-ready/combined_AR_covars.csv")
@@ -204,3 +179,41 @@ ggplot(dat, aes(x=brodif_binary, y=crops)) + geom_boxplot() +
   theme(legend.position="bottom") + facet_grid(buffsize~radius)
 
 
+
+#### Figure 1 for manuscript ####
+## Load raster layer
+beech <- read_stars("data/rasters/baa250_masked.tif")
+
+# New york state
+aea <- "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-96 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs"
+nys <- st_read("data/spatial", "NYS_outline_albers")
+nys <- st_transform(nys, aea)
+
+# Fisher harvest area
+fha <- st_read("data/spatial", "FisherHarvestArea_dissolved")
+fha <- st_transform(fha, aea)
+
+# Water
+water <- st_read("data/spatial", "water_over_1sq_km")
+water <- st_transform(water, aea)
+
+# Read in polygon layer that has union of towns and WMUs
+twmu <- st_read("data/spatial", "WMUtown_union_Harv")
+twmu <- st_transform(twmu, aea)
+twmu <- unite(twmu, "key", 2:3, sep="-", remove=FALSE)
+
+# Remove town/WMU combos that don't have a fisher liver from them
+twmu <- twmu[twmu$key %in% loc$key,]
+
+# Count how many individual samples from each town-WMU combo
+nloc <- loc %>% group_by(key) %>% count()
+twmu <- left_join(twmu, nloc, by="key")
+
+# Plots
+ggplot() + geom_sf(data=nys, fill="gray40", color="gray20") + 
+  geom_sf(data=fha, fill="gray85", color="gray20") + 
+  geom_sf(data=water, color="blue", fill="lightblue") +
+  geom_point(data=dat, aes(x=rand_x, y=rand_y, color=factor(year)), shape=1, size=0.8) +
+  geom_sf(data=twmu, fill=NA) + 
+  scale_color_viridis(discrete=TRUE) +
+  theme(legend.position=c(0,1), legend.justification=c(0,1))
