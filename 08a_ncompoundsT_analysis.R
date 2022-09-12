@@ -196,6 +196,7 @@ m_est <- data.frame()
 m_stderr <- data.frame()
 pct2.5 <- data.frame()
 pct97.5 <- data.frame()
+m_ranef <- data.frame()
 
 # Loop over each point set
 for (i in 1:10) {
@@ -204,7 +205,7 @@ for (i in 1:10) {
   pt <- dat1[dat1$pt_index==i,]
   
   # Run model with deltaAICc < 2
-  m1_pt <- clmm(catNcompT ~ Sex*catAge + pasture_30 + mix_30_100 + laggedBMI_30 + (1|year), data=pt, na.action="na.fail")
+  m1_pt <- clmm(catNcompT ~ Sex*catAge + pasture_30 + mix_30_100 + laggedBMI_30 + (1|WMU) + (1|year), data=pt, na.action="na.fail")
   
   m1s <- summary(m1_pt)
   
@@ -215,6 +216,7 @@ for (i in 1:10) {
   # Save point set estimates
   m_est <- rbind(m_est, coef(m1s)[,1])
   m_stderr <- rbind(m_stderr, coef(m1s)[,2])
+  m_ranef <- rbind(m_ranef, unlist(VarCorr(m1_pt)))
   
   # Rename (only need to do once)
   if (i==1) {
@@ -222,6 +224,7 @@ for (i in 1:10) {
     names(m_stderr) <- c(names(coef(m1_pt)))
     names(pct2.5) <- c(names(coef(m1_pt)))
     names(pct97.5) <- c(names(coef(m1_pt)))
+    names(m_ranef) <- c("RE_WMU", "RE_year")
   }
   
 }
@@ -231,6 +234,7 @@ coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)], na.rm=TRUE)
 stderr_avg <- colMeans(m_stderr[sapply(m_stderr, is.numeric)], na.rm=TRUE)
 pct2.5_avg <- colMeans(pct2.5[sapply(pct2.5, is.numeric)], na.rm=TRUE)
 pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)], na.rm=TRUE)
+ranef_avg <- as.data.frame(colMeans(m_ranef[sapply(m_ranef, is.numeric)]))
 
 # One-sample t-test to determine "significance"
 pvalue <- c()
@@ -251,7 +255,7 @@ coef_summary <- data.frame(coef=coefs, coef_summary)
 
 # Write to file
 write_csv(coef_summary, "results/ncompT_coef-summary.csv")
-
+write_csv(ranef_avg, "results/ncompT_coef-random-effects.csv")
 
 
 
