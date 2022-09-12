@@ -1,0 +1,3 @@
+"colMeans(m_ranef[sapply(m_ranef, is.numeric)])"
+0.06169243105737043
+0.14152357936469406
