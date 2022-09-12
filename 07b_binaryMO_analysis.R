@@ -1,38 +1,24 @@
 library(tidyverse)
 library(lme4)
-library(parallel)
 library(MuMIn)
 library(broom.mixed)
 
+options(scipen=999, digits=3)
 set.seed(123)
 
-#### Set up parallel processing ####
-
-# Determine cluster type 
-clusterType <- if(length(find.package("snow", quiet = TRUE))) "SOCK" else "PSOCK"
-
-# Detect number of cores and create cluster (leave a couple out to not overwhelm pc)
-nCores <- detectCores() - 4
-cl <- makeCluster(nCores, type=clusterType)
-
-clusterEvalQ(cl,library(lme4))
-clusterEvalQ(cl,library(MuMIn))
-
 #### Read in data ####
+# Landscape covariates
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv")
 dat <- as.data.frame(dat)
 
-#### Analysis ####
+# Individual compounds
+dat2 <- read_csv("output/summarized_AR_results.csv")
+dat2 <- as.data.frame(dat2)
 
-## set up binary variable
-dat$binary.MO <- ifelse(dat$n.compounds.MO==0, 0, 1)
+dat2 <- dat2[dat2$compound=="Diphacinone" | dat2$compound=="Brodifacoum" |
+               dat2$compound=="Bromadiolone", c(2,19,21:22) ]
 
-# Change how beech mast is incorporated
-dat$mast <- NA 
-dat$mast[dat$year==2018] <- "mast"
-dat$mast[dat$year==2019] <- "fail"
-dat$mast[dat$year==2020] <- "mast"
-dat$mast <- as.factor(dat$mast)
+dat <- left_join(dat, dat2, by="RegionalID")
 
 # Make age a categorical variable
 dat$catAge[dat$Age>=3.5] <- "adult"
@@ -44,255 +30,84 @@ dat$WMU <- as.factor(dat$WMU)
 dat$WMUA_code <- as.factor(dat$WMUA_code)
 dat$year <- factor(dat$year)
 
+# trace = 0 binary
+dat$MObinary <- ifelse(dat$exposure=="measured", 1, 0)
+
 ## Reorder columns
-dat <- dat[,c(1:7, 31, 8, 9, 34, 10:13, 32, 16, 17, 33,29,25, 18:20, 26:28)]
+dat <- dat[,c(1:10,27,11,24,26,28,14:23)]
 
 ## Scale and center variables
-dat[,c(10,20:27)] <- scale(dat[,c(10,20:27)])
+dat[,c(10,18:25)] <- scale(dat[,c(10,18:25)])
 
-## Use pooled data for initial variable and scale selection
+#### Analysis ####
+## Use pooled data to determine scale
 
+# Subset by compound
+brod <- dat[dat$compound=="Brodifacoum",]
+brom <- dat[dat$compound=="Bromadiolone",]
+diph <- dat[dat$compound=="Diphacinone",]
+
+#### Brodifacoum ####
 ## Percent AG
-pctAG1 <- dat[, c(1:3, 6:8, 15:17, 22:24)]
-pctAG1 <- distinct(pctAG1)
-pctAG1 <- pctAG1 %>% group_by(RegionalID) %>% 
+pctAG_brod <- brod %>% select(1:3,6:8,15,16,18:20) %>% 
+  distinct() %>% 
+  group_by(RegionalID) %>% 
   pivot_wider(names_from=buffsize, values_from=c(pasture, crops, totalag)) %>% as.data.frame()
 
-ag15 <- glmer(binary.MO ~ totalag_15 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=pctAG1)
-ag30 <- glmer(binary.MO ~ totalag_30 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=pctAG1)
-ag60 <- glmer(binary.MO ~ totalag_60 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=pctAG1)
-ag15sq <- glmer(binary.MO ~ totalag_15 + I(totalag_15^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=pctAG1)
-ag30sq <- glmer(binary.MO ~ totalag_30 + I(totalag_30^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=pctAG1)
-ag60sq <- glmer(binary.MO ~ totalag_60 + I(totalag_60^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=pctAG1)
+## Beech basal area
+baa1 <- brod[, c(1:3,6:8,15,16,24,25)]
+baa1  <- baa1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffsize, values_from=c(BMI, laggedBMI), values_fn=unique) %>% as.data.frame()
 
-crops15 <- glmer(binary.MO ~ crops_15 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=pctAG1)
-crops30 <- glmer(binary.MO ~ crops_30 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=pctAG1)
-crops60 <- glmer(binary.MO ~ crops_60 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=pctAG1)
-crops15sq <- glmer(binary.MO ~ crops_15 + I(crops_15^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=pctAG1)
-crops30sq <- glmer(binary.MO ~ crops_30 + I(crops_30^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=pctAG1)
-crops60sq <- glmer(binary.MO ~ crops_60 + I(crops_60^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=pctAG1)
-
-past15 <- glmer(binary.MO ~ pasture_15 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=pctAG1)
-past30 <- glmer(binary.MO ~ pasture_30 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=pctAG1)
-past60 <- glmer(binary.MO ~ pasture_60 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=pctAG1)
-past15sq <- glmer(binary.MO ~ pasture_15 + I(pasture_15^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=pctAG1)
-past30sq <- glmer(binary.MO ~ pasture_30 + I(pasture_30^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=pctAG1)
-past60sq <- glmer(binary.MO ~ pasture_60 + I(pasture_60^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=pctAG1)
-
-pctAG_sel <- model.sel(ag15, ag15sq, crops15, crops15sq, past15, past15sq,
-                       ag30, ag30sq, crops30, crops30sq, past30, past30sq,
-                       ag60, ag60sq, crops60, crops60sq, past60, past60sq)
-pctAG_sel
-
-## Beech basal area  
-baa1 <- dat[, c(1:3, 6:8, 15:17,19:21)]
-baa1  <- baa1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffsize, values_from=baa, values_fn=unique) %>% as.data.frame()
-names(baa1)[11:13] <- c("baa_15", "baa_30", "baa_60") 
-
-baa15 <- glmer(binary.MO ~ baa_15 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=baa1)
-baa15sq <- glmer(binary.MO ~ baa_15 + I(baa_15^2) + (1|WMUA_code/WMU) + (1|year),family=binomial(link="logit"),  data=baa1)
-baa30 <- glmer(binary.MO ~ baa_30 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=baa1)
-baa30sq <- glmer(binary.MO ~ baa_30 + I(baa_30^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=baa1)
-baa60 <- glmer(binary.MO ~ baa_60 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=baa1)
-baa60sq <- glmer(binary.MO ~ baa_60 + I(baa_60^2) + (1|WMUA_code/WMU) + (1|year),family=binomial(link="logit"),  data=baa1)
-
-baa15lBMI <- glmer(binary.MO ~ baa_15*laggedBMI + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=baa1)
-baa30lBMI <- glmer(binary.MO ~ baa_30*laggedBMI + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=baa1)
-baa60lBMI <- glmer(binary.MO ~ baa_60*laggedBMI + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=baa1)
-
-baa15M <- glmer(binary.MO ~ baa_15*mast + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=baa1)
-baa30M <- glmer(binary.MO ~ baa_30*mast + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=baa1)
-baa60M <- glmer(binary.MO ~ baa_60*mast + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=baa1)
-
-baa_sel <- model.sel(baa15, baa30, baa60, baa15sq, baa30sq, baa60sq, 
-                     baa15lBMI, baa30lBMI, baa60lBMI, 
-                     baa15M, baa30M, baa60M)
-baa_sel
-
-## Wildland-urban interface  
+## Wildland-urban interface
 # Intermix
-intermix1 <- dat[, c(1:3, 6:8, 15:18, 25)]
-intermix1 <- unite(intermix1, "buffrad", 9:10, sep="_")
-intermix1  <- intermix1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffrad, values_from=intermix) %>% as.data.frame()
-names(intermix1)[9:17] <- c("mix_15_100", "mix_30_100", "mix_60_100",
+intermix1 <- brod %>% select(1:3,6:8,15:17,21) %>%
+  unite("buffrad", 8:9, sep="_") %>%
+  group_by(RegionalID) %>% pivot_wider(names_from=buffrad, values_from=intermix) %>% as.data.frame()
+names(intermix1)[8:16] <- c("mix_15_100", "mix_30_100", "mix_60_100",
                             "mix_15_250", "mix_30_250", "mix_60_250",
                             "mix_15_500", "mix_30_500", "mix_60_500")  
 
-# Interface
-interface1 <- dat[, c(1:3, 6:8, 15:18, 26)]
-interface1 <- unite(interface1, "buffrad", 9:10, sep="_")
-interface1  <- interface1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffrad, values_from=interface) %>% as.data.frame()
-names(interface1)[9:17] <- c("face_15_100", "face_30_100", "face_60_100",
-                             "face_15_250", "face_30_250", "face_60_250",
-                             "face_15_500", "face_30_500", "face_60_500") 
-
-# WUI total
-wui1 <- dat[, c(1:3, 6:8, 15:18, 27)]
-wui1 <- unite(wui1, "buffrad", 9:10, sep="_")
-wui1  <- wui1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffrad, values_from=totalWUI) %>% as.data.frame()
-names(wui1)[9:17] <- c("wui_15_100", "wui_30k_100", "wui_60_100",
-                       "wui_15_250", "wui_30k_250", "wui_60_250",
-                       "wui_15_500", "wui_30k_500", "wui_60_500")
-
-# Join intermix WUI
-intermix1 <- intermix1[,c(1:3, 9:17)]
-wui1 <- left_join(wui1, intermix1, by=c("RegionalID", "pt_name", "pt_index"))
-
-# Join interface WUI
-interface1 <- interface1[, c(1:3, 9:17)]
-wui1 <- left_join(wui1, interface1, by=c("RegionalID", "pt_name", "pt_index"))
-
-# Intermix 
-mix_15100 <- glmer(binary.MO ~ mix_15_100 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-mix_15250 <- glmer(binary.MO ~ mix_15_250 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-mix_15500 <- glmer(binary.MO ~ mix_15_500 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-mix_15100sq <- glmer(binary.MO ~ mix_15_100 + I(mix_15_100^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-mix_15250sq <- glmer(binary.MO ~ mix_15_250 + I(mix_15_250^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-mix_15500sq <- glmer(binary.MO ~ mix_15_500 + I(mix_15_500^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-
-mix_30100 <- glmer(binary.MO  ~ mix_30_100 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-mix_30250 <- glmer(binary.MO  ~ mix_30_250 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-mix_30500 <- glmer(binary.MO  ~ mix_30_500 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-mix_30100sq <- glmer(binary.MO ~ mix_30_100 + I(mix_30_100^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-mix_30250sq <- glmer(binary.MO ~ mix_30_250 + I(mix_30_250^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-mix_30500sq <- glmer(binary.MO ~ mix_30_500 + I(mix_30_500^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-
-mix_60100 <- glmer(binary.MO ~ mix_60_100 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-mix_60250 <- glmer(binary.MO ~ mix_60_250 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-mix_60500 <- glmer(binary.MO ~ mix_60_500 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-mix_60100sq <- glmer(binary.MO ~ mix_60_100 + I(mix_60_100^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-mix_60250sq <- glmer(binary.MO ~ mix_60_250 + I(mix_60_250^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-mix_60500sq <- glmer(binary.MO ~ mix_60_500 + I(mix_60_500^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-
-# Interface
-face_15100 <- glmer(binary.MO ~ face_15_100 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-face_15250 <- glmer(binary.MO ~ face_15_250 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-face_15500 <- glmer(binary.MO ~ face_15_500 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-face_15100sq <- glmer(binary.MO ~ face_15_100 + I(face_15_100^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-face_15250sq <- glmer(binary.MO ~ face_15_250 + I(face_15_250^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-face_15500sq <- glmer(binary.MO ~ face_15_500 + I(face_15_500^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-
-face_30100 <- glmer(binary.MO  ~ face_30_100 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-face_30250 <- glmer(binary.MO  ~ face_30_250 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-face_30500 <- glmer(binary.MO  ~ face_30_500 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-face_30100sq <- glmer(binary.MO ~ face_30_100 + I(face_30_100^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-face_30250sq <- glmer(binary.MO ~ face_30_250 + I(face_30_250^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-face_30500sq <- glmer(binary.MO ~ face_30_500 + I(face_30_500^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-
-face_60100 <- glmer(binary.MO ~ face_60_100 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-face_60250 <- glmer(binary.MO ~ face_60_250 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-face_60500 <- glmer(binary.MO ~ face_60_500 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-face_60100sq <- glmer(binary.MO ~ face_60_100 + I(face_60_100^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-face_60250sq <- glmer(binary.MO ~ face_60_250 + I(face_60_250^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-face_60500sq <- glmer(binary.MO ~ face_60_500 + I(face_60_500^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-
-# WUI
-wui_15100 <- glmer(binary.MO ~ wui_15_100 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-wui_15250 <- glmer(binary.MO ~ wui_15_250 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-wui_15500 <- glmer(binary.MO ~ wui_15_500 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-wui_15100sq <- glmer(binary.MO ~ wui_15_100 + I(wui_15_100^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-wui_15250sq <- glmer(binary.MO ~ wui_15_250 + I(wui_15_250^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-wui_15500sq <- glmer(binary.MO ~ wui_15_500 + I(wui_15_500^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-
-wui_30100 <- glmer(binary.MO ~ wui_30k_100 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-wui_30250 <- glmer(binary.MO ~ wui_30k_250 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-wui_30500 <- glmer(binary.MO ~ wui_30k_500 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-wui_30100sq <- glmer(binary.MO ~ wui_30k_100 + I(wui_30k_100^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-wui_30250sq <- glmer(binary.MO ~ wui_30k_250 + I(wui_30k_250^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-wui_30500sq <- glmer(binary.MO ~ wui_30k_500 + I(wui_30k_500^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-
-wui_60100 <- glmer(binary.MO ~ wui_60_100 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-wui_60250 <- glmer(binary.MO ~ wui_60_250 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-wui_60500 <- glmer(binary.MO ~ wui_60_500 + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-wui_60100sq <- glmer(binary.MO ~ wui_60_100 + I(wui_60_100^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-wui_60250sq <- glmer(binary.MO ~ wui_60_250 + I(wui_60_250^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-wui_60500sq <- glmer(binary.MO ~ wui_60_500 + I(wui_60_500^2) + (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=wui1)
-
-wui_sel <- model.sel(wui_15100, wui_30100, wui_60100, wui_15100sq, wui_30100sq, wui_60100sq, 
-                     wui_15250, wui_30250, wui_60250, wui_15250sq, wui_30250sq, wui_60250sq, 
-                     wui_15500, wui_30500, wui_60500, wui_15500sq, wui_30500sq, wui_60500sq,
-                     mix_15100, mix_30100, mix_60100, mix_15100sq, mix_30100sq, mix_60100sq,
-                     mix_15250, mix_30250, mix_60250, mix_15250sq, mix_30250sq, mix_60250sq,
-                     mix_15500, mix_30500, mix_60500, mix_15500sq, mix_30500sq, mix_60500sq,
-                     face_15100, face_30100, face_60100, face_15100sq, face_30100sq, face_60100sq,
-                     face_15250, face_30250, face_60250, face_15250sq, face_30250sq, face_60250sq,
-                     face_15500, face_30500, face_60500, face_15500sq, face_30500sq, face_60500sq)
-wui_sel
-
-#### Set up data to run for each combination of covariates ####
-dat1 <- dat[,c(1:16)]
-dat1 <- distinct(dat1)
+## Set up data to run for each combination of covariates ##
+brod1 <- brod %>% select(1:15) %>% distinct()
 
 # Join percent agriculture
-pctAG1 <- pctAG1[,c(1:3, 11)]
-dat1 <- left_join(dat1, pctAG1, by=c("RegionalID", "pt_name", "pt_index"))
+pctAG_brod <- pctAG_brod[,c(1:3, 9)]
+brod1 <- left_join(brod1, pctAG_brod, by=c("RegionalID", "pt_name", "pt_index"))
 
 # Join beech basal area
-baa1 <- baa1[,c(1:3, 10, 13)]
-dat1 <- left_join(dat1, baa1, by=c("RegionalID", "pt_name", "pt_index"))
+baa1 <- baa1[,c(1:3, 12)]
+brod1 <- left_join(brod1, baa1, by=c("RegionalID", "pt_name", "pt_index"))
 
-# Join total WUI
-wui1 <- wui1[,c(1:3, 20)]
-dat1 <- left_join(dat1, wui1, by=c("RegionalID", "pt_name", "pt_index"))
+# Join WUI
+intermix1 <- intermix1[,c(1:3, 9)]
+brod1 <- left_join(brod1, intermix1, by=c("RegionalID", "pt_name", "pt_index"))
 
-#### Run models ####
+## Run models ##
 
 ## Check correlation matrix
-cor(dat1[,c(17,19:20)])
-
-## Set up global model
-g1 <- glmer(binary.MO ~ Sex*catAge + laggedBMI + 
-                        pasture_60 + I(pasture_60^2) +
-                        mix_60_100 + I(mix_60_100^2) +
-                        baa_60 + I(baa_60^2) + baa_60:laggedBMI +
-                        (1|WMUA_code/WMU) + (1|year), family=binomial(link="logit"), data=dat1, na.action="na.fail")
-
-# Export data and model into the cluster worker nodes
-clusterExport(cl, c("dat1","g1"))
-
-## Build model sets
-g1_dredge <- MuMIn:::.dredge.par(g1, cluster=cl, trace=2,  subset=dc(mix_60_100, I(mix_60_100^2)) &&
-                                                    dc(pasture_60, I(pasture_60^2)) &&
-                                                    dc(baa_60, I(baa_60^2)))
-
-
-# Save dredge tables
-save(file="output/dredge_tables_binaryMO.Rdata", list="g1_dredge")
-
-# Save as csv file
-dh <- as.data.frame(g1_dredge)
-write_csv(dh, "output/models_binaryMO.csv")
-
-# Read tables back in
-dh <- read_csv("output/models_binaryMO.csv")
-dh <- as.data.frame(dh)
-
-#### Running final models ####
+cor(brod1[,16:18])
 
 ## Loop over each set of random points
-
-m_est <- data.frame()
-m_stderr <- data.frame()
-pct2.5 <- data.frame()
-pct97.5 <- data.frame()
+m_est <- m_stderr <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
 
 # Loop over each point set
 for (i in 1:10) {
   
   # Subset to one point set at a time
-  pt <- dat1[dat1$pt_index==i,]
+  pt <- brod1[brod1$pt_index==i,]
   
   # Run model with deltaAICc < 2
-  m1_pt <- glm(binary.MO ~ Sex + catAge + baa_60 + I(baa_60^2) +
-                             laggedBMI + baa_60:laggedBMI + 
-                             pasture_60 + I(pasture_60^2) +
-                             mix_60_100 + I(mix_60_100^2), family=binomial(link="logit"), data=pt, na.action="na.fail")
+  m1_pt <- glmer(bin.exp ~ Sex*catAge + laggedBMI_30 + mix_30_100 + pasture_30 + (1|WMU) + (1|year), 
+                 family=binomial(link="logit"), data=pt)
   
   m1s <- summary(m1_pt)
+  m1sdf <- m1s$coefficients
   
   # save averaged confidence intervals
-  pct2.5 <- rbind(pct2.5, t(confint(m1_pt))[1,])
-  pct97.5 <- rbind(pct97.5, t(confint(m1_pt))[2,])
+  ci <- confint.merMod(m1_pt, parm=c("alpha", "beta_"), method="boot")
+  pct2.5 <- rbind(pct2.5, t(ci)[1,2:10])
+  pct97.5 <- rbind(pct97.5, t(ci)[2,2:10])
+  m_ranef <- rbind(m_ranef, unlist(VarCorr(m1_pt)))
   
   # Save point set estimates
   m_est <- rbind(m_est, coef(m1s)[,1])
@@ -300,10 +115,11 @@ for (i in 1:10) {
   
   # Rename (only need to do once)
   if (i==1) {
-    names(m_est) <- c(names(coef(m1_pt)))
-    names(m_stderr) <- c(names(coef(m1_pt)))
-    names(pct2.5) <- c(names(coef(m1_pt)))
-    names(pct97.5) <- c(names(coef(m1_pt)))
+    names(m_est) <- row.names(m1sdf)
+    names(m_stderr) <- row.names(m1sdf)
+    names(pct2.5) <- row.names(m1sdf)
+    names(pct97.5) <- row.names(m1sdf)
+    names(m_ranef) <- c("RE_WMU", "RE_year")
   }
   
 }
@@ -313,14 +129,240 @@ coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)], na.rm=TRUE)
 stderr_avg <- colMeans(m_stderr[sapply(m_stderr, is.numeric)], na.rm=TRUE)
 pct2.5_avg <- colMeans(pct2.5[sapply(pct2.5, is.numeric)], na.rm=TRUE)
 pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)], na.rm=TRUE)
+ranef_avg <- as.data.frame(colMeans(m_ranef[sapply(m_ranef, is.numeric)]))
+
+# One-sample t-test to determine "significance"
+pvalue <- c()
+for (i in 1:ncol(m_est)) {
+  
+  tresult <- t.test(m_est[,i], mu=0, alternative="two.sided")
+  pvalue <- c(pvalue, tresult$p.value)
+}
+pvalue <- as.data.frame(pvalue)
+pvalue <- cbind(names(coef_avg), pvalue)
+pvalue <- pivot_wider(pvalue, names_from="names(coef_avg)", values_from="pvalue") %>% as.data.frame()
 
 # Combine and clean up data frame
-coef_summary <- bind_rows(coef_avg, stderr_avg, pct2.5_avg, pct97.5_avg)
+coef_summary <- bind_rows(coef_avg, stderr_avg, pct2.5_avg, pct97.5_avg, pvalue)
+names(coef_summary) <- row.names(m1sdf)
 coef_summary <- as.data.frame(coef_summary)
-coefs <- c("param_est", "std_error", "2.5CI", "97.5CI")
+coefs <- c("param_est", "std_error", "2.5CI", "97.5CI", "P-value")
 coef_summary <- data.frame(coef=coefs, coef_summary)
 
 # Write to file
-write_csv(coef_summary, "results/ncompT_coef-summary.csv")
+write_csv(coef_summary, "results/binaryMObrodifacoum_coef-summary.csv")
+
+#### Bromadiolone ####
+## Percent AG
+pctAG_brom <- brom %>% select(1:3,6:8,15,16,18:20) %>% 
+  distinct() %>% 
+  group_by(RegionalID) %>% 
+  pivot_wider(names_from=buffsize, values_from=c(pasture, crops, totalag)) %>% as.data.frame()
+
+## Beech basal area
+baa1 <- brom[, c(1:3,6:8,15,16,24,25)]
+baa1  <- baa1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffsize, values_from=c(BMI, laggedBMI), values_fn=unique) %>% as.data.frame()
+
+## Wildland-urban interface
+# Intermix
+intermix1 <- brom %>% select(1:3,6:8,15:17,21) %>%
+  unite("buffrad", 8:9, sep="_") %>%
+  group_by(RegionalID) %>% pivot_wider(names_from=buffrad, values_from=intermix) %>% as.data.frame()
+names(intermix1)[8:16] <- c("mix_15_100", "mix_30_100", "mix_60_100",
+                            "mix_15_250", "mix_30_250", "mix_60_250",
+                            "mix_15_500", "mix_30_500", "mix_60_500")  
+
+## Set up data to run for each combination of covariates ##
+brom1 <- brom %>% select(1:15) %>% distinct()
+
+# Join percent agriculture
+pctAG_brom <- pctAG_brom[,c(1:3, 9)]
+brom1 <- left_join(brom1, pctAG_brom, by=c("RegionalID", "pt_name", "pt_index"))
+
+# Join beech basal area
+baa1 <- baa1[,c(1:3, 12)]
+brom1 <- left_join(brom1, baa1, by=c("RegionalID", "pt_name", "pt_index"))
+
+# Join WUI
+intermix1 <- intermix1[,c(1:3, 9)]
+brom1 <- left_join(brom1, intermix1, by=c("RegionalID", "pt_name", "pt_index"))
+
+## Run models ##
+
+## Check correlation matrix
+cor(brom1[,16:18])
+
+## Loop over each set of random points
+m_est <- m_stderr <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
+
+# Loop over each point set
+for (i in 1:10) {
+  
+  # Subset to one point set at a time
+  pt <- brom1[brom1$pt_index==i,]
+  
+  # Run model with deltaAICc < 2
+  m1_pt <- glmer(bin.exp ~ Sex*catAge + pasture_30 + mix_30_100 + laggedBMI_30 + 
+                   (1|WMU) + (1|year), family=binomial(link="logit"),data=pt)
+  
+  m1s <- summary(m1_pt)
+  m1sdf <- m1s$coefficients
+  
+  # save averaged confidence intervals
+  ci <- confint.merMod(m1_pt, method="Wald")
+  pct2.5 <- rbind(pct2.5, t(ci)[1,1:10])
+  pct97.5 <- rbind(pct97.5, t(ci)[2,1:10])
+  m_ranef <- rbind(m_ranef, unlist(VarCorr(m1_pt)))
+  
+  # Save point set estimates
+  m_est <- rbind(m_est, coef(m1s)[,1])
+  m_stderr <- rbind(m_stderr, coef(m1s)[,2])
+  
+  # Rename (only need to do once)
+  if (i==1) {
+    names(m_est) <- row.names(m1sdf)
+    names(m_stderr) <- row.names(m1sdf)
+    names(pct2.5) <- row.names(m1sdf)
+    names(pct97.5) <- row.names(m1sdf)
+    names(m_ranef) <- c("RE_WMU", "RE_year")
+  }
+  
+}
+
+# Calculate averages for each coefficient
+coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)], na.rm=TRUE)
+stderr_avg <- colMeans(m_stderr[sapply(m_stderr, is.numeric)], na.rm=TRUE)
+pct2.5_avg <- colMeans(pct2.5[sapply(pct2.5, is.numeric)], na.rm=TRUE)
+pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)], na.rm=TRUE)
+ranef_avg <- as.data.frame(colMeans(m_ranef[sapply(m_ranef, is.numeric)]))
+
+# One-sample t-test to determine "significance"
+pvalue <- c()
+for (i in 1:ncol(m_est)) {
+  
+  tresult <- t.test(m_est[,i], mu=0, alternative="two.sided")
+  pvalue <- c(pvalue, tresult$p.value)
+}
+pvalue <- as.data.frame(pvalue)
+pvalue <- cbind(names(coef_avg), pvalue)
+pvalue <- pivot_wider(pvalue, names_from="names(coef_avg)", values_from="pvalue") %>% as.data.frame()
+
+# Combine and clean up data frame
+coef_summary <- bind_rows(coef_avg, stderr_avg, pct2.5_avg, pct97.5_avg, pvalue)
+coef_summary <- as.data.frame(coef_summary)
+coefs <- c("param_est", "std_error", "2.5CI", "97.5CI", "P-value")
+coef_summary <- data.frame(coef=coefs, coef_summary)
+
+# Write to file
+write_csv(coef_summary, "results/binaryMObromadiolone_coef-summary.csv")
+
+
+#### Diphacinone ####
+## Percent AG
+pctAG_diph <- diph %>% select(1:3,6:8,15,16,18:20) %>% 
+  distinct() %>% 
+  group_by(RegionalID) %>% 
+  pivot_wider(names_from=buffsize, values_from=c(pasture, crops, totalag)) %>% as.data.frame()
+
+## Beech basal area
+baa1 <- diph[, c(1:3,6:8,15,16,24,25)]
+baa1  <- baa1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffsize, values_from=c(BMI, laggedBMI), values_fn=unique) %>% as.data.frame()
+
+## Wildland-urban interface
+# Intermix
+intermix1 <- diph %>% select(1:3,6:8,15:17,21) %>%
+  unite("buffrad", 8:9, sep="_") %>%
+  group_by(RegionalID) %>% pivot_wider(names_from=buffrad, values_from=intermix) %>% as.data.frame()
+names(intermix1)[8:16] <- c("mix_15_100", "mix_30_100", "mix_60_100",
+                            "mix_15_250", "mix_30_250", "mix_60_250",
+                            "mix_15_500", "mix_30_500", "mix_60_500")  
+
+## Set up data to run for each combination of covariates ##
+diph1 <- diph %>% select(1:15) %>% distinct()
+
+# Join percent agriculture
+pctAG_diph <- pctAG_diph[,c(1:3, 9)]
+diph1 <- left_join(diph1, pctAG_diph, by=c("RegionalID", "pt_name", "pt_index"))
+
+# Join beech basal area
+baa1 <- baa1[,c(1:3, 12)]
+diph1 <- left_join(diph1, baa1, by=c("RegionalID", "pt_name", "pt_index"))
+
+# Join WUI
+intermix1 <- intermix1[,c(1:3, 9)]
+diph1 <- left_join(diph1, intermix1, by=c("RegionalID", "pt_name", "pt_index"))
+
+## Check correlation matrix
+cor(diph1[,16:18])
+
+## Loop over each set of random points
+m_est <- m_stderr <- pct2.5 <- pct97.5 <- m_rsq <- data.frame()
+
+# Loop over each point set
+for (i in 1:10) {
+  
+  # Subset to one point set at a time
+  pt <- diph1[diph1$pt_index==i,]
+  
+  # Run model with deltaAICc < 2
+  m1_pt <- glmer(MObinary ~ Sex*catAge + pasture_30 + mix_30_100 + laggedBMI_30 + (1|WMUA_code),
+                 family=binomial(link="logit"),data=pt)
+  # null_mod <- glm(MObinary ~ 1 + (1|WMUA_code), family=binomial(link="logit"),data=pt)
+  # rsq <- 1-logLik(m1_pt)/logLik(null_mod)
+  
+  m1s <- summary(m1_pt)
+  m1sdf <- m1s$coefficients
+  
+  # save averaged confidence intervals
+  ci <- confint.merMod(m1_pt, method="Wald")
+  pct2.5 <- rbind(pct2.5, t(ci)[1,2:10])
+  pct97.5 <- rbind(pct97.5, t(ci)[2,2:10])
+
+  # Save point set estimates
+  m_est <- rbind(m_est, coef(m1s)[,1])
+  m_stderr <- rbind(m_stderr, coef(m1s)[,2])
+  # m_rsq <- rbind(m_rsq, unlist(rsq))
+  
+  # Rename (only need to do once)
+  if (i==1) {
+    names(m_est) <- row.names(m1sdf)
+    names(m_stderr) <- row.names(m1sdf)
+    names(pct2.5) <- row.names(m1sdf)
+    names(pct97.5) <- row.names(m1sdf)
+    # names(m_rsq) <- "pseudoRsq"
+  }
+  
+}
+
+# Calculate averages for each coefficient
+coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)], na.rm=TRUE)
+stderr_avg <- colMeans(m_stderr[sapply(m_stderr, is.numeric)], na.rm=TRUE)
+pct2.5_avg <- colMeans(pct2.5[sapply(pct2.5, is.numeric)], na.rm=TRUE)
+pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)], na.rm=TRUE)
+# rsq_avg <- mean(m_rsq$pseudoRsq)
+
+# One-sample t-test to determine "significance"
+pvalue <- c()
+for (i in 1:ncol(m_est)) {
+  
+  tresult <- t.test(m_est[,i], mu=0, alternative="two.sided")
+  pvalue <- c(pvalue, tresult$p.value)
+}
+pvalue <- as.data.frame(pvalue)
+pvalue <- cbind(names(coef_avg), pvalue)
+pvalue <- pivot_wider(pvalue, names_from="names(coef_avg)", values_from="pvalue") %>% as.data.frame()
+
+# Combine and clean up data frame
+coef_summary <- bind_rows(coef_avg, stderr_avg, pct2.5_avg, pct97.5_avg, pvalue)
+coef_summary <- as.data.frame(coef_summary)
+coefs <- c("param_est", "std_error", "2.5CI", "97.5CI", "P-value")
+coef_summary <- data.frame(coef=coefs, coef_summary)
+
+# Write to file
+write_csv(coef_summary, "results/binaryMOdiphacinone_coef-summary.csv")
+
+
+
+
 
 

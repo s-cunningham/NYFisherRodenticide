@@ -2,6 +2,7 @@ library(tidyverse)
 library(MuMIn)
 library(ordinal)
 
+options(scipen=999, digits=3)
 set.seed(123)
 
 #### Read in data ####
@@ -111,11 +112,12 @@ for (i in 1:10) {
   # Run model with deltaAICc < 2
   m1_pt <- clmm(catNcompT ~ Sex + pasture_30 + mix_30_100 + laggedBMI_30 + (1|WMU) + (1|year), data=pt, na.action="na.fail")
   
-  m1s <- summary(m1_pt)
+  m1s <- summary.merMod(m1_pt)
   
   # save averaged confidence intervals
-  pct2.5 <- rbind(pct2.5, t(confint(m1_pt))[1,])
-  pct97.5 <- rbind(pct97.5, t(confint(m1_pt))[2,])
+  ci <- confint.merMod(m1_pt, method="boot")
+  pct2.5 <- rbind(pct2.5, t(ci)[1,2:10])
+  pct97.5 <- rbind(pct97.5, t(ci)[2,2:10])
   
   # Save point set estimates
   m_est <- rbind(m_est, coef(m1s)[,1])

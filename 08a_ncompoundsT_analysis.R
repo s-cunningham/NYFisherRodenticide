@@ -6,6 +6,7 @@ library(MuMIn)
 library(ordinal)
 library(parallel)
 
+options(scipen=999, digits=3)
 set.seed(123)
 
 #### Set up parallel processing ####
@@ -191,12 +192,7 @@ clusterExport(cl, c("dat1","g1"))
 #### Running final models ####
 
 ## Loop over each set of random points
-
-m_est <- data.frame()
-m_stderr <- data.frame()
-pct2.5 <- data.frame()
-pct97.5 <- data.frame()
-m_ranef <- data.frame()
+m_est <- m_stderr <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
 
 # Loop over each point set
 for (i in 1:10) {
