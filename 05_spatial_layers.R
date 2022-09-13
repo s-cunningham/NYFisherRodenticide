@@ -39,6 +39,7 @@ keycount <- loc %>% group_by(key) %>% count() %>% as.data.frame()
 samples_per_polygon <- 10*keycount$n
 samples <- st_sample(twmu, samples_per_polygon)
 samples <- st_as_sf(samples)
+st_write(samples, "data/spatial/random_samples.shp", layer_options="SHPT=POINT")
 
 # Add names to points to associate with a liver ID
 N.order <- order(loc$key)
@@ -47,6 +48,11 @@ ids <- data.frame(id=rep(loc$RegionalID, each=10), buffno=rep(1:10, length(uniqu
 ids <- unite(ids, "id_index", 1:2, sep="_", remove=TRUE)
 
 samples$name <- ids$id_index
+
+pts <- st_coordinates(samples)
+pts <- cbind(ids$id_index, pts) |> as.data.frame()
+names(pts) <- c("pt_name", "x", "y")
+write_csv(pts, "output/random_point_locs.csv")
 
 # Create buffer for 15km2 area
 buff4p5 <- st_buffer(samples, 1196.83)
@@ -58,8 +64,8 @@ buff60 <- st_buffer(samples, 4370.194)
 ggplot() + 
   geom_sf(data=twmu) +
   geom_sf(data=samples, shape=20, color="blue", size=3) +
-  geom_sf(data=buff4p5, fill=NA, color="blue") +
-  geom_sf(data=buff60, fill=NA, color="green") +
+  # geom_sf(data=buff4p5, fill=NA, color="blue") +
+  # geom_sf(data=buff60, fill=NA, color="green") +
   coord_sf(xlim=c(1583308.486, 1625741.123), ylim=c(861590.893, 888677.666)) +
   theme_bw()
 
