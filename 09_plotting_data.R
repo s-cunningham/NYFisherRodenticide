@@ -5,8 +5,10 @@ library(tidyverse)
 library(sf)
 library(stars)
 library(viridis)
+library(ggspatial)
+library(patchwork)
 
-theme_set(theme_bw())
+theme_set(theme_classic())
 
 #### Covariate plots (boxplots, xy plots) ####
 # read data
@@ -186,21 +188,33 @@ beech <- read_stars("data/rasters/baa250_masked.tif")
 
 # New york state
 aea <- "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-96 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs"
+utm <- "+proj=utm +zone=18 +datum=WGS84"
 nys <- st_read("data/spatial", "NYS_outline_albers")
-nys <- st_transform(nys, aea)
+nys <- st_transform(nys, utm)
 
 # Fisher harvest area
 fha <- st_read("data/spatial", "FisherHarvestArea_dissolved")
-fha <- st_transform(fha, aea)
+fha <- st_transform(fha, utm)
 
 # Water
 water <- st_read("data/spatial", "water_over_1sq_km")
-water <- st_transform(water, aea)
+water <- st_transform(water, utm)
+
+# make data sf object
+datsf <- st_as_sf(dat, coords=c(4,5), crs=aea)
+datsf <- st_transform(datsf, utm)
+dat2 <- st_coordinates(datsf)
+dat <- bind_cols(dat, dat2)
 
 # Read in polygon layer that has union of towns and WMUs
 twmu <- st_read("data/spatial", "WMUtown_union_Harv")
-twmu <- st_transform(twmu, aea)
+twmu <- st_transform(twmu, utm)
 twmu <- unite(twmu, "key", 2:3, sep="-", remove=FALSE)
+
+## Read data frame with town/wmu location
+loc <- read.csv("data/analysis-ready/ar_locations_only.csv")
+loc <- loc[,-1]
+loc <- loc[loc$RegionalID!="2018-9211",] # Seems wrong
 
 # Remove town/WMU combos that don't have a fisher liver from them
 twmu <- twmu[twmu$key %in% loc$key,]
@@ -210,10 +224,18 @@ nloc <- loc %>% group_by(key) %>% count()
 twmu <- left_join(twmu, nloc, by="key")
 
 # Plots
-ggplot() + geom_sf(data=nys, fill="gray40", color="gray20") + 
-  geom_sf(data=fha, fill="gray85", color="gray20") + 
-  geom_sf(data=water, color="blue", fill="lightblue") +
-  geom_point(data=dat, aes(x=rand_x, y=rand_y, color=factor(year)), shape=1, size=0.8) +
+ggplot() + geom_sf(data=nys, fill="gray80", color="gray20") + 
+  geom_sf(data=fha, fill="white", color="gray20") + 
+  geom_point(data=dat, aes(x=X, y=Y, color=factor(year)), shape=4, size=1) +
   geom_sf(data=twmu, fill=NA) + 
-  scale_color_viridis(discrete=TRUE) +
-  theme(legend.position=c(0,1), legend.justification=c(0,1))
+  coord_sf(xlim=c(94000, 649000), ylim=c(4590000, 4990000)) + 
+  scale_color_manual(values=c("#1b9e77", "#d95f02", "#7570b3"), name="Year") +
+  guides(colour=guide_legend(override.aes=list(size=3, shape=15))) +
+  annotation_scale(location="bl", text_cex=1, style="bar") +
+  theme(legend.position=c(0,1), legend.justification=c(0,1),
+        legend.background=element_rect(fill=NA),
+        axis.title=element_blank(),
+        legend.title=element_text(size=12, face="bold"), 
+        legend.text=element_text(size=12),
+        axis.text=element_blank(),
+        panel.border=element_rect(color="black", fill=NA, size=0.5))
