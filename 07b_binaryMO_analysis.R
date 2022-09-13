@@ -1,7 +1,6 @@
 library(tidyverse)
 library(lme4)
 library(MuMIn)
-library(broom.mixed)
 
 options(scipen=999, digits=3)
 set.seed(123)
@@ -40,7 +39,6 @@ dat <- dat[,c(1:10,27,11,24,26,28,14:23)]
 dat[,c(10,18:25)] <- scale(dat[,c(10,18:25)])
 
 #### Analysis ####
-## Use pooled data to determine scale
 
 # Subset by compound
 brod <- dat[dat$compound=="Brodifacoum",]
@@ -97,18 +95,17 @@ for (i in 1:10) {
   pt <- brod1[brod1$pt_index==i,]
   
   # Run model with deltaAICc < 2
-  m1_pt <- glmer(bin.exp ~ Sex*catAge + laggedBMI_30 + mix_30_100 + pasture_30 + (1|WMU) + (1|year), 
+  m1_pt <- glm(MObinary ~ Sex*catAge + laggedBMI_30 + mix_30_100 + pasture_30, 
                  family=binomial(link="logit"), data=pt)
-  
   m1s <- summary(m1_pt)
   m1sdf <- m1s$coefficients
   
   # save averaged confidence intervals
-  ci <- confint.merMod(m1_pt, parm=c("alpha", "beta_"), method="boot")
-  pct2.5 <- rbind(pct2.5, t(ci)[1,2:10])
-  pct97.5 <- rbind(pct97.5, t(ci)[2,2:10])
-  m_ranef <- rbind(m_ranef, unlist(VarCorr(m1_pt)))
-  
+  ci <- confint(m1_pt) 
+  pct2.5 <- rbind(pct2.5, t(ci)[1,1:nrow(ci)])
+  pct97.5 <- rbind(pct97.5, t(ci)[2,1:nrow(ci)])
+  rsquared <- r.squaredLR(m1_pt)  # MuMIn
+
   # Save point set estimates
   m_est <- rbind(m_est, coef(m1s)[,1])
   m_stderr <- rbind(m_stderr, coef(m1s)[,2])
@@ -119,7 +116,6 @@ for (i in 1:10) {
     names(m_stderr) <- row.names(m1sdf)
     names(pct2.5) <- row.names(m1sdf)
     names(pct97.5) <- row.names(m1sdf)
-    names(m_ranef) <- c("RE_WMU", "RE_year")
   }
   
 }
@@ -129,7 +125,6 @@ coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)], na.rm=TRUE)
 stderr_avg <- colMeans(m_stderr[sapply(m_stderr, is.numeric)], na.rm=TRUE)
 pct2.5_avg <- colMeans(pct2.5[sapply(pct2.5, is.numeric)], na.rm=TRUE)
 pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)], na.rm=TRUE)
-ranef_avg <- as.data.frame(colMeans(m_ranef[sapply(m_ranef, is.numeric)]))
 
 # One-sample t-test to determine "significance"
 pvalue <- c()
@@ -209,9 +204,10 @@ for (i in 1:10) {
   m1sdf <- m1s$coefficients
   
   # save averaged confidence intervals
-  ci <- confint.merMod(m1_pt, method="Wald")
-  pct2.5 <- rbind(pct2.5, t(ci)[1,1:10])
-  pct97.5 <- rbind(pct97.5, t(ci)[2,1:10])
+  ci <- confint.merMod(m1_pt, method="Wald") 
+  ci <- ci[complete.cases(ci),]
+  pct2.5 <- rbind(pct2.5, t(ci)[1,1:nrow(ci)])
+  pct97.5 <- rbind(pct97.5, t(ci)[2,1:nrow(ci)])
   m_ranef <- rbind(m_ranef, unlist(VarCorr(m1_pt)))
   
   # Save point set estimates
@@ -314,9 +310,10 @@ for (i in 1:10) {
   m1sdf <- m1s$coefficients
   
   # save averaged confidence intervals
-  ci <- confint.merMod(m1_pt, method="Wald")
-  pct2.5 <- rbind(pct2.5, t(ci)[1,2:10])
-  pct97.5 <- rbind(pct97.5, t(ci)[2,2:10])
+  ci <- confint.merMod(m1_pt, method="Wald") 
+  ci <- ci[complete.cases(ci),]
+  pct2.5 <- rbind(pct2.5, t(ci)[1,1:nrow(ci)])
+  pct97.5 <- rbind(pct97.5, t(ci)[2,1:nrow(ci)])
 
   # Save point set estimates
   m_est <- rbind(m_est, coef(m1s)[,1])
