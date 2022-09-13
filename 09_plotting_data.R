@@ -14,6 +14,7 @@ theme_set(theme_classic())
 # read data
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv")
 dat <- as.data.frame(dat)
+dat <- dat[dat$RegionalID!="2018-9211",] 
 
 # Categorical number of compounds (collapsing higher numbers)
 dat$catNcompMO <- ifelse(dat$n.compounds.MO>=2, "2+", as.character(dat$n.compounds.MO))
@@ -23,6 +24,8 @@ dat$catAge[dat$Age>=3.5] <- "adult"
 dat$catAge[dat$Age==2.5] <- "subadult"
 dat$catAge[dat$Ag<2.5] <- "juvenile"
 
+
+#### Exploratory ####
 # Break down by age and sex
 dat1 <- dat[dat$pt_index==1 & dat$buffsize==60 & dat$radius==100,]
 dat1 %>% group_by(Age, Sex) %>% count()
@@ -201,36 +204,24 @@ water <- st_read("data/spatial", "water_over_1sq_km")
 water <- st_transform(water, utm)
 
 # make data sf object
+dat <- dat[dat$buffsize==15,]
 datsf <- st_as_sf(dat, coords=c(4,5), crs=aea)
 datsf <- st_transform(datsf, utm)
 dat2 <- st_coordinates(datsf)
 dat <- bind_cols(dat, dat2)
 
 # Read in polygon layer that has union of towns and WMUs
-twmu <- st_read("data/spatial", "WMUtown_union_Harv")
+twmu <- st_read("data/spatial", "ARtowns2")
 twmu <- st_transform(twmu, utm)
-twmu <- unite(twmu, "key", 2:3, sep="-", remove=FALSE)
-
-## Read data frame with town/wmu location
-loc <- read.csv("data/analysis-ready/ar_locations_only.csv")
-loc <- loc[,-1]
-loc <- loc[loc$RegionalID!="2018-9211",] # Seems wrong
-
-# Remove town/WMU combos that don't have a fisher liver from them
-twmu <- twmu[twmu$key %in% loc$key,]
-
-# Count how many individual samples from each town-WMU combo
-nloc <- loc %>% group_by(key) %>% count()
-twmu <- left_join(twmu, nloc, by="key")
 
 # Plots
 ggplot() + geom_sf(data=nys, fill="gray80", color="gray20") + 
   geom_sf(data=fha, fill="white", color="gray20") + 
-  geom_point(data=dat, aes(x=X, y=Y, color=factor(year)), shape=4, size=1) +
+  geom_point(data=dat, aes(x=X, y=Y, color=factor(year)), shape=16, size=0.8) +
   geom_sf(data=twmu, fill=NA) + 
-  coord_sf(xlim=c(94000, 649000), ylim=c(4590000, 4990000)) + 
+  coord_sf(xlim=c(100000, 649000), ylim=c(4595000, 4980000)) + 
   scale_color_manual(values=c("#1b9e77", "#d95f02", "#7570b3"), name="Year") +
-  guides(colour=guide_legend(override.aes=list(size=3, shape=15))) +
+  guides(colour=guide_legend(override.aes=list(size=3))) +
   annotation_scale(location="bl", text_cex=1, style="bar") +
   theme(legend.position=c(0,1), legend.justification=c(0,1),
         legend.background=element_rect(fill=NA),
@@ -238,4 +229,9 @@ ggplot() + geom_sf(data=nys, fill="gray80", color="gray20") +
         legend.title=element_text(size=12, face="bold"), 
         legend.text=element_text(size=12),
         axis.text=element_blank(),
+        axis.ticks=element_blank(),
         panel.border=element_rect(color="black", fill=NA, size=0.5))
+
+
+
+
