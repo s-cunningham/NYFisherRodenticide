@@ -4,22 +4,9 @@
 library(tidyverse)
 library(MuMIn)
 library(ordinal)
-library(parallel)
 
 options(scipen=999, digits=3)
 set.seed(123)
-
-#### Set up parallel processing ####
-
-# Determine cluster type (mine is a PSOCK)
-clusterType <- if(length(find.package("snow", quiet = TRUE))) "SOCK" else "PSOCK"
-
-# Detect number of cores and create cluster (leave a couple out to not overwhelm pc)
-nCores <- detectCores() - 3
-cl <- makeCluster(nCores, type=clusterType)
-
-clusterEvalQ(cl,library(ordinal))
-clusterEvalQ(cl,library(MuMIn))
 
 #### Read in data ####
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv")
@@ -185,9 +172,6 @@ cor(dat1[,14:16])
 ## Set up global models
 g1 <- clmm(catNcompT ~ Sex*catAge + pasture_30 + mix_30_100 + laggedBMI_30 +
                 (1|RegionalID), data=dat1, na.action="na.fail")
-
-# Export data and model into the cluster worker nodes
-clusterExport(cl, c("dat1","g1"))
 
 #### Running final models ####
 
