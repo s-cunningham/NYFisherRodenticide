@@ -38,53 +38,51 @@ dat[,c(10,18:25)] <- scale(dat[,c(10,18:25)])
 #### Analysis ####
 ## Use pooled data to determine scale
 
+## Pe AG
+pctAG <- dat[, c(1:3,6:8,15,16,18:20)]
+pctAG <- distinct(pctAG)
+pctAG <- pctAG %>% group_by(RegionalID) %>% 
+  pivot_wider(names_from=buffsize, values_from=c(pasture, crops, totalag)) %>% as.data.frame()
+
+## Beech basal area
+baa1 <- dat[, c(1:3,6:8,15,16,24,25)]
+baa1  <- baa1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffsize, values_from=c(BMI, laggedBMI), values_fn=unique) %>% as.data.frame()
+
+## Wildland-urban interface
+# Intermix
+intermix1 <- dat[, c(1:3,6:8,15:17,21)]
+intermix1 <- unite(intermix1, "buffrad", 8:9, sep="_") %>% group_by(RegionalID) %>% 
+  pivot_wider(names_from=buffrad, values_from=intermix, values_fn=unique) %>% as.data.frame()
+names(intermix1)[8:16] <- c("mix_15_100", "mix_30_100", "mix_60_100",
+                            "mix_15_250", "mix_30_250", "mix_60_250",
+                            "mix_15_500", "mix_30_500", "mix_60_500")  
+
+## Set up data to run for each combination of covariates ##
+dat1 <- dat[,c(1:15)]
+dat1 <- distinct(dat1)
+
+# Join percent agriculture
+pctAG <- pctAG[,c(1:3, 9)]
+dat1 <- left_join(dat1, pctAG, by=c("RegionalID", "pt_name", "pt_index"))
+
+# Join beech basal area
+baa1 <- baa1[,c(1:3, 12)]
+dat1 <- left_join(dat1, baa1, by=c("RegionalID", "pt_name", "pt_index"))
+
+# Join WUI
+intermix1 <- intermix1[,c(1:3, 9)]
+dat1 <- left_join(dat1, intermix1, by=c("RegionalID", "pt_name", "pt_index"))
+
+write_csv(dat1, "output/binary_model_data.csv")
+
 # Subset by compound
 brod <- dat[dat$compound=="Brodifacoum",]
 brom <- dat[dat$compound=="Bromadiolone",]
 diph <- dat[dat$compound=="Diphacinone",]
 
 #### Brodifacoum ####
-## Percent AG
-pctAG_brod <- brod[, c(1:3,6:8,15,16,18:20)]
-pctAG_brod <- distinct(pctAG_brod)
-pctAG_brod <- pctAG_brod %>% group_by(RegionalID) %>% 
-  pivot_wider(names_from=buffsize, values_from=c(pasture, crops, totalag)) %>% as.data.frame()
-
-## Beech basal area
-baa1 <- brod[, c(1:3,6:8,15,16,24,25)]
-baa1  <- baa1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffsize, values_from=c(BMI, laggedBMI), values_fn=unique) %>% as.data.frame()
-
-## Wildland-urban interface
-# Intermix
-intermix1 <- brod[, c(1:3,6:8,15:17,21)]
-intermix1 <- unite(intermix1, "buffrad", 8:9, sep="_")
-intermix1  <- intermix1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffrad, values_from=intermix) %>% as.data.frame()
-names(intermix1)[8:16] <- c("mix_15_100", "mix_30_100", "mix_60_100",
-                            "mix_15_250", "mix_30_250", "mix_60_250",
-                            "mix_15_500", "mix_30_500", "mix_60_500")  
-
-## Set up data to run for each combination of covariates ##
-brod1 <- brod[,c(1:15)]
-brod1 <- distinct(brod1)
-
-# Join percent agriculture
-pctAG_brod <- pctAG_brod[,c(1:3, 9)]
-brod1 <- left_join(brod1, pctAG_brod, by=c("RegionalID", "pt_name", "pt_index"))
-
-# Join beech basal area
-baa1 <- baa1[,c(1:3, 12)]
-brod1 <- left_join(brod1, baa1, by=c("RegionalID", "pt_name", "pt_index"))
-
-# Join WUI
-intermix1 <- intermix1[,c(1:3, 9)]
-brod1 <- left_join(brod1, intermix1, by=c("RegionalID", "pt_name", "pt_index"))
 
 ## Run models ##
-
-## Check correlation matrix
-cor(brod1[,16:18])
-
-## Running final models ##
 
 ## Loop over each set of random points
 m_est <- m_stderr <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
@@ -155,46 +153,6 @@ write_csv(coef_summary, "results/binaryTbrodifacoum_coef-summary.csv")
 write_csv(ranef_avg, "results/binaryTbrodifacoum_coef-random-effects.csv")
 
 #### Bromadiolone ####
-
-## Percent AG
-pctAG_brom <- brom[, c(1:3,6:8,15,16,18:20)]
-pctAG_brom <- distinct(pctAG_brom)
-pctAG_brom <- pctAG_brom %>% group_by(RegionalID) %>% 
-  pivot_wider(names_from=buffsize, values_from=c(pasture, crops, totalag)) %>% as.data.frame()
-
-## Beech basal area
-baa1 <- brom[, c(1:3,6:8,15,16,24,25)]
-baa1  <- baa1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffsize, values_from=c(BMI, laggedBMI), values_fn=unique) %>% as.data.frame()
-
-## Wildland-urban interface
-# Intermix
-intermix1 <- brom[, c(1:3,6:8,15:17,21)]
-intermix1 <- unite(intermix1, "buffrad", 8:9, sep="_")
-intermix1  <- intermix1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffrad, values_from=intermix) %>% as.data.frame()
-names(intermix1)[8:16] <- c("mix_15_100", "mix_30_100", "mix_60_100",
-                            "mix_15_250", "mix_30_250", "mix_60_250",
-                            "mix_15_500", "mix_30_500", "mix_60_500")  
-## Set up data to run for each combination of covariates ##
-brom1 <- brom[,c(1:15)]
-brom1 <- distinct(brom1)
-
-# Join percent agriculture
-pctAG_brom <- pctAG_brom[,c(1:3, 9)]
-brom1 <- left_join(brom1, pctAG_brom, by=c("RegionalID", "pt_name", "pt_index"))
-
-# Join beech basal area
-baa1 <- baa1[,c(1:3, 12)]
-brom1 <- left_join(brom1, baa1, by=c("RegionalID", "pt_name", "pt_index"))
-
-# Join WUI
-intermix1 <- intermix1[,c(1:3, 9)]
-brom1 <- left_join(brom1, intermix1, by=c("RegionalID", "pt_name", "pt_index"))
-
-## Run models ##
-
-## Check correlation matrix
-cor(brom1[,16:18])
-
 ## Running final models ##
 
 ## Loop over each set of random points
@@ -266,45 +224,6 @@ write_csv(coef_summary, "results/binaryTbromadiolone_coef-summary.csv")
 write_csv(ranef_avg, "results/binaryTbromadiolone_coef-random-effects.csv")
 
 #### Diphacinone ####
-
-## Percent AG
-pctAG_diph <- diph[, c(1:3,6:8,15,16,18:20)]
-pctAG_diph <- distinct(pctAG_diph)
-pctAG_diph <- pctAG_diph %>% group_by(RegionalID) %>% 
-  pivot_wider(names_from=buffsize, values_from=c(pasture, crops, totalag)) %>% as.data.frame()
-
-## Beech basal area
-baa1 <- diph[, c(1:3,6:8,15,16,24,25)]
-baa1  <- baa1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffsize, values_from=c(BMI, laggedBMI), values_fn=unique) %>% as.data.frame()
-
-## Wildland-urban interface
-# Intermix
-intermix1 <- diph[, c(1:3,6:8,15:17,21)]
-intermix1 <- unite(intermix1, "buffrad", 8:9, sep="_")
-intermix1  <- intermix1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffrad, values_from=intermix) %>% as.data.frame()
-names(intermix1)[8:16] <- c("mix_15_100", "mix_30_100", "mix_60_100",
-                            "mix_15_250", "mix_30_250", "mix_60_250",
-                            "mix_15_500", "mix_30_500", "mix_60_500")  
-## Set up data to run for each combination of covariates ##
-diph1 <- diph[,c(1:15)]
-diph1 <- distinct(diph1)
-
-# Join percent agriculture
-pctAG_diph <- pctAG_diph[,c(1:3, 9)]
-diph1 <- left_join(diph1, pctAG_diph, by=c("RegionalID", "pt_name", "pt_index"))
-
-# Join beech basal area
-baa1 <- baa1[,c(1:3, 12)]
-diph1 <- left_join(diph1, baa1, by=c("RegionalID", "pt_name", "pt_index"))
-
-# Join WUI
-intermix1 <- intermix1[,c(1:3, 9)]
-diph1 <- left_join(diph1, intermix1, by=c("RegionalID", "pt_name", "pt_index"))
-
-## Check correlation matrix
-cor(diph1[,16:18])
-
-## Running final models ##
 
 ## Loop over each set of random points
 m_est <- m_stderr <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()

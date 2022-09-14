@@ -165,6 +165,7 @@ dat1 <- left_join(dat1, baa1, by=c("RegionalID", "pt_name", "pt_index"))
 # Join total WUI
 wui1 <- wui1[,c(1:3, 24)]
 dat1 <- left_join(dat1, wui1, by=c("RegionalID", "pt_name", "pt_index"))
+write_csv(dat1, "output/model_data.csv")
 
 ## Check correlation matrix
 cor(dat1[,14:16])
