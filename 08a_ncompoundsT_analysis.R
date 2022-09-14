@@ -169,26 +169,6 @@ dat1 <- left_join(dat1, wui1, by=c("RegionalID", "pt_name", "pt_index"))
 ## Check correlation matrix
 cor(dat1[,14:16])
 
-## Test age & sex
-g1 <- clmm(catNcompT ~ Sex * catAge + pasture_30 + mix_30_100 + laggedBMI_30 +
-                (1|RegionalID), data=dat1, na.action="na.fail")
-g2 <- clmm(catNcompT ~ Sex + catAge + pasture_30 + mix_30_100 + laggedBMI_30 +
-             (1|RegionalID), data=dat1, na.action="na.fail")
-g3 <- clmm(catNcompT ~ Sex * Age + pasture_30 + mix_30_100 + laggedBMI_30 +
-             (1|RegionalID), data=dat1, na.action="na.fail")
-g4 <- clmm(catNcompT ~ Sex + Age + pasture_30 + mix_30_100 + laggedBMI_30 +
-             (1|RegionalID), data=dat1, na.action="na.fail")
-g5 <- clmm(catNcompT ~ Sex + pasture_30 + mix_30_100 + laggedBMI_30 +
-             (1|RegionalID), data=dat1, na.action="na.fail")
-g6 <- clmm(catNcompT ~ Age + pasture_30 + mix_30_100 + laggedBMI_30 +
-             (1|RegionalID), data=dat1, na.action="na.fail")
-g7 <- clmm(catNcompT ~ catAge + pasture_30 + mix_30_100 + laggedBMI_30 +
-             (1|RegionalID) + (1|year), data=dat1, na.action="na.fail")
-g8 <- clmm(catNcompT ~ pasture_30 + mix_30_100 + laggedBMI_30 +
-             (1|RegionalID), data=dat1, na.action="na.fail")
-
-agesex_sel <- model.sel(g1, g2, g3, g4, g5, g6, g7, g8)
-
 #### Running final models ####
 
 ## Loop over each set of random points
