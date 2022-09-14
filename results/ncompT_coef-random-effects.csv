@@ -1,3 +1,3 @@
-"colMeans(m_ranef[sapply(m_ranef, is.numeric)])"
-0.27171590593428246
-0.2436271412341661
+RE,variance
+RE_WMU,0.2150109471689268
+RE_year,0.2061215275913107

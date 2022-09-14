@@ -169,9 +169,25 @@ dat1 <- left_join(dat1, wui1, by=c("RegionalID", "pt_name", "pt_index"))
 ## Check correlation matrix
 cor(dat1[,14:16])
 
-## Set up global models
-g1 <- clmm(catNcompT ~ Sex*catAge + pasture_30 + mix_30_100 + laggedBMI_30 +
+## Test age & sex
+g1 <- clmm(catNcompT ~ Sex * catAge + pasture_30 + mix_30_100 + laggedBMI_30 +
                 (1|RegionalID), data=dat1, na.action="na.fail")
+g2 <- clmm(catNcompT ~ Sex + catAge + pasture_30 + mix_30_100 + laggedBMI_30 +
+             (1|RegionalID), data=dat1, na.action="na.fail")
+g3 <- clmm(catNcompT ~ Sex * Age + pasture_30 + mix_30_100 + laggedBMI_30 +
+             (1|RegionalID), data=dat1, na.action="na.fail")
+g4 <- clmm(catNcompT ~ Sex + Age + pasture_30 + mix_30_100 + laggedBMI_30 +
+             (1|RegionalID), data=dat1, na.action="na.fail")
+g5 <- clmm(catNcompT ~ Sex + pasture_30 + mix_30_100 + laggedBMI_30 +
+             (1|RegionalID), data=dat1, na.action="na.fail")
+g6 <- clmm(catNcompT ~ Age + pasture_30 + mix_30_100 + laggedBMI_30 +
+             (1|RegionalID), data=dat1, na.action="na.fail")
+g7 <- clmm(catNcompT ~ catAge + pasture_30 + mix_30_100 + laggedBMI_30 +
+             (1|RegionalID) + (1|year), data=dat1, na.action="na.fail")
+g8 <- clmm(catNcompT ~ pasture_30 + mix_30_100 + laggedBMI_30 +
+             (1|RegionalID), data=dat1, na.action="na.fail")
+
+agesex_sel <- model.sel(g1, g2, g3, g4, g5, g6, g7, g8)
 
 #### Running final models ####
 
@@ -185,7 +201,7 @@ for (i in 1:10) {
   pt <- dat1[dat1$pt_index==i,]
   
   # Run model with deltaAICc < 2
-  m1_pt <- clmm(catNcompT ~ Sex*catAge + pasture_30 + mix_30_100 + laggedBMI_30 + (1|WMU) + (1|year), data=pt, na.action="na.fail")
+  m1_pt <- clmm(catNcompT ~ Sex*Age + pasture_30 + mix_30_100 + laggedBMI_30 + (1|WMU) + (1|year), data=pt, na.action="na.fail")
   
   m1s <- summary(m1_pt)
   
@@ -214,7 +230,8 @@ coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)], na.rm=TRUE)
 stderr_avg <- colMeans(m_stderr[sapply(m_stderr, is.numeric)], na.rm=TRUE)
 pct2.5_avg <- colMeans(pct2.5[sapply(pct2.5, is.numeric)], na.rm=TRUE)
 pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)], na.rm=TRUE)
-ranef_avg <- as.data.frame(colMeans(m_ranef[sapply(m_ranef, is.numeric)]))
+ranef_avg <- as.data.frame(colMeans(m_ranef[sapply(m_ranef, is.numeric)])) %>% rownames_to_column("RE")
+names(ranef_avg)[2] <- "variance"
 
 # One-sample t-test to determine "significance"
 pvalue <- c()
