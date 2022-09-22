@@ -44,7 +44,7 @@ pctAG1 <- pctAG1 %>% group_by(RegionalID) %>%
 
 # Run models with brms
 ag15 <- brm(n.compounds.T ~ totalag_15 + (1|RegionalID), data=pctAG1, 
-            family=poisson, chains=3, cores=6, backend="cmdstanr")
+            family=brmsfamily("com_poisson"), chains=3, cores=6, backend="cmdstanr")
 
 
 # Run models
