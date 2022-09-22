@@ -171,7 +171,7 @@ dat1 <- left_join(dat1, baa1, by=c("RegionalID", "pt_name", "pt_index"))
 # Join total WUI
 wui1 <- wui1[,c(1:3, 24)]
 dat1 <- left_join(dat1, wui1, by=c("RegionalID", "pt_name", "pt_index"))
-write_csv(dat1, "output/model_data.csv")
+# write_csv(dat1, "output/model_data.csv")
 
 ## Check correlation matrix
 cor(dat1[,14:16])
@@ -180,7 +180,7 @@ cor(dat1[,14:16])
 
 
 m1 <- brm(n.compounds.T ~ Sex*Age + pasture_30 + mix_30_100 + laggedBMI_30 + (1|WMU) + (1|year), data=dat1, 
-    family=brmsfamily('com_poisson'), chains=3, cores=6)
+    family=brmsfamily('com_poisson'), chains=3, cores=3, backend="cmdstanr")
 
 ## Loop over each set of random points
 m_est <- m_stderr <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
@@ -192,8 +192,10 @@ for (i in 1:10) {
   pt <- dat1[dat1$pt_index==i,]
   
   # Run model with deltaAICc < 2
-  m1_pt <- clmm(catNcompT ~ Sex*Age + pasture_30 + mix_30_100 + laggedBMI_30 + (1|WMU) + (1|year), data=pt, na.action="na.fail")
-  
+  m1_pt <- brm(n.compounds.T ~ Sex*Age + pasture_30 + mix_30_100 + 
+                 laggedBMI_30 + (1|WMU) + (1|year), data=pt, 
+                family=brmsfamily('com_poisson'), chains=3, 
+                cores=3, backend="cmdstanr")
   m1s <- summary(m1_pt)
   
   # save averaged confidence intervals
