@@ -43,7 +43,8 @@ pctAG1 <- pctAG1 %>% group_by(RegionalID) %>%
   pivot_wider(names_from=buffsize, values_from=c(pasture, crops, totalag)) %>% as.data.frame()
 
 # Run models with brms
-ag15 <- brm(catNcompT ~ totalag_15 + (1|RegionalID), data=pctAG1, family=cumulative("logit"), chains=3, cores=6)
+ag15 <- brm(catNcompT ~ totalag_15 + (1|RegionalID), data=pctAG1, 
+            family=cumulative("logit"), chains=3, cores=3, backend="cmdstanr")
 
 # Run models
 ag15 <- clmm(catNcompT ~ totalag_15 + (1|RegionalID), data=pctAG1)
