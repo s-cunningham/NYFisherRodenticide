@@ -31,7 +31,7 @@ dat$catAge[dat$Age==1.5] <- "subadult"
 dat$catAge[dat$Ag==0.5] <- "juvenile"
 
 # Resort columns
-dat <- dat[,c(1:10,25,11,24,14:23)] 
+dat <- dat[,c(1:10,25,11,13:23)] 
 
 ## Scale and center variables
 dat[,c(10,16:23)] <- scale(dat[,c(10,16:23)])
@@ -43,8 +43,9 @@ pctAG1 <- pctAG1 %>% group_by(RegionalID) %>%
   pivot_wider(names_from=buffsize, values_from=c(pasture, crops, totalag)) %>% as.data.frame()
 
 # Run models with brms
-ag15 <- brm(catNcompT ~ totalag_15 + (1|RegionalID), data=pctAG1, 
-            family=cumulative("logit"), chains=3, cores=3, backend="cmdstanr")
+ag15 <- brm(n.compounds.T ~ totalag_15 + (1|RegionalID), data=pctAG1, 
+            family=poisson, chains=3, cores=6, backend="cmdstanr")
+
 
 # Run models
 ag15 <- clmm(catNcompT ~ totalag_15 + (1|RegionalID), data=pctAG1)
@@ -176,6 +177,10 @@ write_csv(dat1, "output/model_data.csv")
 cor(dat1[,14:16])
 
 #### Running final models ####
+
+
+m1 <- brm(n.compounds.T ~ Sex*Age + pasture_30 + mix_30_100 + laggedBMI_30 + (1|WMU) + (1|year), data=dat1, 
+    family=brmsfamily('com_poisson'), chains=3, cores=6)
 
 ## Loop over each set of random points
 m_est <- m_stderr <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
