@@ -178,6 +178,16 @@ cor(dat1[,14:16])
 
 #### Running final models ####
 
+m1 <- glmer(n.compounds.T ~ Sex*Age + pasture_30 + mix_30_100 + laggedBMI_30 + 
+              (1|WMU) + (1|year), data=dat1, family=poisson(link="log"))
+
+library(DHARMa)
+simulationOutput <- simulateResiduals(fittedModel = m1, re.form = NULL)
+testDispersion(simulationOutput, alternative = "less", plot = FALSE) # only underdispersion
+pt <- dat1[dat1$pt_index==i,]
+m1 <- glmer(n.compounds.T ~ Sex*Age + pasture_30 + mix_30_100 + laggedBMI_30 + 
+              (1|WMU) + (1|year), data=pt, family=poisson(link="log"))
+
 
 m1 <- brm(n.compounds.T ~ Sex*Age + pasture_30 + mix_30_100 + laggedBMI_30 + (1|WMU) + (1|year), data=dat1, 
     family=brmsfamily('com_poisson'), chains=3, cores=3, backend="cmdstanr")
