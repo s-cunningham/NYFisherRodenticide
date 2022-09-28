@@ -52,6 +52,14 @@ dat$catNcompT  <- ordered(dat$catNcompT , levels=c("0", "1", "2", "3+"))
 dat$catNcompMO <- ifelse(dat$n.compounds.MO>=2, "2+", as.character(dat$n.compounds.MO))
 dat$catNcompMO <- ordered(dat$catNcompMO, levels=c("0", "1", "2+"))
 
+# Histogram
+
+ggplot(dat1, aes(x=n.compounds.T)) + geom_bar() + 
+  facet_grid(.~year) + 
+  xlab("Number of Compounds Detected per Individual") +
+  theme_bw() 
+
+
 # Age and sex plots
 ggplot(dat1, aes(x=catAge, y=n.compounds.T, fill=Sex)) + 
   geom_boxplot()
