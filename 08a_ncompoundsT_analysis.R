@@ -4,6 +4,7 @@
 library(tidyverse)
 library(MuMIn)
 library(ordinal)
+library(brms)
 
 options(scipen=999, digits=3)
 set.seed(123)
@@ -30,7 +31,7 @@ dat$catAge[dat$Age==1.5] <- "subadult"
 dat$catAge[dat$Ag==0.5] <- "juvenile"
 
 # Resort columns
-dat <- dat[,c(1:10,25,11,24,14:23)] 
+dat <- dat[,c(1:10,25,11,13:23)] 
 
 ## Scale and center variables
 dat[,c(10,16:23)] <- scale(dat[,c(10,16:23)])
@@ -40,6 +41,11 @@ pctAG1 <- dat[, c(1:14, 16:18)]
 pctAG1 <- distinct(pctAG1)
 pctAG1 <- pctAG1 %>% group_by(RegionalID) %>% 
   pivot_wider(names_from=buffsize, values_from=c(pasture, crops, totalag)) %>% as.data.frame()
+
+# Run models with brms
+ag15 <- brm(n.compounds.T ~ totalag_15 + (1|RegionalID), data=pctAG1, 
+            family=brmsfamily("com_poisson"), chains=3, cores=6, backend="cmdstanr")
+
 
 # Run models
 ag15 <- clmm(catNcompT ~ totalag_15 + (1|RegionalID), data=pctAG1)
@@ -165,12 +171,25 @@ dat1 <- left_join(dat1, baa1, by=c("RegionalID", "pt_name", "pt_index"))
 # Join total WUI
 wui1 <- wui1[,c(1:3, 24)]
 dat1 <- left_join(dat1, wui1, by=c("RegionalID", "pt_name", "pt_index"))
-write_csv(dat1, "output/model_data.csv")
+# write_csv(dat1, "output/model_data.csv")
 
 ## Check correlation matrix
 cor(dat1[,14:16])
 
 #### Running final models ####
+
+m1 <- glmer(n.compounds.T ~ Sex*Age + pasture_30 + mix_30_100 + laggedBMI_30 + 
+              (1|WMU) + (1|year), data=dat1, family=poisson(link="log"))
+
+library(DHARMa)
+simulationOutput <- simulateResiduals(fittedModel = m1, re.form = NULL)
+testDispersion(simulationOutput, alternative = "less", plot = FALSE) # only underdispersion
+pt <- dat1[dat1$pt_index==i,]
+m1 <- glmer(n.compounds.T ~ Sex*Age + pasture_30 + mix_30_100 + laggedBMI_30 + 
+              (1|WMU) + (1|year), data=pt, family=poisson(link="log"))
+
+m1 <- brm(n.compounds.T ~ Sex*Age + pasture_30 + mix_30_100 + laggedBMI_30 + (1|WMU) + (1|year), data=dat1, 
+    family=brmsfamily('com_poisson'), chains=3, cores=3, backend="cmdstanr")
 
 ## Loop over each set of random points
 m_est <- m_stderr <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
@@ -182,8 +201,10 @@ for (i in 1:10) {
   pt <- dat1[dat1$pt_index==i,]
   
   # Run model with deltaAICc < 2
-  m1_pt <- clmm(catNcompT ~ Sex*Age + pasture_30 + mix_30_100 + laggedBMI_30 + (1|WMU) + (1|year), data=pt, na.action="na.fail")
-  
+  m1_pt <- brm(n.compounds.T ~ Sex*Age + pasture_30 + mix_30_100 + 
+                 laggedBMI_30 + (1|WMU) + (1|year), data=pt, 
+                family=brmsfamily('com_poisson'), chains=3, 
+                cores=3, backend="cmdstanr")
   m1s <- summary(m1_pt)
   
   # save averaged confidence intervals
