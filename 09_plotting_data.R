@@ -59,7 +59,6 @@ ggplot(dat1, aes(x=n.compounds.T)) + geom_bar() +
   xlab("Number of Compounds Detected per Individual") +
   theme_bw() 
 
-
 # Age and sex plots
 ggplot(dat1, aes(x=catAge, y=n.compounds.T, fill=Sex)) + 
   geom_boxplot()
