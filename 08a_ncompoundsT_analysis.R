@@ -3,11 +3,13 @@
 
 library(tidyverse)
 library(MuMIn)
-library(ordinal)
-library(brms)
+library(glmmTMB)
 
 options(scipen=999, digits=3)
-set.seed(123)
+set.seed(1)
+
+#### Parallel processing ####
+nt <- min(parallel::detectCores(),6)
 
 #### Read in data ####
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv")
@@ -42,24 +44,27 @@ pctAG1 <- distinct(pctAG1)
 pctAG1 <- pctAG1 %>% group_by(RegionalID) %>% 
   pivot_wider(names_from=buffsize, values_from=c(pasture, crops, totalag)) %>% as.data.frame()
 
-# Run models with brms
-ag15 <- brm(n.compounds.T ~ totalag_15 + (1|RegionalID), data=pctAG1, 
-            family=brmsfamily("com_poisson"), chains=3, cores=6, backend="cmdstanr")
+# Run models with glmmTMB
+ag15 <- glmmTMB(n.compounds.T ~ totalag_15 + (1|RegionalID), data=pctAG1, 
+                family=compois, control=glmmTMBControl(parallel=nt))
+ag30 <- glmmTMB(n.compounds.T ~ totalag_30 + (1|RegionalID), data=pctAG1, 
+                family=compois, control=glmmTMBControl(parallel=nt))
+ag60 <- glmmTMB(n.compounds.T ~ totalag_60 + (1|RegionalID), data=pctAG1, 
+                family=compois, control=glmmTMBControl(parallel=nt))
 
+crop15 <- glmmTMB(n.compounds.T ~ crops_15 + (1|RegionalID), data=pctAG1, 
+                  family=compois, control=glmmTMBControl(parallel=nt))
+crop30 <- glmmTMB(n.compounds.T ~ crops_30 + (1|RegionalID), data=pctAG1, 
+                  family=compois, control=glmmTMBControl(parallel=nt))
+crop60 <- glmmTMB(n.compounds.T ~ crops_60 + (1|RegionalID), data=pctAG1, 
+                  family=compois, control=glmmTMBControl(parallel=nt))
 
-# Run models
-ag15 <- clmm(catNcompT ~ totalag_15 + (1|RegionalID), data=pctAG1)
-ag30 <- clmm(catNcompT ~ totalag_30 + (1|RegionalID), data=pctAG1)
-ag60 <- clmm(catNcompT ~ totalag_60 + (1|RegionalID), data=pctAG1)
-
-crop15 <- clmm(catNcompT ~ crops_15 + (1|RegionalID), data=pctAG1)
-crop30 <- clmm(catNcompT ~ crops_30 + (1|RegionalID), data=pctAG1)
-crop60 <- clmm(catNcompT ~ crops_60 + (1|RegionalID), data=pctAG1)
-
-past15 <- clmm(catNcompT ~ pasture_15 + (1|RegionalID), data=pctAG1)
-past30 <- clmm(catNcompT ~ pasture_30 + (1|RegionalID), data=pctAG1)
-past60 <- clmm(catNcompT ~ pasture_60 + (1|RegionalID), data=pctAG1)
-
+past15 <- glmmTMB(n.compounds.T ~ pasture_15 + (1|RegionalID), data=pctAG1, 
+                  family=compois, control=glmmTMBControl(parallel=nt))
+past30 <- glmmTMB(n.compounds.T ~ pasture_30 + (1|RegionalID), data=pctAG1, 
+                  family=compois, control=glmmTMBControl(parallel=nt))
+past60 <- glmmTMB(n.compounds.T ~ pasture_60 + (1|RegionalID), data=pctAG1, 
+                  family=compois, control=glmmTMBControl(parallel=nt))
 
 pctAG_sel <- model.sel(ag15, ag30, ag60, 
                        crop15, crop30, crop60,
