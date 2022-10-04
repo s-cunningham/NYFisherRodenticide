@@ -218,15 +218,11 @@ cor(dat1[,14:16])
 
 #### Running final models ####
 
-m1 <- glmer(n.compounds.T ~ Sex*Age + pasture_30 + mix_30_100 + laggedBMI_30 + 
-              (1|WMU) + (1|year), data=dat1, family=poisson(link="log"))
 
 library(DHARMa)
-simulationOutput <- simulateResiduals(fittedModel = m1, re.form = NULL)
+simulationOutput <- simulateResiduals(fittedModel = m1_pt, re.form = NULL)
 testDispersion(simulationOutput, alternative = "less", plot = FALSE) # only underdispersion
-pt <- dat1[dat1$pt_index==i,]
-m1 <- glmer(n.compounds.T ~ Sex*Age + pasture_30 + mix_30_100 + laggedBMI_30 + 
-              (1|WMU) + (1|year), data=pt, family=poisson(link="log"))
+
 
 ## Loop over each set of random points
 m_est <- m_stderr <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
@@ -241,9 +237,22 @@ for (i in 1:10) {
 
   m1_pt <- glmmTMB(n.compounds.T ~ Sex*Age + pasture_30 + mix_30_100 + 
                       laggedBMI_30 + (1|WMU) + (1|year), data=pt, 
-                      family=compois, control=glmmTMBControl(parallel=nt))
-  m1s <- summary(m1_pt)
+                      family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
+  simulationOutput <- simulateResiduals(fittedModel = m1_pt, re.form = NULL)
+  print("Conway-Maxwell Poisson")
+  print(testDispersion(simulationOutput, alternative = "less", plot = FALSE) )
   
+  
+  m2_pt <- glmmTMB(n.compounds.T ~ Sex*Age + pasture_30 + mix_30_100 + 
+                     laggedBMI_30 + (1|WMU) + (1|year), data=pt, 
+                   family="poisson", control=glmmTMBControl(parallel=nt))
+  simulationOutput <- simulateResiduals(fittedModel = m2_pt, re.form = NULL)
+  print("Poisson")
+  print(testDispersion(simulationOutput, alternative = "less", plot = FALSE))
+  
+  
+  m1s <- summary(m1_pt)
+
   # save averaged confidence intervals
   pct2.5 <- rbind(pct2.5, t(confint(m1_pt))[1,1:7])
   pct97.5 <- rbind(pct97.5, t(confint(m1_pt))[2,1:7])
@@ -252,7 +261,7 @@ for (i in 1:10) {
   m_est <- rbind(m_est, coef(m1s)$cond[,1])
   m_stderr <- rbind(m_stderr, coef(m1s)$cond[,2])
   m_ranef <- rbind(m_ranef, unlist(VarCorr(m1_pt)))
-  
+
   # Rename (only need to do once)
   if (i==1) {
     names(m_est) <- c(row.names(m1s$coefficients$cond))
