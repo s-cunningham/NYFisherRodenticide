@@ -47,25 +47,25 @@ pctAG1 <- pctAG1 %>% group_by(RegionalID) %>%
   pivot_wider(names_from=buffsize, values_from=c(pasture, crops, totalag)) %>% as.data.frame()
 
 # Run models with glmmTMB
-ag15 <- glmmTMB(n.compounds.T ~ totalag_15 + (1|RegionalID), data=pctAG1, 
+ag15 <- glmmTMB(n.compounds.T ~ totalag_15 + (1|WMU) + (1|year), data=pctAG1, 
                 family=compois, control=glmmTMBControl(parallel=nt))
-ag30 <- glmmTMB(n.compounds.T ~ totalag_30 + (1|RegionalID), data=pctAG1, 
+ag30 <- glmmTMB(n.compounds.T ~ totalag_30 + (1|WMU) + (1|year), data=pctAG1, 
                 family=compois, control=glmmTMBControl(parallel=nt))
-ag60 <- glmmTMB(n.compounds.T ~ totalag_60 + (1|RegionalID), data=pctAG1, 
+ag60 <- glmmTMB(n.compounds.T ~ totalag_60 + (1|WMU) + (1|year), data=pctAG1, 
                 family=compois, control=glmmTMBControl(parallel=nt))
 
-crop15 <- glmmTMB(n.compounds.T ~ crops_15 + (1|RegionalID), data=pctAG1, 
+crop15 <- glmmTMB(n.compounds.T ~ crops_15 + (1|WMU) + (1|year), data=pctAG1, 
                   family=compois, control=glmmTMBControl(parallel=nt))
-crop30 <- glmmTMB(n.compounds.T ~ crops_30 + (1|RegionalID), data=pctAG1, 
+crop30 <- glmmTMB(n.compounds.T ~ crops_30 + (1|WMU) + (1|year), data=pctAG1, 
                   family=compois, control=glmmTMBControl(parallel=nt))
-crop60 <- glmmTMB(n.compounds.T ~ crops_60 + (1|RegionalID), data=pctAG1, 
+crop60 <- glmmTMB(n.compounds.T ~ crops_60 + (1|WMU) + (1|year), data=pctAG1, 
                   family=compois, control=glmmTMBControl(parallel=nt))
 
-past15 <- glmmTMB(n.compounds.T ~ pasture_15 + (1|RegionalID), data=pctAG1, 
+past15 <- glmmTMB(n.compounds.T ~ pasture_15 + (1|WMU) + (1|year), data=pctAG1, 
                   family=compois, control=glmmTMBControl(parallel=nt))
-past30 <- glmmTMB(n.compounds.T ~ pasture_30 + (1|RegionalID), data=pctAG1, 
+past30 <- glmmTMB(n.compounds.T ~ pasture_30 + (1|WMU) + (1|year), data=pctAG1, 
                   family=compois, control=glmmTMBControl(parallel=nt))
-past60 <- glmmTMB(n.compounds.T ~ pasture_60 + (1|RegionalID), data=pctAG1, 
+past60 <- glmmTMB(n.compounds.T ~ pasture_60 + (1|WMU) + (1|year), data=pctAG1, 
                   family=compois, control=glmmTMBControl(parallel=nt))
 
 pctAG_sel <- model.sel(ag15, ag30, ag60, 
@@ -78,18 +78,18 @@ pctAG_sel
 baa1 <- dat[, c(1:14,22,23)]
 baa1  <- baa1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffsize, values_from=c(BMI, laggedBMI), values_fn=unique) %>% as.data.frame()
 
-bmi15 <- glmmTMB(n.compounds.T ~ BMI_15 + (1|RegionalID), data=baa1, 
+bmi15 <- glmmTMB(n.compounds.T ~ BMI_15 + (1|WMU) + (1|year), data=baa1, 
                  family=compois, control=glmmTMBControl(parallel=nt))
-bmi30 <- glmmTMB(n.compounds.T ~ BMI_30 + (1|RegionalID), data=baa1, 
+bmi30 <- glmmTMB(n.compounds.T ~ BMI_30 + (1|WMU) + (1|year), data=baa1, 
                  family=compois, control=glmmTMBControl(parallel=nt))
-bmi60 <- glmmTMB(n.compounds.T ~ BMI_60 + (1|RegionalID), data=baa1, 
+bmi60 <- glmmTMB(n.compounds.T ~ BMI_60 + (1|WMU) + (1|year), data=baa1, 
                  family=compois, control=glmmTMBControl(parallel=nt))
 
-lbmi15 <- glmmTMB(n.compounds.T ~ laggedBMI_15 + (1|RegionalID), data=baa1, 
+lbmi15 <- glmmTMB(n.compounds.T ~ laggedBMI_15 + (1|WMU) + (1|year), data=baa1, 
                   family=compois, control=glmmTMBControl(parallel=nt))
-lbmi30 <- glmmTMB(n.compounds.T ~ laggedBMI_30 + (1|RegionalID), data=baa1, 
+lbmi30 <- glmmTMB(n.compounds.T ~ laggedBMI_30 + (1|WMU) + (1|year), data=baa1, 
                   family=compois, control=glmmTMBControl(parallel=nt))
-lbmi60 <- glmmTMB(n.compounds.T ~ laggedBMI_60 + (1|RegionalID), data=baa1, 
+lbmi60 <- glmmTMB(n.compounds.T ~ laggedBMI_60 + (1|WMU) + (1|year), data=baa1, 
                   family=compois, control=glmmTMBControl(parallel=nt))
 
 baa_sel <- model.sel(bmi15,lbmi15, bmi30,lbmi30,bmi60,lbmi60)
@@ -126,69 +126,69 @@ interface1 <- interface1[, c(1:3, 14:22)]
 wui1 <- left_join(wui1, interface1, by=c("RegionalID", "pt_name", "pt_index"))
 
 # Intermix WUI
-mix_15100 <- glmmTMB(n.compounds.T ~ mix_15_100 + (1|RegionalID), data=wui1, 
+mix_15100 <- glmmTMB(n.compounds.T ~ mix_15_100 + (1|WMU) + (1|year), data=wui1, 
                      family=compois, control=glmmTMBControl(parallel=nt))
-mix_15250 <- glmmTMB(n.compounds.T ~ mix_15_250 + (1|RegionalID), data=wui1, 
+mix_15250 <- glmmTMB(n.compounds.T ~ mix_15_250 + (1|WMU) + (1|year), data=wui1, 
                      family=compois, control=glmmTMBControl(parallel=nt))
-mix_15500 <- glmmTMB(n.compounds.T ~ mix_15_500 + (1|RegionalID), data=wui1, 
-                     family=compois, control=glmmTMBControl(parallel=nt))
-
-mix_30100 <- glmmTMB(n.compounds.T ~ mix_30_100 + (1|RegionalID), data=wui1,
-                     family=compois, control=glmmTMBControl(parallel=nt))
-mix_30250 <- glmmTMB(n.compounds.T ~ mix_30_250 + (1|RegionalID), data=wui1,
-                     family=compois, control=glmmTMBControl(parallel=nt))
-mix_30500 <- glmmTMB(n.compounds.T ~ mix_30_500 + (1|RegionalID), data=wui1,
+mix_15500 <- glmmTMB(n.compounds.T ~ mix_15_500 + (1|WMU) + (1|year), data=wui1, 
                      family=compois, control=glmmTMBControl(parallel=nt))
 
-mix_60100 <- glmmTMB(n.compounds.T ~ mix_60_100 + (1|RegionalID), data=wui1,
+mix_30100 <- glmmTMB(n.compounds.T ~ mix_30_100 + (1|WMU) + (1|year), data=wui1,
                      family=compois, control=glmmTMBControl(parallel=nt))
-mix_60250 <- glmmTMB(n.compounds.T ~ mix_60_250 + (1|RegionalID), data=wui1,
+mix_30250 <- glmmTMB(n.compounds.T ~ mix_30_250 + (1|WMU) + (1|year), data=wui1,
                      family=compois, control=glmmTMBControl(parallel=nt))
-mix_60500 <- glmmTMB(n.compounds.T ~ mix_60_500 + (1|RegionalID), data=wui1,
+mix_30500 <- glmmTMB(n.compounds.T ~ mix_30_500 + (1|WMU) + (1|year), data=wui1,
+                     family=compois, control=glmmTMBControl(parallel=nt))
+
+mix_60100 <- glmmTMB(n.compounds.T ~ mix_60_100 + (1|WMU) + (1|year), data=wui1,
+                     family=compois, control=glmmTMBControl(parallel=nt))
+mix_60250 <- glmmTMB(n.compounds.T ~ mix_60_250 + (1|WMU) + (1|year), data=wui1,
+                     family=compois, control=glmmTMBControl(parallel=nt))
+mix_60500 <- glmmTMB(n.compounds.T ~ mix_60_500 + (1|WMU) + (1|year), data=wui1,
                      family=compois, control=glmmTMBControl(parallel=nt))
 
 # Interface WUI
-face_15100 <- glmmTMB(n.compounds.T ~ face_15_100 + (1|RegionalID), data=wui1, 
+face_15100 <- glmmTMB(n.compounds.T ~ face_15_100 + (1|WMU) + (1|year), data=wui1, 
                       family=compois, control=glmmTMBControl(parallel=nt))
-face_15250 <- glmmTMB(n.compounds.T ~ face_15_250 + (1|RegionalID), data=wui1, 
+face_15250 <- glmmTMB(n.compounds.T ~ face_15_250 + (1|WMU) + (1|year), data=wui1, 
                       family=compois, control=glmmTMBControl(parallel=nt))
-face_15500 <- glmmTMB(n.compounds.T ~ face_15_500 + (1|RegionalID), data=wui1, 
-                      family=compois, control=glmmTMBControl(parallel=nt))
-
-face_30100 <- glmmTMB(n.compounds.T ~ face_30_100 + (1|RegionalID), data=wui1, 
-                      family=compois, control=glmmTMBControl(parallel=nt))
-face_30250 <- glmmTMB(n.compounds.T ~ face_30_250 + (1|RegionalID), data=wui1, 
-                      family=compois, control=glmmTMBControl(parallel=nt))
-face_30500 <- glmmTMB(n.compounds.T ~ face_30_500 + (1|RegionalID), data=wui1, 
+face_15500 <- glmmTMB(n.compounds.T ~ face_15_500 + (1|WMU) + (1|year), data=wui1, 
                       family=compois, control=glmmTMBControl(parallel=nt))
 
-face_60100 <- glmmTMB(n.compounds.T ~ face_60_100 + (1|RegionalID), data=wui1, 
+face_30100 <- glmmTMB(n.compounds.T ~ face_30_100 + (1|WMU) + (1|year), data=wui1, 
                       family=compois, control=glmmTMBControl(parallel=nt))
-face_60250 <- glmmTMB(n.compounds.T ~ face_60_250 + (1|RegionalID), data=wui1, 
+face_30250 <- glmmTMB(n.compounds.T ~ face_30_250 + (1|WMU) + (1|year), data=wui1, 
                       family=compois, control=glmmTMBControl(parallel=nt))
-face_60500 <- glmmTMB(n.compounds.T ~ face_60_500 + (1|RegionalID), data=wui1, 
+face_30500 <- glmmTMB(n.compounds.T ~ face_30_500 + (1|WMU) + (1|year), data=wui1, 
+                      family=compois, control=glmmTMBControl(parallel=nt))
+
+face_60100 <- glmmTMB(n.compounds.T ~ face_60_100 + (1|WMU) + (1|year), data=wui1, 
+                      family=compois, control=glmmTMBControl(parallel=nt))
+face_60250 <- glmmTMB(n.compounds.T ~ face_60_250 + (1|WMU) + (1|year), data=wui1, 
+                      family=compois, control=glmmTMBControl(parallel=nt))
+face_60500 <- glmmTMB(n.compounds.T ~ face_60_500 + (1|WMU) + (1|year), data=wui1, 
                       family=compois, control=glmmTMBControl(parallel=nt))
 
 # Total WUI
-wui_15100 <- glmmTMB(n.compounds.T ~ wui_15_100 + (1|RegionalID), data=wui1, 
+wui_15100 <- glmmTMB(n.compounds.T ~ wui_15_100 + (1|WMU) + (1|year), data=wui1, 
                      family=compois, control=glmmTMBControl(parallel=nt))
-wui_15250 <- glmmTMB(n.compounds.T ~ wui_15_250 + (1|RegionalID), data=wui1, 
+wui_15250 <- glmmTMB(n.compounds.T ~ wui_15_250 + (1|WMU) + (1|year), data=wui1, 
                      family=compois, control=glmmTMBControl(parallel=nt))
-wui_15500 <- glmmTMB(n.compounds.T ~ wui_15_500 + (1|RegionalID), data=wui1, 
-                     family=compois, control=glmmTMBControl(parallel=nt))
-
-wui_30100 <- glmmTMB(n.compounds.T ~ wui_30_100 + (1|RegionalID), data=wui1, 
-                     family=compois, control=glmmTMBControl(parallel=nt))
-wui_30250 <- glmmTMB(n.compounds.T ~ wui_30_250 + (1|RegionalID), data=wui1, 
-                     family=compois, control=glmmTMBControl(parallel=nt))
-wui_30500 <- glmmTMB(n.compounds.T ~ wui_30_500 + (1|RegionalID), data=wui1, 
+wui_15500 <- glmmTMB(n.compounds.T ~ wui_15_500 + (1|WMU) + (1|year), data=wui1, 
                      family=compois, control=glmmTMBControl(parallel=nt))
 
-wui_60100 <- glmmTMB(n.compounds.T ~ wui_60_100 + (1|RegionalID), data=wui1, 
+wui_30100 <- glmmTMB(n.compounds.T ~ wui_30_100 + (1|WMU) + (1|year), data=wui1, 
                      family=compois, control=glmmTMBControl(parallel=nt))
-wui_60250 <- glmmTMB(n.compounds.T ~ wui_60_250 + (1|RegionalID), data=wui1, 
+wui_30250 <- glmmTMB(n.compounds.T ~ wui_30_250 + (1|WMU) + (1|year), data=wui1, 
                      family=compois, control=glmmTMBControl(parallel=nt))
-wui_60500 <- glmmTMB(n.compounds.T ~ wui_60_500 + (1|RegionalID), data=wui1, 
+wui_30500 <- glmmTMB(n.compounds.T ~ wui_30_500 + (1|WMU) + (1|year), data=wui1, 
+                     family=compois, control=glmmTMBControl(parallel=nt))
+
+wui_60100 <- glmmTMB(n.compounds.T ~ wui_60_100 + (1|WMU) + (1|year), data=wui1, 
+                     family=compois, control=glmmTMBControl(parallel=nt))
+wui_60250 <- glmmTMB(n.compounds.T ~ wui_60_250 + (1|WMU) + (1|year), data=wui1, 
+                     family=compois, control=glmmTMBControl(parallel=nt))
+wui_60500 <- glmmTMB(n.compounds.T ~ wui_60_500 + (1|WMU) + (1|year), data=wui1, 
                      family=compois, control=glmmTMBControl(parallel=nt))
 
 wui_sel <- model.sel(wui_15100, wui_30100, wui_60100, face_15100, face_30100, face_60100,mix_15100, mix_30100, mix_60100, 
@@ -238,19 +238,7 @@ for (i in 1:10) {
   m1_pt <- glmmTMB(n.compounds.T ~ Sex*Age + pasture_30 + mix_30_100 + 
                       laggedBMI_30 + (1|WMU) + (1|year), data=pt, 
                       family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
-  simulationOutput <- simulateResiduals(fittedModel = m1_pt, re.form = NULL)
-  print("Conway-Maxwell Poisson")
-  print(testDispersion(simulationOutput, alternative = "less", plot = FALSE) )
-  
-  
-  m2_pt <- glmmTMB(n.compounds.T ~ Sex*Age + pasture_30 + mix_30_100 + 
-                     laggedBMI_30 + (1|WMU) + (1|year), data=pt, 
-                   family="poisson", control=glmmTMBControl(parallel=nt))
-  simulationOutput <- simulateResiduals(fittedModel = m2_pt, re.form = NULL)
-  print("Poisson")
-  print(testDispersion(simulationOutput, alternative = "less", plot = FALSE))
-  
-  
+
   m1s <- summary(m1_pt)
 
   # save averaged confidence intervals
@@ -280,6 +268,9 @@ pct2.5_avg <- colMeans(pct2.5[sapply(pct2.5, is.numeric)], na.rm=TRUE)
 pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)], na.rm=TRUE)
 ranef_avg <- as.data.frame(colMeans(m_ranef[sapply(m_ranef, is.numeric)])) %>% rownames_to_column("RE")
 names(ranef_avg)[2] <- "variance"
+
+mean(m_est[,2])
+sd(m_est[,2])
 
 # One-sample t-test to determine "significance"
 pvalue <- c()
