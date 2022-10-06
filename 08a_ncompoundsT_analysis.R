@@ -32,48 +32,55 @@ dat <- dat[,c(1:11,13:23)]
 dat[,c(10,15:22)] <- scale(dat[,c(10,15:22)])
 
 ## Percent AG
-pctAG1 <- dat[, c(1:13, 15:17)]
-pctAG1 <- distinct(pctAG1)
-pctAG1 <- pctAG1 %>% group_by(RegionalID) %>% 
-  pivot_wider(names_from=buffsize, values_from=c(pasture, crops, totalag)) %>% as.data.frame()
+pctAG <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, pasture, crops, totalag) %>% 
+                 distinct() %>% 
+                 group_by(RegionalID) %>% 
+                 pivot_wider(names_from=buffsize, values_from=c(pasture, crops, totalag)) %>% 
+                 as.data.frame()
 
 ## Beech basal area
-baa1 <- dat[, c(1:13,21,22)]
-baa1  <- baa1 %>% group_by(RegionalID) %>% pivot_wider(names_from=buffsize, values_from=c(BMI, laggedBMI), values_fn=unique) %>% as.data.frame()
+baa1 <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, BMI, laggedBMI) %>% 
+                distinct() %>% 
+                group_by(RegionalID) %>% 
+                pivot_wider(names_from=buffsize, values_from=c(BMI, laggedBMI), values_fn=unique) %>% 
+                as.data.frame()
 
 ## Wildland-urban interface
-intermix1 <- dat[, c(1:14, 18)]
-intermix1 <- unite(intermix1, "buffrad", 13:14, sep="_")
-intermix1  <- intermix1 %>% group_by(RegionalID) %>% pivot_wider(names_from=buffrad, values_from=intermix) %>% as.data.frame()
-names(intermix1)[14:22] <- c("mix_15_100", "mix_30_100", "mix_60_100",
+intermix1 <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, radius, intermix) %>%
+                     unite("buffrad", 4:5, sep="_") %>% 
+                     group_by(RegionalID) %>% 
+                     pivot_wider(names_from=buffrad, values_from=intermix) %>% 
+                     as.data.frame()
+names(intermix1)[4:12] <- c("mix_15_100", "mix_30_100", "mix_60_100",
                              "mix_15_250", "mix_30_250", "mix_60_250",
                              "mix_15_500", "mix_30_500", "mix_60_500") 
 
-interface1 <- dat[, c(1:15, 20)]
-interface1 <- unite(interface1, "buffrad", 14:15, sep="_")
-interface1  <- interface1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffrad, values_from=interface) %>% as.data.frame()
-names(interface1)[14:22] <- c("face_15_100", "face_30_100", "face_60_100",
+interface1  <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, radius, interface) %>%
+                        unite("buffrad", 4:5, sep="_") %>% 
+                        group_by(RegionalID) %>% 
+                        pivot_wider(names_from=buffrad, values_from=interface) %>% 
+                        as.data.frame()
+names(interface1)[4:12] <- c("face_15_100", "face_30_100", "face_60_100",
                               "face_15_250", "face_30_250", "face_60_250",
                               "face_15_500", "face_30_500", "face_60_500") 
 
-wui1 <- dat[, c(1:15, 21)]
-wui1 <- unite(wui1, "buffrad", 14:15, sep="_")
-wui1  <- wui1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffrad, values_from=totalWUI) %>% as.data.frame()
-names(wui1)[14:22] <- c("wui_15_100", "wui_30_100", "wui_60_100",
-                        "wui_15_250", "wui_30_250", "wui_60_250",
-                        "wui_15_500", "wui_30_500", "wui_60_500") 
+wui1  <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, radius, totalWUI) %>%
+  unite("buffrad", 4:5, sep="_") %>% 
+  group_by(RegionalID) %>% 
+  pivot_wider(names_from=buffrad, values_from=totalWUI) %>% 
+  as.data.frame()
+names(wui1)[4:12] <- c("wui_15_100", "wui_30_100", "wui_60_100",
+                       "wui_15_250", "wui_30_250", "wui_60_250",
+                       "wui_15_500", "wui_30_500", "wui_60_500") 
 
 #### Set up data to run for each combination of covariates ####
-dat1 <- dat[,c(1:13)]
-dat1 <- distinct(dat1)
+dat1 <- dat %>% select(RegionalID:n.compounds.T) %>% distinct() %>%
+          left_join(pctAG, by=c("RegionalID", "pt_name", "pt_index")) %>%
+          left_join(baa1, by=c("RegionalID", "pt_name", "pt_index")) %>%
+          left_join(intermix1, by=c("RegionalID", "pt_name", "pt_index")) %>%
+          left_join(interface1, by=c("RegionalID", "pt_name", "pt_index")) %>%
+          left_join(wui1, by=c("RegionalID", "pt_name", "pt_index"))
 
-# Join intermix WUI
-intermix1 <- intermix1[,c(1:3, 14:22)]
-wui1 <- left_join(wui1, intermix1, by=c("RegionalID", "pt_name", "pt_index"))
-
-# Join interface WUI
-interface1 <- interface1[, c(1:3, 14:22)]
-wui1 <- left_join(wui1, interface1, by=c("RegionalID", "pt_name", "pt_index"))
 
 #### Read in formulas ####
 intx.formulae <- read_table("data/analysis-ready/interaction_models.txt", col_names=FALSE) %>%
@@ -87,9 +94,12 @@ add.formulae <- read_table("data/analysis-ready/additive_models.txt", col_names=
 names(add.formulae) <- as.character(add.formulae)
 
 #### Run models with glmmTMB ####
-intx.models <- lapply(intx.formulae, FUN=glmmTMB, data=dat, 
+intx.models <- lapply(intx.formulae, FUN=glmer, data=dat1, family="poisson") 
+
+
+intx.models <- lapply(intx.formulae, FUN=glmmTMB, data=dat1, 
                     family=compois, control=glmmTMBControl(parallel=nt)) 
-add.models <- lapply(add.formulae, FUN=glmmTMB, data=dat, 
+add.models <- lapply(add.formulae, FUN=glmmTMB, data=dat1, 
                       family=compois, control=glmmTMBControl(parallel=nt)) 
 
 # Model selection for agriculture
