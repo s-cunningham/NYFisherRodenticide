@@ -90,31 +90,10 @@ intx.models <- lapply(intx.formulae, FUN=glmmTMB, data=dat1,
 add.models <- lapply(add.formulae, FUN=glmmTMB, data=dat1, 
                       family=compois, control=glmmTMBControl(parallel=nt)) 
 
-# Model selection for agriculture
-intx.sel <- model.sel(intx.models)
-add.sel <- model.sel(add.models)
+# Model selection for scale
+model.list <- model.sel(intx.models, add.models)
 
-
-
-
-
-# Join percent agriculture
-pctAG1 <- pctAG1[,c(1:3, 22)]
-dat1 <- left_join(dat1, pctAG1, by=c("RegionalID", "pt_name", "pt_index"))
-
-# Join beech basal area
-baa1 <- baa1[,c(1:3, 18)]
-dat1 <- left_join(dat1, baa1, by=c("RegionalID", "pt_name", "pt_index"))
-
-# Join total WUI
-wui1 <- wui1[,c(1:3, 31)]
-dat1 <- left_join(dat1, wui1, by=c("RegionalID", "pt_name", "pt_index"))
-# write_csv(dat1, "output/model_data.csv")
-
-## Check correlation matrix
-cor(dat1[,14:16])
-
-#### Running final models ####
+#### Running iteration models ####
 
 ## Loop over each set of random points
 m_est <- m_stderr <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
