@@ -81,22 +81,10 @@ dat1 <- dat %>% select(RegionalID:n.compounds.T) %>% distinct() %>%
           left_join(interface1, by=c("RegionalID", "pt_name", "pt_index")) %>%
           left_join(wui1, by=c("RegionalID", "pt_name", "pt_index"))
 
-
 #### Read in formulas ####
-intx.formulae <- read_table("data/analysis-ready/interaction_models.txt", col_names=FALSE) %>%
-                         unite("formula", 1:13, sep="", remove=TRUE) %>% as.matrix() %>% unname() %>%
-                         as.list(data.frame(t()))
-names(intx.formulae) <- as.character(intx.formulae)
-
-add.formulae <- read_table("data/analysis-ready/additive_models.txt", col_names=FALSE) %>%
-                         unite("formula", 1:13, sep="", remove=TRUE) %>% as.matrix() %>% unname() %>%
-                         as.list(data.frame(t()))
-names(add.formulae) <- as.character(add.formulae)
+source("00_model_lists.R")
 
 #### Run models with glmmTMB ####
-intx.models <- lapply(intx.formulae, FUN=glmer, data=dat1, family="poisson") 
-
-
 intx.models <- lapply(intx.formulae, FUN=glmmTMB, data=dat1, 
                     family=compois, control=glmmTMBControl(parallel=nt)) 
 add.models <- lapply(add.formulae, FUN=glmmTMB, data=dat1, 
