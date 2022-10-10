@@ -92,6 +92,10 @@ add.models <- lapply(add.formulae, FUN=glmmTMB, data=dat1,
 
 # Model selection for scale
 model.list <- model.sel(intx.models, add.models)
+model_tab <- as.data.frame(model.list)
+
+# Write to csv so it is decipherable
+write_csv(model_tab, "output/model_selection_table.csv")
 
 #### Running iteration models ####
 
@@ -106,7 +110,7 @@ for (i in 1:10) {
   
   # Run model with deltaAICc < 2
 
-  m1_pt <- glmmTMB(n.compounds.T ~ Sex*Age + totalag_60 + mix_60_500 + 
+  m1_pt <- glmmTMB(n.compounds.T ~ Sex*Age + totalag_60 + mix_15_100 + 
                       laggedBMI_30 + (1|WMU) + (1|year), data=pt, 
                       family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
 

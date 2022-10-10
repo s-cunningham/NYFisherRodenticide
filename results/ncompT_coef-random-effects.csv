@@ -1,3 +1,3 @@
-RE,variance
-RE_WMU,0.01630022388950626
-RE_year,0.02353267320826735
+RE,"colMeans(m_ranef[sapply(m_ranef, is.numeric)])"
+RE_WMU,0.017738280857376783
+RE_year,0.023844947504174825
