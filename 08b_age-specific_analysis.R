@@ -1,9 +1,13 @@
 library(tidyverse)
 library(MuMIn)
-library(ordinal)
+library(glmmTMB)
+library(parallel)
 
 options(scipen=999, digits=3)
 set.seed(1)
+
+#### Parallel processing ####
+nt <- min(parallel::detectCores(),6)
 
 #### Read in data ####
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv")
@@ -18,18 +22,18 @@ dat$year <- factor(dat$year)
 dat$RegionalID <- factor(dat$RegionalID)
 
 # Make age a categorical variable
-dat$catAge[dat$Age>=2.5] <- "adult"
-dat$catAge[dat$Age==1.5] <- "subadult"
+dat$catAge[dat$Age>=2.0] <- "adult"
+dat$catAge[dat$Age<2 & dat$Age>0.5] <- "subadult"
 dat$catAge[dat$Ag==0.5] <- "juvenile"
 
 # Resort columns
-dat <- dat[,c(1:10,26,11,24,25,14:23)] 
+dat <- dat[,c(1:10,24,11,12:23)] 
 
 ## Scale and center variables
 dat[,c(10,17:24)] <- scale(dat[,c(10,17:24)])
 
 #### Split data, set up covariates ####
-subads <- dat %>% filter(catAge=="subadult")
+dat <- dat %>% filter(catAge=="subadult")
 
 ## Percent AG
 pctAG <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, pasture, crops, totalag) %>% 
@@ -72,6 +76,15 @@ wui1  <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, radius, totalWU
 names(wui1)[4:12] <- c("wui_15_100", "wui_30_100", "wui_60_100",
                        "wui_15_250", "wui_30_250", "wui_60_250",
                        "wui_15_500", "wui_30_500", "wui_60_500") 
+
+#### Set up data to run for each combination of covariates ####
+dat1 <- dat %>% select(RegionalID:n.compounds.T) %>% distinct() %>%
+  left_join(pctAG, by=c("RegionalID", "pt_name", "pt_index")) %>%
+  left_join(baa1, by=c("RegionalID", "pt_name", "pt_index")) %>%
+  left_join(intermix1, by=c("RegionalID", "pt_name", "pt_index")) %>%
+  left_join(interface1, by=c("RegionalID", "pt_name", "pt_index")) %>%
+  left_join(wui1, by=c("RegionalID", "pt_name", "pt_index"))
+
 #### With trace ####
 ## Loop over each set of random points ##
 m_est <- m_stderr <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
@@ -80,12 +93,12 @@ m_est <- m_stderr <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
 for (i in 1:10) {
   
   # Subset to one point set at a time
-  pt <- subad1 %>% filter(pt_index==i)
+  pt <- dat1 %>% filter(pt_index==i)
   
   # Run model with deltaAICc < 2
-  m1_pt <- glmmTMB(n.compounds.T ~ Sex + pasture_30 + mix_30_100 + 
-                      laggedBMI_30 + (1|WMU) + (1|year), data=pt, 
-                      family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
+  m1_pt <- glmmTMB(n.compounds.T ~ Sex + totalag_60 + mix_15_100 + 
+                                laggedBMI_30 + (1|WMU) + (1|year), data=pt, 
+                                family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
   
   m1s <- summary(m1_pt)
   
@@ -145,11 +158,12 @@ m_est <- m_stderr <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
 for (i in 1:10) {
   
   # Subset to one point set at a time
-  pt <- subad1 %>% filter(pt_index==i)
+  pt <- dat1 %>% filter(pt_index==i)
   
   # Run model with deltaAICc < 2
-  m1_pt <- clmm(catNcompMO ~ Sex + pasture_30 + mix_30_100 + laggedBMI_30 + (1|WMU) + (1|year), data=pt, na.action="na.fail")
-  
+  m1_pt <- glmmTMB(n.compounds.MO ~ Sex + totalag_60 + mix_15_100 + 
+                                laggedBMI_30 + (1|WMU) + (1|year), data=pt, 
+                                family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
   m1s <- summary(m1_pt)
   
   # save averaged confidence intervals
