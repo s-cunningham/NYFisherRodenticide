@@ -5,7 +5,6 @@ library(tidyverse)
 library(MuMIn)
 library(glmmTMB)
 library(DHARMa)
-library(broom.mixed)
 
 options(scipen=999, digits=3)
 set.seed(1)
@@ -150,7 +149,6 @@ sd(m_est[,2])
 # One-sample t-test to determine "significance"
 pvalue <- c()
 for (i in 1:ncol(m_est)) {
-  
   tresult <- t.test(m_est[,i], mu=0, alternative="two.sided")
   pvalue <- c(pvalue, tresult$p.value)
 }
