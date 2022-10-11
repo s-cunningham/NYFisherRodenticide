@@ -102,24 +102,23 @@ for (i in 1:10) {
   
   m1s <- summary(m1_pt)
   
-  # Confidence intervals
-  pct2.5 <- rbind(pct2.5, t(confint(m1_pt))[1,])
-  pct97.5 <- rbind(pct97.5, t(confint(m1_pt))[2,])
+  # save averaged confidence intervals
+  pct2.5 <- rbind(pct2.5, t(confint(m1_pt))[1,1:5])
+  pct97.5 <- rbind(pct97.5, t(confint(m1_pt))[2,1:5])
   
   # Save point set estimates
-  m_est <- rbind(m_est, coef(m1s)[,1])
-  m_stderr <- rbind(m_stderr, coef(m1s)[,2])
+  m_est <- rbind(m_est, coef(m1s)$cond[,1])
+  m_stderr <- rbind(m_stderr, coef(m1s)$cond[,2])
   m_ranef <- rbind(m_ranef, unlist(VarCorr(m1_pt)))
   
   # Rename (only need to do once)
   if (i==1) {
-    names(m_est) <- c(names(coef(m1_pt)))
-    names(m_stderr) <- c(names(coef(m1_pt)))
-    names(pct2.5) <- c(names(coef(m1_pt)))
-    names(pct97.5) <- c(names(coef(m1_pt)))
+    names(m_est) <- c(row.names(m1s$coefficients$cond))
+    names(m_stderr) <- c(row.names(m1s$coefficients$cond))
+    names(pct2.5) <- c(row.names(m1s$coefficients$cond))
+    names(pct97.5) <- c(row.names(m1s$coefficients$cond))
     names(m_ranef) <- c("RE_WMU", "RE_year")
   }
-  
 }
 
 # Calculate averages for each coefficient
@@ -167,20 +166,20 @@ for (i in 1:10) {
   m1s <- summary(m1_pt)
   
   # save averaged confidence intervals
-  pct2.5 <- rbind(pct2.5, t(confint(m1_pt))[1,])
-  pct97.5 <- rbind(pct97.5, t(confint(m1_pt))[2,])
+  pct2.5 <- rbind(pct2.5, t(confint(m1_pt))[1,1:5])
+  pct97.5 <- rbind(pct97.5, t(confint(m1_pt))[2,1:5])
   
   # Save point set estimates
-  m_est <- rbind(m_est, coef(m1s)[,1])
-  m_stderr <- rbind(m_stderr, coef(m1s)[,2])
+  m_est <- rbind(m_est, coef(m1s)$cond[,1])
+  m_stderr <- rbind(m_stderr, coef(m1s)$cond[,2])
   m_ranef <- rbind(m_ranef, unlist(VarCorr(m1_pt)))
   
   # Rename (only need to do once)
   if (i==1) {
-    names(m_est) <- c(names(coef(m1_pt)))
-    names(m_stderr) <- c(names(coef(m1_pt)))
-    names(pct2.5) <- c(names(coef(m1_pt)))
-    names(pct97.5) <- c(names(coef(m1_pt)))
+    names(m_est) <- c(row.names(m1s$coefficients$cond))
+    names(m_stderr) <- c(row.names(m1s$coefficients$cond))
+    names(pct2.5) <- c(row.names(m1s$coefficients$cond))
+    names(pct97.5) <- c(row.names(m1s$coefficients$cond))
     names(m_ranef) <- c("RE_WMU", "RE_year")
   }
   
