@@ -62,7 +62,7 @@ dat1 <- dat[,c(1:15)]
 dat1 <- distinct(dat1)
 
 # Join percent agriculture
-pctAG <- pctAG[,c(1:3, 9)]
+pctAG <- pctAG[,c(1:3, 16)]
 dat1 <- left_join(dat1, pctAG, by=c("RegionalID", "pt_name", "pt_index"))
 
 # Join beech basal area
@@ -70,15 +70,15 @@ baa1 <- baa1[,c(1:3, 12)]
 dat1 <- left_join(dat1, baa1, by=c("RegionalID", "pt_name", "pt_index"))
 
 # Join WUI
-intermix1 <- intermix1[,c(1:3, 9)]
+intermix1 <- intermix1[,c(1:3, 8)]
 dat1 <- left_join(dat1, intermix1, by=c("RegionalID", "pt_name", "pt_index"))
 
-write_csv(dat1, "output/binary_model_data.csv")
+# write_csv(dat1, "output/binary_model_data.csv")
 
 # Subset by compound
-brod <- dat[dat$compound=="Brodifacoum",]
-brom <- dat[dat$compound=="Bromadiolone",]
-diph <- dat[dat$compound=="Diphacinone",]
+brod <- dat1[dat1$compound=="Brodifacoum",]
+brom <- dat1[dat1$compound=="Bromadiolone",]
+diph <- dat1[dat1$compound=="Diphacinone",]
 
 #### Brodifacoum ####
 
@@ -91,10 +91,11 @@ m_est <- m_stderr <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
 for (i in 1:10) {
   
   # Subset to one point set at a time
-  pt <- brod1[brod1$pt_index==i,]
+  pt <- brod[brod$pt_index==i,]
   
   # Run model with deltaAICc < 2
-  m1_pt <- glmer(bin.exp ~ Sex*Age + laggedBMI_30 + mix_30_100 + pasture_30 + (1|WMU) + (1|year), 
+  m1_pt <- glmer(bin.exp ~ Sex*Age + totalag_60 + mix_15_100 + 
+                   laggedBMI_30 + (1|WMU) + (1|year), 
                   family=binomial(link="logit"), data=pt)
   
   m1s <- summary(m1_pt)
@@ -130,22 +131,11 @@ pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)], na.rm=TRUE)
 ranef_avg <- as.data.frame(colMeans(m_ranef[sapply(m_ranef, is.numeric)])) %>% rownames_to_column("RE")
 names(ranef_avg)[2] <- "variance"
 
-# One-sample t-test to determine "significance"
-pvalue <- c()
-for (i in 1:ncol(m_est)) {
-  
-  tresult <- t.test(m_est[,i], mu=0, alternative="two.sided")
-  pvalue <- c(pvalue, tresult$p.value)
-}
-pvalue <- as.data.frame(pvalue)
-pvalue <- cbind(names(coef_avg), pvalue)
-pvalue <- pivot_wider(pvalue, names_from="names(coef_avg)", values_from="pvalue") %>% as.data.frame()
-
 # Combine and clean up data frame
-coef_summary <- bind_rows(coef_avg, stderr_avg, pct2.5_avg, pct97.5_avg, pvalue)
+coef_summary <- bind_rows(coef_avg, stderr_avg, pct2.5_avg, pct97.5_avg)
 names(coef_summary) <- row.names(m1sdf)
 coef_summary <- as.data.frame(coef_summary)
-coefs <- c("param_est", "std_error", "2.5CI", "97.5CI", "P-value")
+coefs <- c("param_est", "std_error", "2.5CI", "97.5CI")
 coef_summary <- data.frame(coef=coefs, coef_summary)
 
 # Write to file
@@ -162,10 +152,10 @@ m_est <- m_stderr <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
 for (i in 1:10) {
   
   # Subset to one point set at a time
-  pt <- brom1[brom1$pt_index==i,]
+  pt <- brom[brom$pt_index==i,]
   
   # Run model with deltaAICc < 2
-  m1_pt <- glmer(bin.exp ~ Sex*Age + pasture_30 + mix_30_100 + laggedBMI_30 + 
+  m1_pt <- glmer(bin.exp ~ Sex*Age + totalag_60 + mix_15_100 + laggedBMI_30 + 
                    (1|WMU) + (1|year), family=binomial(link="logit"),data=pt)
   
   m1s <- summary(m1_pt)
@@ -190,8 +180,6 @@ for (i in 1:10) {
     names(pct97.5) <- row.names(m1sdf)
     names(m_ranef) <- c("RE_WMU", "RE_year")
   }
-  
-  
 }
 
 # Calculate averages for each coefficient
@@ -202,21 +190,10 @@ pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)], na.rm=TRUE)
 ranef_avg <- as.data.frame(colMeans(m_ranef[sapply(m_ranef, is.numeric)])) %>% rownames_to_column("RE")
 names(ranef_avg)[2] <- "variance"
 
-# One-sample t-test to determine "significance"
-pvalue <- c()
-for (i in 1:ncol(m_est)) {
-  
-  tresult <- t.test(m_est[,i], mu=0, alternative="two.sided")
-  pvalue <- c(pvalue, tresult$p.value)
-}
-pvalue <- as.data.frame(pvalue)
-pvalue <- cbind(names(coef_avg), pvalue)
-pvalue <- pivot_wider(pvalue, names_from="names(coef_avg)", values_from="pvalue") %>% as.data.frame()
-
 # Combine and clean up data frame
-coef_summary <- bind_rows(coef_avg, stderr_avg, pct2.5_avg, pct97.5_avg, pvalue)
+coef_summary <- bind_rows(coef_avg, stderr_avg, pct2.5_avg, pct97.5_avg)
 coef_summary <- as.data.frame(coef_summary)
-coefs <- c("param_est", "std_error", "2.5CI", "97.5CI", "P-value")
+coefs <- c("param_est", "std_error", "2.5CI", "97.5CI")
 coef_summary <- data.frame(coef=coefs, coef_summary)
 
 # Write to file
@@ -232,10 +209,10 @@ m_est <- m_stderr <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
 for (i in 1:10) {
   
   # Subset to one point set at a time
-  pt <- diph1[diph1$pt_index==i,]
+  pt <- diph[diph$pt_index==i,]
   
   # Run model with deltaAICc < 2
-  m1_pt <- glmer(bin.exp ~ Sex*Age + pasture_30 + mix_30_100 + laggedBMI_30 + (1|WMU), 
+  m1_pt <- glmer(bin.exp ~ Sex*Age + totalag_60 + mix_15_100 + laggedBMI_30 + (1|WMU), 
                family=binomial(link="logit"), data=pt)
   if (!isSingular(m1_pt)) {
     
@@ -273,21 +250,10 @@ pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)], na.rm=TRUE)
 ranef_avg <- as.data.frame(colMeans(m_ranef[sapply(m_ranef, is.numeric)])) %>% rownames_to_column("RE")
 names(ranef_avg)[2] <- "variance"
 
-# One-sample t-test to determine "significance"
-pvalue <- c()
-for (i in 1:ncol(m_est)) {
-  
-  tresult <- t.test(m_est[,i], mu=0, alternative="two.sided")
-  pvalue <- c(pvalue, tresult$p.value)
-}
-pvalue <- as.data.frame(pvalue)
-pvalue <- cbind(names(coef_avg), pvalue)
-pvalue <- pivot_wider(pvalue, names_from="names(coef_avg)", values_from="pvalue") %>% as.data.frame()
-
 # Combine and clean up data frame
-coef_summary <- bind_rows(coef_avg, stderr_avg, pct2.5_avg, pct97.5_avg, pvalue)
+coef_summary <- bind_rows(coef_avg, stderr_avg, pct2.5_avg, pct97.5_avg)
 coef_summary <- as.data.frame(coef_summary)
-coefs <- c("param_est", "std_error", "2.5CI", "97.5CI", "P-value")
+coefs <- c("param_est", "std_error", "2.5CI", "97.5CI")
 coef_summary <- data.frame(coef=coefs, coef_summary)
 
 # Write to file
