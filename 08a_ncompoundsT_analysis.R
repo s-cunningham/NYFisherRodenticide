@@ -146,20 +146,10 @@ names(ranef_avg)[2] <- "variance"
 mean(m_est[,2])
 sd(m_est[,2])
 
-# One-sample t-test to determine "significance"
-pvalue <- c()
-for (i in 1:ncol(m_est)) {
-  tresult <- t.test(m_est[,i], mu=0, alternative="two.sided")
-  pvalue <- c(pvalue, tresult$p.value)
-}
-pvalue <- as.data.frame(pvalue)
-pvalue <- cbind(names(coef_avg), pvalue)
-pvalue <- pivot_wider(pvalue, names_from="names(coef_avg)", values_from="pvalue") %>% as.data.frame()
-
 # Combine and clean up data frame
-coef_summary <- bind_rows(coef_avg, stderr_avg, pct2.5_avg, pct97.5_avg, pvalue)
+coef_summary <- bind_rows(coef_avg, stderr_avg, pct2.5_avg, pct97.5_avg)
 coef_summary <- as.data.frame(coef_summary)
-coefs <- c("param_est", "std_error", "2.5CI", "97.5CI", "P-value")
+coefs <- c("param_est", "std_error", "2.5CI", "97.5CI")
 coef_summary <- data.frame(coef=coefs, coef_summary)
 names(coef_summary)[2] <- "Intercept"
 
