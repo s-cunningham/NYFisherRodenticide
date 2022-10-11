@@ -2,7 +2,7 @@
 title: "Rodenticide Tables"
 output:
   pdf_document: default
-date: "2022-09-20"
+date: "2022-10-11"
 ---
 
 ```{r setup, include=FALSE}
@@ -22,11 +22,11 @@ dat1 <- tibble::rownames_to_column(dat1, "VALUE")
 names(dat1) <- dat1[1,]
 dat1 <- dat1[-1,]
 
-dat1[2:6] <- sapply(dat1[2:6], as.numeric)
+dat1[2:5] <- sapply(dat1[2:5], as.numeric)
 
 dat1 <- dat1[c(1:3,7,4:6),]
 dat1$coef <- c("Intercept", "SexM", "Age", "Sex * Age",
-               "Pasture (30km2)", "Intermix (100m, 30km2)", "Lagged BMI (30km2)")
+               "Agriculture (60km2)", "Intermix (100m, 15km2)", "Lagged BMI (30km2)")
 
 kab1 <- knitr::kable(dat1, caption="N compounds (with trace)",
                     booktabs=TRUE, label="kable table1", digits=2)
@@ -36,98 +36,98 @@ kable_classic_2(kab1, full_width=F, latex_options="hold_position")
 
 
 ```{r, echo=FALSE, message=FALSE}
-# dat2 <- read_csv("results/subadsT.csv")
-# dat2 <- as.data.frame(t(dat2))
-# dat2 <- tibble::rownames_to_column(dat2, "VALUE")
-# names(dat2) <- dat2[1,]
-# dat2 <- dat2[-1,]
-# 
-# dat2[2:6] <- sapply(dat2[2:6], as.numeric)
-# 
-# dat2$coef <- c("Threshold0_1", "Threshold1_2", "Threshold2_3+", 
-#                "SexM", "Pasture (30km2)", "Intermix (100m, 30km2)", "Lagged BMI (30km2)")
-# 
-# kab2 <- knitr::kable(dat2, caption="SUBADULTS: N compounds (with trace)",
-#                     booktabs=TRUE, label="kable table1", digits=2)
-# 
-# kable_classic_2(kab2, full_width=F, latex_options="hold_position")
+dat2 <- read_csv("results/subadsT.csv")
+dat2 <- as.data.frame(t(dat2))
+dat2 <- tibble::rownames_to_column(dat2, "VALUE")
+names(dat2) <- dat2[1,]
+dat2 <- dat2[-1,]
+
+dat2[2:5] <- sapply(dat2[2:5], as.numeric)
+
+dat2$coef <- c("Intercept", "SexM", "Agriculture (60km2)", 
+               "Intermix (100m, 15km2)", "Lagged BMI (30km2)")
+
+kab2 <- knitr::kable(dat2, caption="SUBADULTS: N compounds (with trace)",
+                    booktabs=TRUE, label="kable table1", digits=2)
+
+kable_classic_2(kab2, full_width=F, latex_options="hold_position")
 
 ```
 
 
 ```{r, echo=FALSE, message=FALSE}
-# dat3 <- read_csv("results/subadsMO.csv")
-# dat3 <- as.data.frame(t(dat3))
-# dat3 <- tibble::rownames_to_column(dat3, "VALUE")
-# names(dat3) <- dat3[1,]
-# dat3 <- dat3[-1,]
-# 
-# dat3[2:6] <- sapply(dat3[2:6], as.numeric)
-# 
-# dat3$coef <- c("Threshold0_1", "Threshold1_2+", "SexM", "Pasture (30km2)", 
-#                "Intermix (100m, 30km2)", "Lagged BMI (30km2)")
-# 
-# kab3 <- knitr::kable(dat3, caption="SUBADULTS: N compounds (without trace)",
-#                     booktabs=TRUE, label="kable table1", digits=2)
-# 
-# kable_classic_2(kab3, full_width=F, latex_options="hold_position")
+dat3 <- read_csv("results/subadsMO.csv")
+dat3 <- as.data.frame(t(dat3))
+dat3 <- tibble::rownames_to_column(dat3, "VALUE")
+names(dat3) <- dat3[1,]
+dat3 <- dat3[-1,]
+
+dat3[2:5] <- sapply(dat3[2:5], as.numeric)
+
+dat3$coef <- c("Intercept", "SexM", "Agriculture (60km2)",
+               "Intermix (100m, 15km2)", "Lagged BMI (30km2)")
+
+kab3 <- knitr::kable(dat3, caption="SUBADULTS: N compounds (without trace)",
+                    booktabs=TRUE, label="kable table1", digits=2)
+
+kable_classic_2(kab3, full_width=F, latex_options="hold_position")
 ```
 
 ```{r, echo=FALSE, message=FALSE}
-# dat4 <- read_csv("results/binaryTbrodifacoum_coef-summary.csv")
-# dat4 <- as.data.frame(t(dat4))
-# dat4 <- tibble::rownames_to_column(dat4, "VALUE")
-# names(dat4) <- dat4[1,]
-# dat4 <- dat4[-1,]
-# 
-# dat4[2:6] <- sapply(dat4[2:6], as.numeric)
-# 
-# dat4 <- dat4[c(1:3,7,4:6),]
-# dat4$coef <- c("Intercept", "SexM", "Age", "Sex * Age",
-#                "Pasture (30km2)", "Intermix (100m, 30km2)", "Lagged BMI (30km2)")
-# 
-# kab4 <- knitr::kable(dat4, caption="Binary Brodifacoum detections",
-#                     booktabs=TRUE, label="kable table1", digits=2)
-# 
-# kable_classic_2(kab4, full_width=F, latex_options="hold_position")
+dat4 <- read_csv("results/binaryTbrodifacoum_coef-summary.csv")
+dat4 <- as.data.frame(t(dat4))
+dat4 <- tibble::rownames_to_column(dat4, "VALUE")
+names(dat4) <- dat4[1,]
+dat4 <- dat4[-1,]
+
+dat4[2:5] <- sapply(dat4[2:5], as.numeric)
+
+dat4 <- dat4[c(1:3,7,4:6),]
+dat4$coef <- c("Intercept", "SexM", "Age", "Sex * Age",
+               "Agriculture (60km2)", "Intermix (100m, 15km2)", "Lagged BMI (30km2)")
+
+kab4 <- knitr::kable(dat4, caption="Binary Brodifacoum detections",
+                    booktabs=TRUE, label="kable table1", digits=2)
+
+kable_classic_2(kab4, full_width=F, latex_options="hold_position")
 ```
 
 ```{r, echo=FALSE, message=FALSE}
-# dat4 <- read_csv("results/binaryTbromadiolone_coef-summary.csv")
-# dat4 <- as.data.frame(t(dat4))
-# dat4 <- tibble::rownames_to_column(dat4, "VALUE")
-# names(dat4) <- dat4[1,]
-# dat4 <- dat4[-1,]
-# 
-# dat4[2:6] <- sapply(dat4[2:6], as.numeric)
-# 
-# dat4 <- dat4[c(1:3,7,4:6),]
-# dat4$coef <- c("Intercept", "SexM", "Age", "Sex * Age",
-#                "Pasture (30km2)", "Intermix (100m, 30km2)", "Lagged BMI (30km2)")
-# 
-# kab4 <- knitr::kable(dat4, caption="Binary Bromadiolone detections",
-#                     booktabs=TRUE, label="kable table1", digits=2)
-# 
-# kable_classic_2(kab4, full_width=F, latex_options="hold_position")
+dat4 <- read_csv("results/binaryTbromadiolone_coef-summary.csv")
+dat4 <- as.data.frame(t(dat4))
+dat4 <- tibble::rownames_to_column(dat4, "VALUE")
+names(dat4) <- dat4[1,]
+dat4 <- dat4[-1,]
+
+dat4[2:5] <- sapply(dat4[2:5], as.numeric)
+
+dat4 <- dat4[c(1:3,7,4:6),]
+dat4$coef <- c("Intercept", "SexM", "Age", "Sex * Age",
+               "Agriculture (60km2)", "Intermix (100m, 15km2)", "Lagged BMI (30km2)")
+
+kab4 <- knitr::kable(dat4, caption="Binary Bromadiolone detections",
+                    booktabs=TRUE, label="kable table1", digits=2)
+
+kable_classic_2(kab4, full_width=F, latex_options="hold_position")
 
 ```
 
 ```{r, echo=FALSE, message=FALSE}
-# dat4 <- read_csv("results/binaryTdiphacinone_coef-summary.csv")
-# dat4 <- as.data.frame(t(dat4))
-# dat4 <- tibble::rownames_to_column(dat4, "VALUE")
-# names(dat4) <- dat4[1,]
-# dat4 <- dat4[-1,]
-# 
-# dat4[2:6] <- sapply(dat4[2:6], as.numeric)
-# 
-# dat4 <- dat4[c(1:3,7,4:6),]
-# dat4$coef <- c("Intercept", "SexM", "Age", "Sex * Age",
-#                "Pasture (30km2)", "Intermix (100m, 30km2)", "Lagged BMI (30km2)")
-# 
-# kab4 <- knitr::kable(dat4, caption="Binary Diphacinone detections",
-#                     booktabs=TRUE, label="kable table1", digits=2)
-# 
-# kable_classic_2(kab4, full_width=F, latex_options="hold_position")
+dat4 <- read_csv("results/binaryTdiphacinone_coef-summary.csv")
+dat4 <- as.data.frame(t(dat4))
+dat4 <- tibble::rownames_to_column(dat4, "VALUE")
+names(dat4) <- dat4[1,]
+dat4 <- dat4[-1,]
+
+dat4[2:5] <- sapply(dat4[2:5], as.numeric)
+
+dat4 <- dat4[c(1:3,7,4:6),]
+dat4$coef <- c("Intercept", "SexM", "Age", "Sex * Age",
+               "Agriculture (60km2)", "Intermix (100m, 15km2)", "Lagged BMI (30km2)")
+
+kab4 <- knitr::kable(dat4, caption="Binary Diphacinone detections",
+                    booktabs=TRUE, label="kable table1", digits=2)
+
+kable_classic_2(kab4, full_width=F, latex_options="hold_position")
 ```
 
