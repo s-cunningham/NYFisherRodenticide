@@ -11,7 +11,7 @@ options(scipen=999, digits=3)
 set.seed(1)
 
 #### Parallel processing ####
-nt <- min(parallel::detectCores(),6)
+nt <- min(parallel::detectCores(),4)
 
 #### Read in data ####
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv")
