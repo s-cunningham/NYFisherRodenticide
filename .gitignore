@@ -1,3 +1,6 @@
+# Specific files
+10_results_tables.tex
+
 # Ignore data and output for now
 data/
 docs/
