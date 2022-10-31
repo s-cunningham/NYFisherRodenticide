@@ -313,7 +313,13 @@ ages$RegionalSampleID <- ifelse(ages$strl<=5, paste(ages$SubmissionYear, ages$Re
 ages <- ages[,1:18]
 names(ages)[13] <- "RegionalID" 
 
-# Create NYS grid
+## Save cleaned-up file
+ages2 <- ages %>% dplyr::select(RegionalID, TrapperID, HarvestDate, HarvestYear, Sex, Age, AgeClass, Region,
+                         WMU, County, Town, Village) %>% dplyr::filter(HarvestYear>=2018)
+
+write_csv(ages2, "data/analysis-ready/2018-2020_ages_data.csv")
+
+#### Create NYS grid ####
 nys <- readOGR("data/spatial", "NYS_outline_albers")
 nys <- spTransform(nys, CRS="+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=23 +lon_0=-96 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs")
 nys_sf <- st_as_sf(nys)
