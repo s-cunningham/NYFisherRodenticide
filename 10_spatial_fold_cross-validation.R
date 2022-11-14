@@ -1,11 +1,13 @@
 
-
+library(tidyverse)
 library(blockCV)
 library(sf)
 library(raster)
 
 
 ### Read in raster layers ###
+aea <- "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-96 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs"
+
 ## NLCD
 nlcd <- raster("data/rasters/nybuffnlcd.tif")
 
@@ -25,6 +27,7 @@ nlcd_class <- c("Open Water", "Developed, Open Space", "Developed, Low Intensity
 # Add class names and numbers to the raster
 levels(nlcd) <- list(data.frame(ID = nlcd_values,
                                 landcov = nlcd_class))
+nlcd <- projectRaster(nlcd, crs=aea)
 
 ## Wildland-urban interface
 # 100m radius
@@ -60,8 +63,24 @@ beech <- projectRaster(beech, nlcd)
 layers <- stack(nlcd, wui100, wui250, wui500, beech)
 layers <- brick(layers)
 
-## Find autocorrelation range in rasters
-sac <- spatialAutoRange(rasterLayer=layers,
-                        sampleNumber=100,
-                        doParallel=TRUE,
-                        showPlots=TRUE)
+## Read in rodenticide locations
+aea <- "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-96 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs"
+dat <- read_csv("data/analysis-ready/combined_AR_covars.csv")
+dat1 <- dat %>% filter(pt_index==1 & buffsize==30 & radius==100) %>% st_as_sf(coords=c("rand_x", "rand_y"), crs=crs(layers))
+
+## Environmental clustering
+sb <- spatialBlock(speciesData=dat1,
+                   rasterLayer=layers,
+                   rows=10, 
+                   cols=5,
+                   k=5,
+                   selection="systematic")
+
+
+eb <- envBlock(rasterLayer=layers,
+               speciesData=dat,
+               k=5,
+               standardization="standard",
+               rasterBlock=TRUE,
+               verbose=TRUE)
+
