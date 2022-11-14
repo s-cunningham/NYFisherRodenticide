@@ -11,7 +11,7 @@ nlcd <- raster("data/rasters/nybuffnlcd.tif")
 
 # Reclassify 0 (unclassified) and 128 (?) to no data
 m <- rbind(c(0, NA), c(128, NA))
-nlcd <- classify(nlcd, m)
+nlcd <- reclassify(nlcd, m)
 unique(nlcd)
 
 # Set up NLCD classes and class values
@@ -29,13 +29,13 @@ levels(nlcd) <- list(data.frame(ID = nlcd_values,
 ## Wildland-urban interface
 # 100m radius
 wui100 <- raster("data/rasters/WUI100mNY.tif")
-wui100 <- project(wui100, nlcd) # Match projection to nlcd
+wui100 <- projectRaster(wui100, nlcd) # Match projection to nlcd
 
 wui250 <- raster("data/rasters/WUI250mNY.tif")
-wui250 <- project(wui250, nlcd) # Match projection to nlcd
+wui250 <- projectRaster(wui250, nlcd) # Match projection to nlcd
 
 wui500 <- raster("data/rasters/WUI500mNY.tif")
-wui500 <- project(wui500, nlcd) # Match projection to nlcd
+wui500 <- projectRaster(wui500, nlcd) # Match projection to nlcd
 
 # Set up WUI classes and values
 wui_values <- c(0, 1, 2)
@@ -53,7 +53,15 @@ levels(wui500) <- list(data.frame(ID = wui_values,
 
 
 ## Beech basal area
-beech <- rast("data/rasters/baa250_masked.tif")
+beech <- raster("data/rasters/baa250_masked.tif")
+beech <- projectRaster(beech, nlcd)
 
+### Combine rasters
+layers <- stack(nlcd, wui100, wui250, wui500, beech)
+layers <- brick(layers)
 
-
+## Find autocorrelation range in rasters
+sac <- spatialAutoRange(rasterLayer=layers,
+                        sampleNumber=100,
+                        doParallel=TRUE,
+                        showPlots=TRUE)
