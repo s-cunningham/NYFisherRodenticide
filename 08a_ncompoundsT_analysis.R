@@ -98,6 +98,9 @@ write_csv(model_tab, "output/model_selection_table.csv")
 
 #### Running iteration models ####
 
+## Load spatial blocks
+folds <- readRDS("output/spatial_blocks.Rdata")
+
 ## Loop over each set of random points
 m_est <- m_stderr <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
 
@@ -114,6 +117,29 @@ for (i in 1:10) {
                       family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
 
   m1s <- summary(m1_pt)
+  
+  # 5-fold cross validation
+  for (j in 1:5) {
+    
+    # Split data into train & test
+    trainSet <- pt[unlist(folds[[i]][1]),]
+    testSet <- pt[unlist(folds[[i]][2]),]
+    
+    # Create data frame to store prediction for each fold
+    testTable <- pt
+    testTable$pred <- NA
+    
+    # Fit model on training set
+    m1_cv <- glmmTMB(n.compounds.T ~ Sex*Age + totalag_60 + mix_15_100 + 
+                      laggedBMI_30 + (1|WMU) + (1|year), data=trainSet, 
+                    family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
+    testTable$pred[testSet] <- predict(m1_cv, newdata=testSet, type="response")
+    
+    
+  }
+
+  
+  
 
   # save averaged confidence intervals
   pct2.5 <- rbind(pct2.5, t(confint(m1_pt))[1,1:7])
