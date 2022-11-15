@@ -4,7 +4,6 @@ library(blockCV)
 library(sf)
 library(raster)
 
-
 ### Read in raster layers ###
 aea <- "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-96 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs"
 
@@ -71,16 +70,17 @@ dat1 <- dat %>% filter(pt_index==1 & buffsize==30 & radius==100) %>% st_as_sf(co
 ## Environmental clustering
 sb <- spatialBlock(speciesData=dat1,
                    rasterLayer=layers,
-                   rows=10, 
-                   cols=5,
+                   rows=8, 
+                   cols=8,
                    k=5,
-                   selection="systematic")
+                   selection="random")
 
 
-eb <- envBlock(rasterLayer=layers,
-               speciesData=dat,
-               k=5,
-               standardization="standard",
-               rasterBlock=TRUE,
-               verbose=TRUE)
+# eb <- envBlock(rasterLayer=layers,
+#                speciesData=dat1,
+#                k=5,
+#                standardization="normal",
+#                rasterBlock=TRUE,
+#                sampleNumber=50,
+#                verbose=TRUE)
 
