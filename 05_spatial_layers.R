@@ -5,9 +5,11 @@ library(tidyverse)
 library(sf)
 library(terra)
 library(exactextractr)
+library(landscapemetrics)
 
 set.seed(123)
 
+#### Read point locations ####
 ## Read data frame with town/wmu location
 loc <- read.csv("data/analysis-ready/ar_locations_only.csv")
 loc <- loc[,-1]
@@ -38,8 +40,9 @@ keycount <- loc %>% group_by(key) %>% count() %>% as.data.frame()
 # Select random points per polygon
 samples_per_polygon <- 10*keycount$n
 samples <- st_sample(twmu, samples_per_polygon)
-samples <- st_as_sf(samples)
-st_write(samples, "data/spatial/random_samples.shp", layer_options="SHPT=POINT")
+samples <- st_as_sf(samples) %>% 
+  st_transform(crs=aea)
+# st_write(samples, "data/spatial/random_samples.shp", layer_options="SHPT=POINT")
 
 # Add names to points to associate with a liver ID
 N.order <- order(loc$key)
@@ -52,10 +55,9 @@ samples$name <- ids$id_index
 pts <- st_coordinates(samples)
 pts <- cbind(ids$id_index, pts) |> as.data.frame()
 names(pts) <- c("pt_name", "x", "y")
-write_csv(pts, "output/random_point_locs.csv")
+# write_csv(pts, "output/random_point_locs.csv")
 
 # Create buffer for 15km2 area
-buff4p5 <- st_buffer(samples, 1196.83)
 buff15 <- st_buffer(samples, 2185.1)
 buff30 <- st_buffer(samples, 3090.19)
 buff60 <- st_buffer(samples, 4370.194)
@@ -69,14 +71,16 @@ ggplot() +
   coord_sf(xlim=c(1583308.486, 1625741.123), ylim=c(861590.893, 888677.666)) +
   theme_bw()
 
-# convert buffers to sf objects
-buff4p5 <- st_as_sf(buff4p5)
-buff15 <- st_as_sf(buff15)
-buff30 <- st_as_sf(buff30)
-buff60 <- st_as_sf(buff60)
-
-## Load raster layers
+#### Load NLCD layer ####
 nlcd <- rast("data/rasters/nybuffnlcd.tif")
+
+# convert buffers to sf objects
+buff15 <- st_as_sf(buff15)%>% 
+  st_transform(crs=crs(nlcd))
+buff30 <- st_as_sf(buff30)%>% 
+  st_transform(crs=crs(nlcd))
+buff60 <- st_as_sf(buff60)%>% 
+  st_transform(crs=crs(nlcd))
 
 # Reclassify 0 (unclassified) and 128 (?) to no data
 m <- rbind(c(0, NA), c(128, NA))
@@ -96,14 +100,6 @@ levels(nlcd) <- list(data.frame(ID = nlcd_values,
                                 landcov = nlcd_class))
 
 ## Extract values from NLCD raster based on buffer using exactextractr
-landcov_fracs4p5 <- exact_extract(nlcd, buff4p5, function(df) {
-  df %>%
-    mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
-    group_by(name, value) %>%
-    summarize(freq = sum(frac_total))
-}, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
-landcov_fracs4p5$buffsize <- 4.5
-
 landcov_fracs15 <- exact_extract(nlcd, buff15, function(df) {
   df %>%
     mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
@@ -129,7 +125,7 @@ landcov_fracs60 <- exact_extract(nlcd, buff60, function(df) {
 landcov_fracs60$buffsize <- 60
 
 # Combine into single data frame
-landcov_frac <- bind_rows(landcov_fracs4p5, landcov_fracs15, landcov_fracs30, landcov_fracs60)
+landcov_frac <- bind_rows(landcov_fracs15, landcov_fracs30, landcov_fracs60)
 
 # Remove everything that is not forest or ag
 keep_cov <- c(41, 42, 43, 81, 82)
@@ -162,7 +158,7 @@ levels(wui250) <- list(data.frame(ID = wui_values,
 levels(wui500) <- list(data.frame(ID = wui_values,
                                   landcov = wui_class))
 
-#### Extract WUI
+#### Extract WUI 
 
 ### 100m radius
 
@@ -334,4 +330,34 @@ for (i in 1:4) {
 
 write_csv(beech_sum, "data/analysis-ready/baa_sum.csv")
 
+#### Landscape metrics for forest cover ####
+
+## Load rasters reclassified in ArcMap
+mixed <- rast("data/rasters/nybuff_mixed.tif")
+egreen <- rast("data/rasters/nybuff_evergreen.tif")
+decid <- rast("data/rasters/nybuff_deciduous.tif")
+tforest <- rast("data/rasters/nybuff_totalforest.tif")
+
+nlcd_values <- c(1,2)
+
+# Add class names and numbers to the raster
+nlcd_class <- c("not forest", "total forest")
+levels(tforest) <- list(data.frame(ID=nlcd_values, landcov=nlcd_class))
+
+# Reproject samples
+samples <- samples %>% st_transform(crs=crs(mixed))
+
+## Landscape metrics...use points and have LSM create buffer
+sizes <- c(4370.2, 6180.38, 8740.388)
+
+# total forest
+lsm_tforest_output <- sizes %>%
+  set_names() %>%
+  map_dfr(~sample_lsm(tforest, y=samples, what=c("lsm_ct_te", 
+                                               "lsm_c_clumpy",
+                                               "lsm_cl_ed",
+                                               "lsm_c_area_cv",
+                                               "lsm_c_cohesion",
+                                               "lsm_c_cpland"), 
+                      shape="circle", size=.), .id="buffer")
 
