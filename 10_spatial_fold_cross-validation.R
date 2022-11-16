@@ -58,7 +58,7 @@ levels(wui500) <- list(data.frame(ID = wui_values,
 beech <- raster("data/rasters/baa250_masked.tif")
 beech <- projectRaster(beech, nlcd)
 
-### Combine rasters
+## Combine rasters
 layers <- stack(nlcd, wui100, wui250, wui500, beech)
 layers <- brick(layers)
 
@@ -67,7 +67,7 @@ aea <- "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-96 +x_0=0 +y_0=0 +
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv")
 dat1 <- dat %>% filter(pt_index==1 & buffsize==30 & radius==100) %>% st_as_sf(coords=c("rand_x", "rand_y"), crs=crs(layers))
 
-## Environmental clustering
+## Spatial clustering
 sb <- spatialBlock(speciesData=dat1,
                    rasterLayer=layers,
                    rows=8, 
@@ -75,12 +75,27 @@ sb <- spatialBlock(speciesData=dat1,
                    k=5,
                    selection="random")
 
+## Evaluating models
 
-# eb <- envBlock(rasterLayer=layers,
-#                speciesData=dat1,
-#                k=5,
-#                standardization="normal",
-#                rasterBlock=TRUE,
-#                sampleNumber=50,
-#                verbose=TRUE)
+# Loop over each point set
+for (j in 1:10) {
+  
+  iter <- dat %>% filter(pt_index==j & buffsize==30 & radius==100)
+    
+  # Save folds (list)
+  folds <- sb$folds
+  
+  # loop over folds
+  for (i in seq_len(folds)) {
+    
+    trainSet <- iter[unlist(folds[[i]][1]),]
+    testSet <- iter[unlist(folds[[i]][2])]
+    
+    
+    
+  }
+  
+  
+  
+}
 
