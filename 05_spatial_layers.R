@@ -353,11 +353,11 @@ sizes <- c(4370.2, 6180.38, 8740.388)
 # total forest
 lsm_tforest_output <- sizes %>%
   set_names() %>%
-  map_dfr(~sample_lsm(tforest, y=samples, what=c("lsm_ct_te", 
-                                               "lsm_c_clumpy",
-                                               "lsm_cl_ed",
-                                               "lsm_c_area_cv",
-                                               "lsm_c_cohesion",
-                                               "lsm_c_cpland"), 
-                      shape="circle", size=.), .id="buffer")
+  map_dfr(~sample_lsm(tforest, y=samples, plot_id=samples$name, what=c("lsm_ct_te", 
+                                                             "lsm_c_clumpy",
+                                                             "lsm_cl_ed",
+                                                             "lsm_c_area_cv",
+                                                             "lsm_c_cohesion",
+                                                             "lsm_c_cpland"), 
+                                    shape="circle", size=.), .id="buffer")
 
