@@ -22,6 +22,7 @@ ag <- read_csv("data/analysis-ready/nlcd_pct.csv")
 baa <- read_csv("data/analysis-ready/baa_sum.csv")
 pts <- read_csv("output/random_point_locs.csv")
 wmua <- read_csv("data/analysis-ready/wmuas.csv")
+lsm <- read_csv("data/analysis-ready/forest_lsm.csv")
 
 #### Combine data ####
 ## Number of compounds detected
