@@ -333,9 +333,6 @@ write_csv(beech_sum, "data/analysis-ready/baa_sum.csv")
 #### Landscape metrics for forest cover ####
 
 ## Load rasters reclassified in ArcMap
-mixed <- rast("data/rasters/nybuff_mixed.tif")
-egreen <- rast("data/rasters/nybuff_evergreen.tif")
-decid <- rast("data/rasters/nybuff_deciduous.tif")
 tforest <- rast("data/rasters/nybuff_totalforest.tif")
 
 nlcd_values <- c(1,2)
@@ -353,11 +350,23 @@ sizes <- c(4370.2, 6180.38, 8740.388)
 # total forest
 lsm_tforest_output <- sizes %>%
   set_names() %>%
-  map_dfr(~sample_lsm(tforest, y=samples, plot_id=samples$name, what=c("lsm_ct_te", 
-                                                             "lsm_c_clumpy",
-                                                             "lsm_cl_ed",
-                                                             "lsm_c_area_cv",
-                                                             "lsm_c_cohesion",
-                                                             "lsm_c_cpland"), 
-                                    shape="circle", size=.), .id="buffer")
+  map_dfr(~sample_lsm(tforest, 
+                      y=samples, 
+                      plot_id=samples$name, 
+                      what=c("lsm_c_ed",
+                             "lsm_c_ai",
+                             "lsm_c_contig_mn",
+                             "lsm_c_cohesion",
+                             "lsm_c_cpland",
+                             "lsm_c_dcad",
+                             "lsm_l_pladj"), 
+                      shape="circle", size=.), .id="buffer")
+
+# Save only metrics for total forest (class = s)
+lsm_tforest_output <- lsm_tforest_output %>%
+                        filter(class==2) %>%
+                        select(plot_id, buffer, metric, value)
+
+write_csv(lsm_tforest_output, "data/analysis-ready/forest_lsm.csv")
+
 
