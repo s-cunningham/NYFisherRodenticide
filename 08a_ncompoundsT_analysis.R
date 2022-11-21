@@ -118,23 +118,41 @@ for (i in 1:10) {
 
   m1s <- summary(m1_pt)
   
+  # pt2 <- dat1[dat1$pt_index==2,]
+  # pred <- predict(m1_pt, newdata=pt2, type="response", se.fit=TRUE)
+  
   # 5-fold cross validation
+  row_idx <- sample(1:5, nrow(pt), replace=TRUE)
   for (j in 1:5) {
     
     # Split data into train & test
-    trainSet <- pt[unlist(folds[[i]][1]),]
-    testSet <- pt[unlist(folds[[i]][2]),]
+    trainSet <- pt[unlist(folds[[j]][1]),] %>% as_tibble()
+    testSet <- pt[unlist(folds[[j]][2]),] %>% as_tibble()
+
+    # row_idx <- sample(seq_len(nrow(pt)), nrow(pt))
+    # trainSet <- pt[row_idx < nrow(pt) * 0.6,] %>% as_tibble()
+    # testSet <- pt[row_idx >= nrow(pt) * 0.6,] %>% as_tibble()
+    
+    # trainSet <- pt[row_idx[row_idx==j],] %>% as_tibble()
+    # testSet <- pt[row_idx[row_idx!=j],] %>% as_tibble()
+    
+        # Fit model on training set
+    m1_cv <- glmmTMB(n.compounds.T ~ Sex*Age + totalag_60 + mix_15_100 + 
+                       laggedBMI_30 + (1|WMU) + (1|year), data=pt, 
+                     family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
+    pred <- predict(m1_cv, newdata=testSet, type="response", se.fit=TRUE)
     
     # Create data frame to store prediction for each fold
-    testTable <- pt
-    testTable$pred <- NA
+    testTable <- testSet %>% select(RegionalID:WMUA_code,n.compounds.T)
     
-    # Fit model on training set
-    m1_cv <- glmmTMB(n.compounds.T ~ Sex*Age + totalag_60 + mix_15_100 + 
-                      laggedBMI_30 + (1|WMU) + (1|year), data=trainSet, 
-                    family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
-    testTable$pred[testSet] <- predict(m1_cv, newdata=testSet, type="response")
+    testTable$pred <- pred$fit
+    testTable$se.fit <- pred$se.fit
     
+    testTable <- testTable %>% 
+                  mutate(lower=pred-(se.fit*1.96), upper=pred+(se.fit*1.96)) %>%
+                  mutate(correct=if_else(n.compounds.T>=lower & n.compounds.T<=upper, 1, 0))
+    
+    sum(testTable$correct)/nrow(testTable)
     
   }
 
