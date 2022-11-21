@@ -98,6 +98,11 @@ for (i in 1:10) {
                    laggedBMI_30 + (1|WMU) + (1|year), 
                   family=binomial(link="logit"), data=pt)
   
+  
+  
+  
+  
+  
   m1s <- summary(m1_pt)
   m1sdf <- m1s$coefficients
   
