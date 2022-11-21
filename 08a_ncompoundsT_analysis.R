@@ -98,11 +98,10 @@ write_csv(model_tab, "output/model_selection_table.csv")
 
 #### Running iteration models ####
 
-## Load spatial blocks
-folds <- readRDS("output/spatial_blocks.Rdata")
-
 ## Loop over each set of random points
 m_est <- m_stderr <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
+perf <- matrix(NA, ncol=11, nrow=10)
+perf[,1] <- 1:10
 
 # Loop over each point set
 for (i in 1:10) {
@@ -118,23 +117,13 @@ for (i in 1:10) {
 
   m1s <- summary(m1_pt)
   
-  # pt2 <- dat1[dat1$pt_index==2,]
-  # pred <- predict(m1_pt, newdata=pt2, type="response", se.fit=TRUE)
-  
   # 5-fold cross validation
   row_idx <- sample(1:5, nrow(pt), replace=TRUE)
   for (j in 1:5) {
     
     # Split data into train & test
-    trainSet <- pt[unlist(folds[[j]][1]),] %>% as_tibble()
-    testSet <- pt[unlist(folds[[j]][2]),] %>% as_tibble()
-
-    # row_idx <- sample(seq_len(nrow(pt)), nrow(pt))
-    # trainSet <- pt[row_idx < nrow(pt) * 0.6,] %>% as_tibble()
-    # testSet <- pt[row_idx >= nrow(pt) * 0.6,] %>% as_tibble()
-    
-    # trainSet <- pt[row_idx[row_idx==j],] %>% as_tibble()
-    # testSet <- pt[row_idx[row_idx!=j],] %>% as_tibble()
+    trainSet <- pt[row_idx[row_idx==j],] %>% as_tibble()
+    testSet <- pt[row_idx[row_idx!=j],] %>% as_tibble()
     
         # Fit model on training set
     m1_cv <- glmmTMB(n.compounds.T ~ Sex*Age + totalag_60 + mix_15_100 + 
@@ -152,12 +141,9 @@ for (i in 1:10) {
                   mutate(lower=pred-(se.fit*1.96), upper=pred+(se.fit*1.96)) %>%
                   mutate(correct=if_else(n.compounds.T>=lower & n.compounds.T<=upper, 1, 0))
     
-    sum(testTable$correct)/nrow(testTable)
-    
+    perf[i,j+6] <- sum(testTable$correct)/nrow(testTable)
+    perf[i,j+1] <- sqrt(mean((testTable$pred - testTable$n.compounds.T)^2))
   }
-
-  
-  
 
   # save averaged confidence intervals
   pct2.5 <- rbind(pct2.5, t(confint(m1_pt))[1,1:7])
@@ -178,6 +164,11 @@ for (i in 1:10) {
   }
   
 }
+
+# Calculate average performance metric
+perf <- as.data.frame(perf)
+names(perf) <- c("Iter", "RMSE", "Fold1", "Fold2", "Fold3", "Fold4", "Fold5")
+perf <- perf %>% as_tibble() %>% mutate(CVavg=)
 
 # Calculate averages for each coefficient
 coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)], na.rm=TRUE)
