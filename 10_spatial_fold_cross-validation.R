@@ -30,48 +30,49 @@ nlcd <- projectRaster(nlcd, crs=aea)
 
 ## Wildland-urban interface
 # 100m radius
-wui100 <- raster("data/rasters/WUI100mNY.tif")
-wui100 <- projectRaster(wui100, nlcd) # Match projection to nlcd
-
-wui250 <- raster("data/rasters/WUI250mNY.tif")
-wui250 <- projectRaster(wui250, nlcd) # Match projection to nlcd
-
-wui500 <- raster("data/rasters/WUI500mNY.tif")
-wui500 <- projectRaster(wui500, nlcd) # Match projection to nlcd
-
-# Set up WUI classes and values
-wui_values <- c(0, 1, 2)
-wui_class <- c("not WUI", "intermix WUI", "interface WUI")
-
-# Add class names and numbers to the raster
-levels(wui100) <- list(data.frame(ID = wui_values,
-                                  landcov = wui_class))
-
-levels(wui250) <- list(data.frame(ID = wui_values,
-                                  landcov = wui_class))
-
-levels(wui500) <- list(data.frame(ID = wui_values,
-                                  landcov = wui_class))
-
-
-## Beech basal area
-beech <- raster("data/rasters/baa250_masked.tif")
-beech <- projectRaster(beech, nlcd)
-
-## Combine rasters
-layers <- stack(nlcd, wui100, wui250, wui500, beech)
-layers <- brick(layers)
+# wui100 <- raster("data/rasters/WUI100mNY.tif")
+# wui100 <- projectRaster(wui100, nlcd) # Match projection to nlcd
+# 
+# wui250 <- raster("data/rasters/WUI250mNY.tif")
+# wui250 <- projectRaster(wui250, nlcd) # Match projection to nlcd
+# 
+# wui500 <- raster("data/rasters/WUI500mNY.tif")
+# wui500 <- projectRaster(wui500, nlcd) # Match projection to nlcd
+# 
+# # Set up WUI classes and values
+# wui_values <- c(0, 1, 2)
+# wui_class <- c("not WUI", "intermix WUI", "interface WUI")
+# 
+# # Add class names and numbers to the raster
+# levels(wui100) <- list(data.frame(ID = wui_values,
+#                                   landcov = wui_class))
+# 
+# levels(wui250) <- list(data.frame(ID = wui_values,
+#                                   landcov = wui_class))
+# 
+# levels(wui500) <- list(data.frame(ID = wui_values,
+#                                   landcov = wui_class))
+# 
+# 
+# ## Beech basal area
+# beech <- raster("data/rasters/baa250_masked.tif")
+# beech <- projectRaster(beech, nlcd)
+# 
+# ## Combine rasters
+# layers <- stack(nlcd, wui100, wui250, wui500, beech)
+# layers <- brick(layers)
 
 ## Read in rodenticide locations
 aea <- "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-96 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs"
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv")
-dat1 <- dat %>% filter(pt_index==1 & buffsize==30 & radius==100) %>% st_as_sf(coords=c("rand_x", "rand_y"), crs=crs(layers))
+dat1 <- dat %>% filter(pt_index==1 & buffsize==30 & radius==100) %>% st_as_sf(coords=c("rand_x", "rand_y"), crs=crs(nlcd))
 
 ## Spatial clustering
+set.seed(123)
 sb <- spatialBlock(speciesData=dat1,
-                   rasterLayer=layers,
-                   rows=8, 
-                   cols=8,
+                   rasterLayer=nlcd,
+                   rows=3, 
+                   cols=3,
                    k=5,
                    selection="random")
 
