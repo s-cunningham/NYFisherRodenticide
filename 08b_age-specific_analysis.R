@@ -102,6 +102,34 @@ for (i in 1:10) {
   
   m1s <- summary(m1_pt)
   
+  # 5-fold cross validation
+  row_idx <- sample(1:5, nrow(pt), replace=TRUE)
+  for (j in 1:5) {
+    
+    # Split data into train & test
+    trainSet <- pt[row_idx[row_idx==j],] %>% as_tibble()
+    testSet <- pt[row_idx[row_idx!=j],] %>% as_tibble()
+    
+    # Fit model on training set
+    m1_cv <- glmer(bin.exp ~ Sex*Age + totalag_60 + mix_15_100 + 
+                     laggedBMI_30 + (1|WMU) + (1|year), 
+                   family=binomial(link="logit"), data=pt)
+    pred <- predict(m1_cv, newdata=testSet, type="response", se.fit=TRUE)
+    
+    # Create data frame to store prediction for each fold
+    testTable <- testSet %>% select(RegionalID:WMUA_code,n.compounds.T)
+    
+    testTable$pred <- pred$fit
+    testTable$se.fit <- pred$se.fit
+    
+    testTable <- testTable %>% 
+      mutate(lower=pred-(se.fit*1.96), upper=pred+(se.fit*1.96)) %>%
+      mutate(correct=if_else(n.compounds.T>=lower & n.compounds.T<=upper, 1, 0))
+    
+    perf[i,j+6] <- sum(testTable$correct)/nrow(testTable)
+    perf[i,j+1] <- sqrt(mean((testTable$pred - testTable$n.compounds.T)^2))
+  }
+  
   # save averaged confidence intervals
   pct2.5 <- rbind(pct2.5, t(confint(m1_pt))[1,1:5])
   pct97.5 <- rbind(pct97.5, t(confint(m1_pt))[2,1:5])
@@ -120,6 +148,14 @@ for (i in 1:10) {
     names(m_ranef) <- c("RE_WMU", "RE_year")
   }
 }
+
+# Calculate average performance metric
+perf <- as.data.frame(perf)
+names(perf) <- c("Iter", "RMSE1", "RMSE2", "RMSE3", "RMSE4", "RMSE5", "Accur1", "Accur2", "Accur3", "Accur4", "Accur5")
+perf <- perf %>% as_tibble() %>% 
+  mutate(RMSE=(RMSE1+RMSE2+RMSE3+RMSE4+RMSE5)/5,
+         Accuracy=(Accur1+Accur2+Accur3+Accur4+Accur5)/5) %>%
+  select(Iter, RMSE, Accuracy)
 
 # Calculate averages for each coefficient
 coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)], na.rm=TRUE)

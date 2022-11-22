@@ -167,8 +167,11 @@ for (i in 1:10) {
 
 # Calculate average performance metric
 perf <- as.data.frame(perf)
-names(perf) <- c("Iter", "RMSE", "Fold1", "Fold2", "Fold3", "Fold4", "Fold5")
-perf <- perf %>% as_tibble() %>% mutate(CVavg=)
+names(perf) <- c("Iter", "RMSE1", "RMSE2", "RMSE3", "RMSE4", "RMSE5", "Accur1", "Accur2", "Accur3", "Accur4", "Accur5")
+perf <- perf %>% as_tibble() %>% 
+          mutate(RMSE=(RMSE1+RMSE2+RMSE3+RMSE4+RMSE5)/5,
+                 Accuracy=(Accur1+Accur2+Accur3+Accur4+Accur5)/5) %>%
+          select(Iter, RMSE, Accuracy)
 
 # Calculate averages for each coefficient
 coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)], na.rm=TRUE)
