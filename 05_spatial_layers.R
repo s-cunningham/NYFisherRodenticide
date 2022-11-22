@@ -7,42 +7,48 @@ library(terra)
 library(exactextractr)
 library(landscapemetrics)
 
-set.seed(123)
+set.seed(1)
 
 #### Read point locations ####
 ## Read data frame with town/wmu location
-loc <- read.csv("data/analysis-ready/ar_locations_only.csv")
+loc <- read_csv("data/analysis-ready/ar_locations_only.csv")
 loc <- loc[,-1]
 loc <- loc[loc$RegionalID!="2018-9211",] # Seems wrong
 
 ## Read in polygon layer that has union of towns and WMUs
-# twmu <- st_read("data/spatial", "WMUtown_union_Harv")
 aea <- "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-96 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs"
-# twmu <- st_transform(twmu, aea)
-# twmu <- unite(twmu, "key", 2:3, sep="-", remove=FALSE)
-# Remove town/WMU combos that don't have a fisher liver from them
-# twmu <- twmu[twmu$key %in% loc$key,]
-# plot(st_geometry(twmu))
-
-# Write to shapefile for erasing in ArcMap
-# st_write(twmu, "output/AR_towns.shp", layer_options="SHPT=POLYGON")
 
 ## Read edited polygon layer back in
-twmu <- st_read("data/spatial", "ARerase")
+twmu <- st_read("data/spatial", "ARerase_roadbuff")
 st_crs(twmu)
 # Make sure projection is what it's supposed to be, and as a proj4 string
 twmu <- st_transform(twmu, aea)
 
+# Remove unneeded columns from twmu
+twmu <- twmu %>% select(Name, NAME_1, geometry) %>%
+          rename(WMU=Name, Town=NAME_1) %>%
+          unite("key", WMU:Town, sep="-", remove=FALSE) 
+
 ## Select random points for multiple imputation
 # How many fishers per polygon
-keycount <- loc %>% group_by(key) %>% count() %>% as.data.frame()
+keycount <- loc %>% group_by(key) %>% 
+                count() %>% as.data.frame()
+
+# Reorder according to twmu 
+first <- unique(twmu$key)
+second <- unique(keycount$key)
+
+reorder_idx <- match(first, second)
+
+keycount <- keycount[reorder_idx,] 
+keycount <- keycount[complete.cases(keycount),]
 
 # Select random points per polygon
 samples_per_polygon <- 10*keycount$n
 samples <- st_sample(twmu, samples_per_polygon)
 samples <- st_as_sf(samples) %>% 
   st_transform(crs=aea)
-# st_write(samples, "data/spatial/random_samples.shp", layer_options="SHPT=POINT")
+st_write(samples, "data/spatial/random_samples.shp", layer_options="SHPT=POINT")
 
 # Add names to points to associate with a liver ID
 N.order <- order(loc$key)
@@ -55,7 +61,7 @@ samples$name <- ids$id_index
 pts <- st_coordinates(samples)
 pts <- cbind(ids$id_index, pts) |> as.data.frame()
 names(pts) <- c("pt_name", "x", "y")
-# write_csv(pts, "output/random_point_locs.csv")
+write_csv(pts, "output/random_point_locs.csv")
 
 # Create buffer for 15km2 area
 buff15 <- st_buffer(samples, 2185.1)
@@ -64,12 +70,14 @@ buff60 <- st_buffer(samples, 4370.194)
 
 # Plot and example to see what 
 ggplot() + 
-  geom_sf(data=twmu) +
+  geom_sf(data=twmu, aes(color=WMU, fill=Town)) +
   geom_sf(data=samples, shape=20, color="blue", size=3) +
   # geom_sf(data=buff4p5, fill=NA, color="blue") +
   # geom_sf(data=buff60, fill=NA, color="green") +
-  coord_sf(xlim=c(1583308.486, 1625741.123), ylim=c(861590.893, 888677.666)) +
-  theme_bw()
+  # coord_sf(xlim=c(1583308.486, 1625741.123), ylim=c(861590.893, 888677.666)) +
+  coord_sf(xlim=c(1668479, 1719120), ylim=c(819906, 894757)) +
+  theme_bw() +
+  theme(legend.position="none")
 
 #### Load NLCD layer ####
 nlcd <- rast("data/rasters/nybuffnlcd.tif")
