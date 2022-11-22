@@ -13,7 +13,6 @@ set.seed(1)
 ## Read data frame with town/wmu location
 loc <- read_csv("data/analysis-ready/ar_locations_only.csv")
 loc <- loc[,-1]
-loc <- loc[loc$RegionalID!="2018-9211",] # Seems wrong
 
 ## Read in polygon layer that has union of towns and WMUs
 aea <- "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-96 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs"
