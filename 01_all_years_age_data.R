@@ -37,6 +37,7 @@ ages <- ages[ages$Town!="",]
 
 # Remove trailing whitespace
 ages$Town <- str_trim(ages$Town, side="right")
+ages$County <- str_trim(ages$County, side="right")
 
 # Correct spelling errors
 ages$Town[ages$Town=="Dannamora"] <- "Dannemora"
@@ -129,6 +130,8 @@ ages$Town[ages$Town=="Exter"] <- "Exeter"
 ages$Town[ages$Town=="Rennslearville"] <- "Rensselaerville"
 ages$Town[ages$Town=="St. Vincent"] <- "Cape Vincent"
 ages$Town[ages$Town=="Brandalow"] <- "Broadalbin"
+ages$County[ages$County=="St. Lawrsnce" | ages$County=="St.Lawrence" | 
+              ages$County=="St. Lawrence"] <- "St Lawrence"
 
 # Add column to preserve village/hamlet name
 ages$Village <- ages$Town
@@ -235,9 +238,12 @@ ages$Town[ages$Town=="Wylden"] <- "Ava"
 ages$Town[ages$Town=="West Lydon" | ages$County=="Oneida"] <- "Western"
 ages$Town[ages$Town=="Pittfield"] <- "Pittsfield"
 
+# Other corrections
 ages$TrapperID[ages$Town=="Monettca"] <- "2666-8000-0482"
 ages$Town[ages$Town=="Monettca"] <- "Arietta"
 ages$Town[which(ages$RegionalSampleID=="2018-6389" | ages$RegionalSampleID=="2018-6386")] <- "Fairfield"
+ages$Town[ages$Town=="Clinton" & ages$County=="St. Lawrence" & ages$WMU=="6F"] <- "Clifton"
+ages$County[ages$Town=="Freedom" & ages$County=="Allegany"] <- "Cattaraugus"
 
 # Read in town shapefile
 twn <- readOGR("data/spatial", "Cities_Towns")
@@ -305,6 +311,12 @@ ages$longitude[ages$Town=="Lewis"& ages$County=="Essex"] <- 1767925
 ages$latitude[ages$Town=="Lewis" & ages$County=="Essex"] <- 2577509
 ages$longitude[ages$Town=="Middletown"& ages$County=="Delaware"] <- 1739612
 ages$latitude[ages$Town=="Middletown" & ages$County=="Delaware"] <- 2325361
+ages$longitude[ages$Town=="Hornell"] <- 1492045
+ages$latitude[ages$Town=="Hornell"] <- 2292524
+ages$longitude[ages$Town=="Rensselaer"] <- 1798357
+ages$latitude[ages$Town=="Rensselaer"] <- 2394953
+ages$longitude[ages$Town=="Rome"] <- 1644803
+ages$latitude[ages$Town=="Rpme"] <- 2426122
 
 # Add column for string length of Regional Sample ID
 ages$strl <- str_length(ages$RegionalSampleID)
