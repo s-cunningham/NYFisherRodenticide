@@ -20,8 +20,10 @@ names(ages)[c(1,7,9,11,12)] <- c("HarvestDate", "AgeClass", "AgeRange", "Trapper
 ages$AgeRange[ages$AgeRange==""] <- NA
 ages$TrapperID[ages$TrapperID==""] <- NA
 ages$HarvestDate <- as.Date(ages$HarvestDate, format="%m/%d/%Y")
+ages <- ages %>% as_tibble()
 
 # Separate WMU by region
+ages <- ages %>% mutate(WMU=str_to_upper(WMU))
 ages <- separate(ages, 4, into=c("Region", "x"), sep="[A-Z]", remove=FALSE)
 ages <- ages[,-6]
 
@@ -244,6 +246,7 @@ ages$Town[ages$Town=="Monettca"] <- "Arietta"
 ages$Town[which(ages$RegionalSampleID=="2018-6389" | ages$RegionalSampleID=="2018-6386")] <- "Fairfield"
 ages$Town[ages$Town=="Clinton" & ages$County=="St. Lawrence" & ages$WMU=="6F"] <- "Clifton"
 ages$County[ages$Town=="Freedom" & ages$County=="Allegany"] <- "Cattaraugus"
+
 
 # Read in town shapefile
 twn <- readOGR("data/spatial", "Cities_Towns")
