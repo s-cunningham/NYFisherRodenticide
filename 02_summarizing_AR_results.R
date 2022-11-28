@@ -46,12 +46,14 @@ dat$County[dat$RegionalID=="2020-6140"] <- "Oneida"
 dat$WMU[dat$RegionalID=="2018-5318"] <- "6J"
 dat$Region[dat$RegionalID=="2018-5318"] <- 6
 dat$WMU[dat$Town=="Argyle" & dat$WMU=="5A"] <- "5S"
-dat$WMU[dat$Town=="Freedom" & dat$WMU=="9W"] <- "9T"
+dat$WMU[dat$Town=="Freedom" & dat$WMU=="9W"] <- "9N"
 dat$WMU[dat$Town=="Western" & dat$WMU=="5H"] <- "6K"
+dat$HarvestYear[dat$RegionalID=="2020-4018"] <- "2020"
 
 dat <- dat %>% mutate_at(c(10:20), as.numeric) %>% 
   unite("key", c(WMU,Town), sep="-", remove=FALSE) %>%
-  arrange(key)
+  arrange(key) %>%
+  rename(year=HarvestYear)
 
 unique(dat$key)
 
@@ -76,3 +78,54 @@ datl$exposure[datl$ppm>=0.001] <- "measured"
 datl$bin.exp <- ifelse(datl$exposure=="ND", 0, 1)
 datl$bin.exp.ntr <- ifelse(datl$exposure=="measured", 1, 0)
 
+# write to file
+write.csv(datl, "output/summarized_AR_results.csv")
+
+## Summarize by number of compounds
+
+# look at years
+yr <- dat[,c(1:7)]
+
+# with trace
+dat2 <- datl %>% group_by(RegionalID) %>% summarize(n.compounds=sum(bin.exp))
+dat2 <- left_join(dat2, yr, by="RegionalID") %>%
+          select(RegionalID, year:key, n.compounds)
+write.csv(dat2, "output/ncompounds_trace.csv")
+
+# without trace
+dat3 <- datl %>% group_by(RegionalID) %>% summarize(n.compounds=sum(bin.exp.ntr))
+dat3 <- left_join(dat3, yr, by="RegionalID")%>%
+          select(RegionalID, year:key, n.compounds)
+write.csv(dat3, "output/ncompounds_notrace.csv")
+
+dat2s <- dat2 %>% group_by(n.compounds, year) %>% count()
+dat2s$Trace <- "yes"
+
+dat3s <- dat3 %>% group_by(n.compounds, year) %>% count()
+dat3s$Trace <- "no"
+
+datbar <- rbind(dat2s, dat3s)
+
+ggplot(datbar) +
+  geom_bar(aes(x=n.compounds, y=n, fill=Trace), stat="identity", position=position_dodge()) + 
+  facet_grid(.~year) + theme_bw() + ylab("Count") + xlab("Number of Compounds") +
+  theme(strip.text=element_text(size=14),
+        axis.text=element_text(size=14),
+        axis.title=element_text(size=14, face="bold"),
+        legend.text=element_text(size=14),
+        legend.title=element_text(size=14, face="bold")) 
+
+ggplot(dat2) +
+  geom_tile(aes(x=RegionalID, y=n.compounds, fill=n.compounds), color="black") +
+  facet_grid(year~., space="free_y", scales="free")
+
+ggplot(dat3) +
+  geom_tile(aes(x=RegionalID, y=n.compounds, fill=n.compounds), color="black") +
+  facet_grid(year~., space="free_y", scales="free")
+
+# plot by concentration
+ggplot(datl) +
+  geom_tile(aes(x=RegionalID, y=compound, fill=ppm), color="gray80") +
+  scale_fill_gradient(low="#ffffcc", high="#081d58", space="Lab", na.value="gray80", limits=c(0,1)) +
+  theme_bw() +
+  theme(axis.text.x=element_blank())
