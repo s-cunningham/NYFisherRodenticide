@@ -237,7 +237,7 @@ ages$Town[ages$Town=="Old Forge"] <- "Webb"
 ages$Town[ages$Town=="Lockwood"] <- "Barton"
 ages$Town[ages$Town=="Lusselville"] <- "Ephratah"
 ages$Town[ages$Town=="Wylden"] <- "Ava"
-ages$Town[ages$Town=="West Lydon" & ages$County=="Oneida"] <- "Western"
+# ages$Town[ages$Town=="West Lydon" & ages$County=="Oneida"] <- "Western"
 ages$Town[ages$Town=="Pittfield"] <- "Pittsfield"
 
 # Other corrections
