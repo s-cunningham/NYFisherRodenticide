@@ -10,15 +10,15 @@ library(landscapemetrics)
 set.seed(1)
 
 #### Read point locations ####
-## Read data frame with town/wmu location
-loc <- read_csv("data/analysis-ready/ar_locations_only.csv")
+## Read data frame with town-WMU key
+loc <- read_csv("output/ncompounds_trace.csv")
 loc <- loc[,-1]
 
 ## Read in polygon layer that has union of towns and WMUs
 aea <- "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-96 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs"
 
 ## Read edited polygon layer back in
-twmu <- st_read("data/spatial", "ARpolygons202211")
+twmu <- st_read("data/spatial", "ARfinal20221128")
 st_crs(twmu)
 # Make sure projection is what it's supposed to be, and as a proj4 string
 twmu <- st_transform(twmu, aea)
@@ -47,7 +47,7 @@ samples_per_polygon <- 10*keycount$n
 samples <- st_sample(twmu, samples_per_polygon)
 samples <- st_as_sf(samples) %>% 
   st_transform(crs=aea)
-st_write(samples, "data/spatial/random_samples.shp", layer_options="SHPT=POINT")
+# st_write(samples, "data/spatial/random_samples.shp", layer_options="SHPT=POINT")
 
 # Add names to points to associate with a liver ID
 N.order <- order(loc$key)
@@ -169,15 +169,6 @@ levels(wui500) <- list(data.frame(ID = wui_values,
 
 ### 100m radius
 
-## 4.5 km2 buffer
-wui100_fracs4p5 <- exact_extract(wui100, buff4p5, function(df) {
-  df %>%
-    mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
-    group_by(name, value) %>%
-    summarize(freq = sum(frac_total))
-}, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
-wui100_fracs4p5$buffsize <- 4.5
-
 ## 15 km2 buffer
 wui100_fracs15 <- exact_extract(wui100, buff15, function(df) {
   df %>%
@@ -205,20 +196,11 @@ wui100_fracs60 <- exact_extract(wui100, buff60, function(df) {
 }, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
 wui100_fracs60$buffsize <- 60
 
-wui100_fracs <- rbind(wui100_fracs4p5, wui100_fracs15, wui100_fracs30, wui100_fracs60)
+wui100_fracs <- rbind(wui100_fracs15, wui100_fracs30, wui100_fracs60)
 write_csv(wui100_fracs, "data/analysis-ready/wui100_frac.csv")
 
 
 ### 250 m radius
-
-## 4.5 km2 buffer
-wui250_fracs4p5 <- exact_extract(wui250, buff4p5, function(df) {
-  df %>%
-    mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
-    group_by(name, value) %>%
-    summarize(freq = sum(frac_total))
-}, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
-wui250_fracs4p5$buffsize <- 4.5
 
 ## 15 km2 buffer
 wui250_fracs15 <- exact_extract(wui250, buff15, function(df) {
@@ -248,19 +230,10 @@ wui250_fracs60 <- exact_extract(wui250, buff60, function(df) {
 wui250_fracs60$buffsize <- 60
 
 # Save as .csv
-wui250_fracs <- rbind(wui250_fracs4p5, wui250_fracs15, wui250_fracs30, wui250_fracs60)
+wui250_fracs <- rbind(wui250_fracs15, wui250_fracs30, wui250_fracs60)
 write_csv(wui250_fracs, "data/analysis-ready/wui250_frac.csv")
 
 ## 500 m radius
-
-## 4.5 km2 buffer
-wui500_fracs4p5 <- exact_extract(wui500, buff4p5, function(df) {
-  df %>%
-    mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
-    group_by(name, value) %>%
-    summarize(freq = sum(frac_total))
-}, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
-wui500_fracs4p5$buffsize <- 4.5
 
 ## 15 km2
 wui500_fracs15 <- exact_extract(wui500, buff15, function(df) {
@@ -290,7 +263,7 @@ wui500_fracs60 <- exact_extract(wui500, buff60, function(df) {
 wui500_fracs60$buffsize <- 60
 
 # Save to csv
-wui500_fracs <- rbind(wui500_fracs4p5, wui500_fracs15, wui500_fracs30, wui500_fracs60)
+wui500_fracs <- rbind(wui500_fracs15, wui500_fracs30, wui500_fracs60)
 write_csv(wui500_fracs, "data/analysis-ready/wui500_frac.csv")
 
 #### Read in predicted beech layer ####
@@ -349,7 +322,7 @@ nlcd_class <- c("not forest", "total forest")
 levels(tforest) <- list(data.frame(ID=nlcd_values, landcov=nlcd_class))
 
 # Reproject samples
-samples <- samples %>% st_transform(crs=crs(mixed))
+samples <- samples %>% st_transform(crs=crs(tforest))
 
 ## Landscape metrics...use points and have LSM create buffer
 sizes <- c(4370.2, 6180.38, 8740.388)
