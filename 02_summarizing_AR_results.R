@@ -79,7 +79,7 @@ datl$bin.exp <- ifelse(datl$exposure=="ND", 0, 1)
 datl$bin.exp.ntr <- ifelse(datl$exposure=="measured", 1, 0)
 
 # write to file
-write.csv(datl, "output/summarized_AR_results.csv")
+write_csv(datl, "output/summarized_AR_results.csv")
 
 ## Summarize by number of compounds
 
