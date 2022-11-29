@@ -5,19 +5,21 @@ library(tidyverse)
 
 #### Read in data ####
 dat <- read_csv("output/summarized_AR_results.csv")
-trace_y <- read_csv("output/ncompounds_trace.csv")
-trace_y <- trace_y[,-c(1,4,5)]
-trace_n <- read_csv("output/ncompounds_notrace.csv")
-trace_n <- trace_n[,-c(1,4,5)]
-wui100 <- read_csv("data/analysis-ready/wui100_frac.csv")
-wui100 <- wui100[wui100$value==1 | wui100$value==2, -1]
-wui100 <- wui100[complete.cases(wui100),]
-wui250 <- read_csv("data/analysis-ready/wui250_frac.csv")
-wui250 <- wui250[wui250$value==1 | wui250$value==2, -1]
-wui250 <- wui250[complete.cases(wui250),]
-wui500 <- read_csv("data/analysis-ready/wui500_frac.csv")
-wui500 <- wui500[wui500$value==1 | wui500$value==2, -1]
-wui500 <- wui500[complete.cases(wui500),]
+trace_y <- read_csv("output/ncompounds_trace.csv") %>% 
+  select(RegionalID, n.compounds) %>%
+  rename(n.compounds.T=n.compounds)
+trace_n <- read_csv("output/ncompounds_notrace.csv") %>% 
+  select(RegionalID, n.compounds) %>%
+  rename(n.compounds.MO=n.compounds)
+wui100 <- read_csv("data/analysis-ready/wui100_frac.csv") %>%
+  filter(value==1 | value==2) %>%
+  filter(complete.cases(.))
+wui250 <- read_csv("data/analysis-ready/wui250_frac.csv") %>%
+  filter(value==1 | value==2) %>%
+  filter(complete.cases(.))
+wui500 <- read_csv("data/analysis-ready/wui500_frac.csv") %>%
+  filter(value==1 | value==2) %>%
+  filter(complete.cases(.))
 ag <- read_csv("data/analysis-ready/nlcd_pct.csv")
 baa <- read_csv("data/analysis-ready/baa_sum.csv")
 pts <- read_csv("output/random_point_locs.csv")
@@ -26,38 +28,32 @@ lsm <- read_csv("data/analysis-ready/forest_lsm.csv")
 
 #### Combine data ####
 ## Number of compounds detected
-names(trace_y)[2] <- "n.compounds.T"
-names(trace_n)[2] <- "n.compounds.MO"
 ncomps <- left_join(trace_n, trace_y, by="RegionalID")
 
 ## Save details of each sample
-dets <- dat[,c(2,6:9,15:18)]
-dets <- unique(dets)
+dets <- dat %>% select(RegionalID:WMU,Town) %>% distinct()
 
 ## Add a column to points with just sample ID
-pts <- separate(pts, 1, into=c("RegionalID", "throw"), sep="_", remove=FALSE)
-pts <- pts[,c(2,1,4,5)]
-names(pts)[3:4] <- c("rand_x", "rand_y")
+pts <- separate(pts, 1, into=c("RegionalID", "throw"), sep="_", remove=FALSE) %>%
+          select(RegionalID,pt_name,x,y) %>%
+          rename(rand_x=x, rand_y=y)
 
 ## Subset forest and add together
-ag <- ag[,-1]
-forest <- ag[ag$value==41 | ag$value==42 | ag$value==43,]
+forest <- ag %>% filter(value==41 | value==42 | value==43)   
 forest$value <- factor(forest$value, levels=c(41, 42, 43), labels=c("deciduous", "evergreen", "mixed")) |> as.character()
-forest <- forest[forest$buffsize>10,]
-forest <- forest[,c(1,4,2,3)]
-forest <- pivot_wider(forest, names_from=value, values_from=freq)
-names(forest)[1] <- "pt_name"
+forest <- forest %>% select(name,buffsize,value,freq) %>%
+           pivot_wider(names_from=value, values_from=freq) %>%
+           rename(pt_name=name)
 forest$deciduous[is.na(forest$deciduous)] <- 0
 forest$evergreen[is.na(forest$evergreen)] <- 0
 forest$mixed[is.na(forest$mixed)] <- 0
 forest <- mutate(forest, totalforest=deciduous + evergreen + mixed)
 
 ## Subset ag and add together
-ag <- ag[ag$value==81 | ag$value==82, ]
-ag$value <- factor(ag$value, levels=c(81, 82), labels=c("pasture", "crops")) |> as.character()
-ag <- ag[ag$buffsize>10,]
-names(ag)[1] <- "pt_name"
-ag <- pivot_wider(ag, names_from=value, values_from=freq)
+ag <- ag %>% filter(value==81 | value==82)
+ag$value <- factor(ag$value, levels=c(81, 82), labels=c("pasture", "crops")) %>% as.character()
+ag <- ag %>% pivot_wider(names_from=value, values_from=freq) %>%
+        rename(pt_name=name)
 ag$crops[is.na(ag$crops)] <- 0
 ag$pasture[is.na(ag$pasture)] <- 0
 ag <- mutate(ag, totalag=crops + pasture)
@@ -77,36 +73,45 @@ names(wui)[4:5] <- c("intermix", "interface")
 wui[is.na(wui)] <- 0
 wui <- mutate(wui, totalWUI=intermix + interface)
 names(wui)[1] <- "pt_name"
-wui <- wui[wui$buffsize>10,]
+
+# reorganize landscape metrics
+lsm <- lsm %>% 
+        mutate(buffer=replace(buffer, buffer==4370.200, 15)) %>%
+  mutate(buffer=replace(buffer, buffer==4370.200, 15)) %>%
+  mutate(buffer=replace(buffer, buffer==6180.38, 30)) %>%
+  mutate(buffer=replace(buffer, buffer==8740.388, 60)) %>%
+  pivot_wider(names_from=metric, values_from=value) %>%
+  rename(buffsize=buffer, pt_name=plot_id)
 
 ## Joining data
 # Join location, age & sex details to random points
 dets <- left_join(pts, dets, by="RegionalID")
 dat <- left_join(dets, ncomps, by="RegionalID")
-# dat1 <- left_join(dets, ncomps, by="RegionalID")
 dat <- separate(dat, 2, into=c("id", "pt_index"), sep="_", remove=FALSE)
 dat <- dat[,-c(3)]
 dat$pt_index <- as.numeric(dat$pt_index)
 
 # Add columns for buffer and radius
 dat <- bind_rows(dat, dat, dat)
-dat$buffsize <- rep(c(15,30,60), each=3370) # buffer sizes
+dat$buffsize <- rep(c(15,30,60), each=3380) # buffer sizes
 dat <- bind_rows(dat, dat, dat)
-dat$radius <- rep(c(100,250,500), each=10110) # WUI radius sizes
+dat$radius <- rep(c(100,250,500), each=10140) # WUI radius sizes
+dat <- dat %>% select(RegionalID:n.compounds.MO, n.compounds.T,buffsize,radius)
 
 # join covariate data
-dat <- left_join(dat, ag, by=c("pt_name", "buffsize"))
-dat <- left_join(dat, forest, by=c("pt_name", "buffsize"))
-dat <- left_join(dat, wui, by=c("pt_name", "buffsize", "radius"))
+dat <- left_join(dat, ag, by=c("pt_name", "buffsize")) %>%
+  left_join(forest, by=c("pt_name", "buffsize")) %>%
+  left_join(wui, by=c("pt_name", "buffsize", "radius")) %>%
+  left_join(lsm, by=c("pt_name", "buffsize"))
 
 ## Add beech mast index
-dat <- left_join(dat, baa, by=c("pt_name", "buffsize", "year"))
-names(dat)[28] <- "BMI"
+dat <- left_join(dat, baa, by=c("pt_name", "buffsize", "year")) %>%
+          rename(BMI=baa)
 
 # add 1 to year to get lagged
 baa$year <- baa$year + 1
-dat <- left_join(dat, baa, by=c("pt_name", "buffsize", "year"))
-names(dat)[29] <- "laggedBMI"
+dat <- left_join(dat, baa, by=c("pt_name", "buffsize", "year")) %>%
+  rename(laggedBMI=baa)
 
 ## Fill in 0 for missing values (WUI)
 dat <- dat %>% mutate(interface = coalesce(interface, 0),
@@ -120,7 +125,7 @@ dat <- dat %>% mutate(interface = coalesce(interface, 0),
 dat <- left_join(dat, wmua, by="WMU")
 
 # Reorder columns
-dat <- dat[,c(1:7,31,8:9,13:20,25:29)]
+dat <- dat %>% select(RegionalID:AgeClass,key,Region,WMUA_code,WMU,Town:laggedBMI)
 
 ### Save data to file ####
 write_csv(dat, "data/analysis-ready/combined_AR_covars.csv")
