@@ -14,7 +14,6 @@ nt <- min(parallel::detectCores(),4)
 
 #### Read in data ####
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv")
-dat <- as.data.frame(dat)
 
 #### Analysis Set-up ####
 
@@ -24,11 +23,8 @@ dat$WMUA_code <- as.factor(dat$WMUA_code)
 dat$year <- factor(dat$year)
 dat$RegionalID <- factor(dat$RegionalID)
 
-# Resort columns
-dat <- dat[,c(1:11,13:23)] 
-
 ## Scale and center variables
-dat[,c(10,15:22)] <- scale(dat[,c(10,15:22)])
+dat[,c(8,19:36)] <- scale(dat[,c(8,19:36)])
 
 ## Percent AG
 pctAG <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, pasture, crops, totalag) %>% 
@@ -72,13 +68,24 @@ names(wui1)[4:12] <- c("wui_15_100", "wui_30_100", "wui_60_100",
                        "wui_15_250", "wui_30_250", "wui_60_250",
                        "wui_15_500", "wui_30_500", "wui_60_500") 
 
+## Landscape metrics
+lsm1 <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, ai:ed) %>% 
+  distinct() %>% 
+  group_by(RegionalID) %>% 
+  pivot_wider(names_from=buffsize, values_from=c(ai:ed), values_fn=unique) 
+
 #### Set up data to run for each combination of covariates ####
 dat1 <- dat %>% select(RegionalID:n.compounds.T) %>% distinct() %>%
           left_join(pctAG, by=c("RegionalID", "pt_name", "pt_index")) %>%
           left_join(baa1, by=c("RegionalID", "pt_name", "pt_index")) %>%
           left_join(intermix1, by=c("RegionalID", "pt_name", "pt_index")) %>%
           left_join(interface1, by=c("RegionalID", "pt_name", "pt_index")) %>%
-          left_join(wui1, by=c("RegionalID", "pt_name", "pt_index"))
+          left_join(wui1, by=c("RegionalID", "pt_name", "pt_index")) %>%
+          left_join(lsm1, by=c("RegionalID", "pt_name", "pt_index"))
+
+# correlation coefficient
+cormat <- cor(dat1[,c(17:76)]) |> as.data.frame()
+write_csv(cormat, "output/correlation_matrix.csv")
 
 #### Read in formulas ####
 source("00_model_lists.R")

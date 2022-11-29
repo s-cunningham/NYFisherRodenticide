@@ -8,21 +8,18 @@ set.seed(123)
 #### Read in data ####
 # Landscape covariates
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv")
-dat <- as.data.frame(dat)
 
 # Individual compounds
-dat2 <- read_csv("output/summarized_AR_results.csv")
-dat2 <- as.data.frame(dat2)
-
-dat2 <- dat2[dat2$compound=="Diphacinone" | dat2$compound=="Brodifacoum" |
-             dat2$compound=="Bromadiolone", c(2,19,21:22) ]
-
-dat <- left_join(dat, dat2, by="RegionalID")
+dat2 <- read_csv("output/summarized_AR_results.csv") %>%
+          filter(compound=="Diphacinone" | compound=="Brodifacoum" | compound=="Bromadiolone") %>%
+          select(RegionalID,compound,bin.exp,bin.exp.ntr)
+dat <- left_join(dat, dat2, by="RegionalID") %>%
+        rename(catAge=AgeClass)
 
 # Make age a categorical variable
 dat$catAge[dat$Age>=3.5] <- "adult"
 dat$catAge[dat$Age==2.5] <- "subadult"
-dat$catAge[dat$Ag<2.5] <- "juvenile"
+dat$catAge[dat$Age<2.5] <- "juvenile"
 
 # Make random effects factors
 dat$WMU <- as.factor(dat$WMU)
@@ -30,50 +27,67 @@ dat$WMUA_code <- as.factor(dat$WMUA_code)
 dat$year <- factor(dat$year)
 
 ## Reorder columns
-dat <- dat[,c(1:10,27,11,24:26,14:23)]
+dat <- dat %>% select(RegionalID:Town,compound,bin.exp,bin.exp.ntr,buffsize:laggedBMI)
 
 ## Scale and center variables
-dat[,c(10,18:25)] <- scale(dat[,c(10,18:25)])
+dat[,c(8,20:36)] <- scale(dat[,c(8,20:36)])
 
 #### Analysis ####
 ## Use pooled data to determine scale
 
-## Pe AG
-pctAG <- dat[, c(1:3,6:8,15,16,18:20)]
-pctAG <- distinct(pctAG)
-pctAG <- pctAG %>% group_by(RegionalID) %>% 
-  pivot_wider(names_from=buffsize, values_from=c(pasture, crops, totalag)) %>% as.data.frame()
+## Percent AG
+pctAG <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, pasture, crops, totalag) %>% 
+  distinct() %>% 
+  group_by(RegionalID) %>% 
+  pivot_wider(names_from=buffsize, values_from=c(pasture, crops, totalag))
 
 ## Beech basal area
-baa1 <- dat[, c(1:3,6:8,15,16,24,25)]
-baa1  <- baa1  %>% group_by(RegionalID) %>% pivot_wider(names_from=buffsize, values_from=c(BMI, laggedBMI), values_fn=unique) %>% as.data.frame()
+baa1 <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, BMI, laggedBMI) %>% 
+  distinct() %>% 
+  group_by(RegionalID) %>% 
+  pivot_wider(names_from=buffsize, values_from=c(BMI, laggedBMI), values_fn=unique) 
 
 ## Wildland-urban interface
-# Intermix
-intermix1 <- dat[, c(1:3,6:8,15:17,21)]
-intermix1 <- unite(intermix1, "buffrad", 8:9, sep="_") %>% group_by(RegionalID) %>% 
-  pivot_wider(names_from=buffrad, values_from=intermix, values_fn=unique) %>% as.data.frame()
-names(intermix1)[8:16] <- c("mix_15_100", "mix_30_100", "mix_60_100",
+intermix1 <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, radius, intermix) %>%
+  unite("buffrad", 4:5, sep="_") %>% 
+  group_by(RegionalID) %>% distinct() %>%
+  pivot_wider(names_from=buffrad, values_from=intermix) 
+names(intermix1)[4:12] <- c("mix_15_100", "mix_30_100", "mix_60_100",
                             "mix_15_250", "mix_30_250", "mix_60_250",
-                            "mix_15_500", "mix_30_500", "mix_60_500")  
+                            "mix_15_500", "mix_30_500", "mix_60_500") 
+
+interface1  <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, radius, interface) %>%
+  unite("buffrad", 4:5, sep="_") %>% 
+  group_by(RegionalID) %>% distinct() %>%
+  pivot_wider(names_from=buffrad, values_from=interface) 
+names(interface1)[4:12] <- c("face_15_100", "face_30_100", "face_60_100",
+                             "face_15_250", "face_30_250", "face_60_250",
+                             "face_15_500", "face_30_500", "face_60_500") 
+
+wui1  <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, radius, totalWUI) %>%
+  unite("buffrad", 4:5, sep="_") %>% 
+  group_by(RegionalID) %>% distinct() %>%
+  pivot_wider(names_from=buffrad, values_from=totalWUI)
+names(wui1)[4:12] <- c("wui_15_100", "wui_30_100", "wui_60_100",
+                       "wui_15_250", "wui_30_250", "wui_60_250",
+                       "wui_15_500", "wui_30_500", "wui_60_500") 
+
+## Landscape metrics
+lsm1 <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, ai:ed) %>% 
+  distinct() %>% 
+  group_by(RegionalID) %>% 
+  pivot_wider(names_from=buffsize, values_from=c(ai:ed), values_fn=unique) 
 
 ## Set up data to run for each combination of covariates ##
-dat1 <- dat[,c(1:15)]
-dat1 <- distinct(dat1)
+dat1 <- dat %>% select(RegionalID:bin.exp) %>% distinct() %>%
+  left_join(pctAG, by=c("RegionalID", "pt_name", "pt_index")) %>%
+  left_join(baa1, by=c("RegionalID", "pt_name", "pt_index")) %>%
+  left_join(intermix1, by=c("RegionalID", "pt_name", "pt_index")) %>%
+  left_join(interface1, by=c("RegionalID", "pt_name", "pt_index")) %>%
+  left_join(wui1, by=c("RegionalID", "pt_name", "pt_index")) %>%
+  left_join(lsm1, by=c("RegionalID", "pt_name", "pt_index"))
 
-# Join percent agriculture
-pctAG <- pctAG[,c(1:3, 16)]
-dat1 <- left_join(dat1, pctAG, by=c("RegionalID", "pt_name", "pt_index"))
-
-# Join beech basal area
-baa1 <- baa1[,c(1:3, 12)]
-dat1 <- left_join(dat1, baa1, by=c("RegionalID", "pt_name", "pt_index"))
-
-# Join WUI
-intermix1 <- intermix1[,c(1:3, 8)]
-dat1 <- left_join(dat1, intermix1, by=c("RegionalID", "pt_name", "pt_index"))
-
-# write_csv(dat1, "output/binary_model_data.csv")
+write_csv(dat1, "output/binary_model_data.csv")
 
 # Subset by compound
 brod <- dat1[dat1$compound=="Brodifacoum",]
