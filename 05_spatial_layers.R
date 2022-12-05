@@ -53,9 +53,12 @@ samples <- st_as_sf(samples) %>%
 N.order <- order(loc$key)
 loc <- loc[N.order,]
 ids <- data.frame(id=rep(loc$RegionalID, each=10), buffno=rep(1:10, length(unique(loc$RegionalID))))
-ids <- unite(ids, "id_index", 1:2, sep="_", remove=TRUE)
+ids <- unite(ids, "id_index", 1:2, sep="_", remove=FALSE)
 
 samples$name <- ids$id_index
+samples$RegionalID <- ids$id
+samples <- left_join(samples, loc[,1:2], by="RegionalID")
+st_write(samples, "data/spatial/df_random_samples.shp", layer_options="SHPT=POINT")
 
 pts <- st_coordinates(samples)
 pts <- cbind(ids$id_index, pts) |> as.data.frame()
