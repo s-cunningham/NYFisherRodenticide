@@ -85,7 +85,7 @@ dat1 <- dat %>% select(RegionalID:n.compounds.T) %>% distinct() %>%
 
 # correlation coefficient
 cormat <- cor(dat1[,c(17:76)]) |> as.data.frame()
-write_csv(cormat, "output/correlation_matrix.csv")
+# write_csv(cormat, "output/correlation_matrix.csv")
 
 #### Read in formulas ####
 source("00_model_lists.R")
@@ -93,15 +93,35 @@ source("00_model_lists.R")
 #### Run models with glmmTMB ####
 intx.models <- lapply(intx.formulae, FUN=glmmTMB, data=dat1, 
                     family=compois, control=glmmTMBControl(parallel=nt)) 
+model.list <- model.sel(intx.models)
+model_tab <- as.data.frame(model.list)
+model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
+write_csv(model_tab, "output/interaction_model_selection_table.csv")
+
 add.models <- lapply(add.formulae, FUN=glmmTMB, data=dat1, 
                       family=compois, control=glmmTMBControl(parallel=nt)) 
-
-# Model selection for scale
-model.list <- model.sel(intx.models, add.models)
+model.list <- model.sel(add.models)
 model_tab <- as.data.frame(model.list)
+model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
+write_csv(model_tab, "output/additive_model_selection_table.csv")
 
-# Write to csv so it is decipherable
-write_csv(model_tab, "output/model_selection_table.csv")
+## Model selection for scale
+add_sel <- read_csv("output/additive_model_selection_table.csv")
+intx_sel <- read_csv("output/interaction_model_selection_table.csv")
+all <- bind_rows(intx_sel, add_sel)
+
+# clear deltaAIC and model weights
+all$delta <- NA
+all$weight <- NA
+
+# Reorder according to AICc
+N.order <- order(all$AICc)
+all <- all[N.order,]
+
+# Recalculate deltaAIC and model weights
+all$delta <- all$AICc - all$AICc[1]
+w <- qpcR::akaike.weights(all$AICc)
+all$weight <- w$weights
 
 #### Running iteration models ####
 
@@ -118,8 +138,8 @@ for (i in 1:10) {
   
   # Run model with deltaAICc < 2
 
-  m1_pt <- glmmTMB(n.compounds.T ~ Sex*Age + totalag_60 + mix_15_100 + 
-                      laggedBMI_30 + (1|WMU) + (1|year), data=pt, 
+  m1_pt <- glmmTMB(n.compounds.T ~ Sex + Age + totalag_60 + mix_60_100 + 
+                      BMI_15 + (1|WMU) + (1|year), data=pt, 
                       family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
 
   m1s <- summary(m1_pt)
@@ -133,8 +153,8 @@ for (i in 1:10) {
     testSet <- pt[row_idx[row_idx!=j],] %>% as_tibble()
     
         # Fit model on training set
-    m1_cv <- glmmTMB(n.compounds.T ~ Sex*Age + totalag_60 + mix_15_100 + 
-                       laggedBMI_30 + (1|WMU) + (1|year), data=pt, 
+    m1_cv <- glmmTMB(n.compounds.T ~ Sex + Age + totalag_60 + mix_60_100 + 
+                       BMI_15 + (1|WMU) + (1|year), data=pt, 
                      family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
     pred <- predict(m1_cv, newdata=testSet, type="response", se.fit=TRUE)
     
