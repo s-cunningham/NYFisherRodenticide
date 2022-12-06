@@ -91,24 +91,36 @@ cormat <- cor(dat1[,c(17:76)]) |> as.data.frame()
 source("00_model_lists.R")
 
 #### Run models with glmmTMB ####
-intx.models <- lapply(intx.formulae, FUN=glmmTMB, data=dat1, 
+ag.models <- lapply(ag_formulae, FUN=glmmTMB, data=dat1, 
                     family=compois, control=glmmTMBControl(parallel=nt)) 
-model.list <- model.sel(intx.models)
+model.list <- model.sel(ag.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
-write_csv(model_tab, "output/interaction_model_selection_table.csv")
+write_csv(model_tab, "output/model_selection/ag_model_selection_table.csv")
 
-add.models <- lapply(add.formulae, FUN=glmmTMB, data=dat1, 
+wui.models <- lapply(wui_formulae, FUN=glmmTMB, data=dat1, 
                       family=compois, control=glmmTMBControl(parallel=nt)) 
-model.list <- model.sel(add.models)
+model.list <- model.sel(wui.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
-write_csv(model_tab, "output/additive_model_selection_table.csv")
+write_csv(model_tab, "output/model_selection/wui_model_selection_table.csv")
+
+beech.models <- lapply(beech_formulae, FUN=glmmTMB, data=dat1, 
+                     family=compois, control=glmmTMBControl(parallel=nt)) 
+model.list <- model.sel(beech.models)
+model_tab <- as.data.frame(model.list)
+model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
+write_csv(model_tab, "output/model_selection/beech_model_selection_table.csv")
+
+lsm.models <- lapply(lsm_formulae, FUN=glmmTMB, data=dat1, 
+                       family=compois, control=glmmTMBControl(parallel=nt)) 
+model.list <- model.sel(lsm.models)
+model_tab <- as.data.frame(model.list)
+model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
+write_csv(model_tab, "output/model_selection/lsm_model_selection_table.csv")
 
 ## Model selection for scale
-add_sel <- read_csv("output/additive_model_selection_table.csv")
-intx_sel <- read_csv("output/interaction_model_selection_table.csv")
-all <- bind_rows(intx_sel, add_sel)
+
 
 # clear deltaAIC and model weights
 all$delta <- NA
@@ -138,8 +150,8 @@ for (i in 1:10) {
   
   # Run model with deltaAICc < 2
 
-  m1_pt <- glmmTMB(n.compounds.T ~ Sex + Age + totalag_60 + mix_60_100 + 
-                      BMI_15 + (1|WMU) + (1|year), data=pt, 
+  m1_pt <- glmmTMB(n.compounds.T ~ Sex * Age + ed_30 + totalag_60 + mix_60_100 + 
+                      laggedBMI_15 + (1|WMU), data=pt, 
                       family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
 
   m1s <- summary(m1_pt)
@@ -147,27 +159,27 @@ for (i in 1:10) {
   # 5-fold cross validation
   row_idx <- sample(1:5, nrow(pt), replace=TRUE)
   for (j in 1:5) {
-    
+
     # Split data into train & test
     trainSet <- pt[row_idx[row_idx==j],] %>% as_tibble()
     testSet <- pt[row_idx[row_idx!=j],] %>% as_tibble()
-    
+
         # Fit model on training set
-    m1_cv <- glmmTMB(n.compounds.T ~ Sex + Age + totalag_60 + mix_60_100 + 
-                       BMI_15 + (1|WMU) + (1|year), data=pt, 
+    m1_cv <- glmmTMB(n.compounds.T ~ Sex + Age + totalag_60 + mix_60_100 +
+                       BMI_15 + (1|WMU) + (1|year), data=pt,
                      family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
     pred <- predict(m1_cv, newdata=testSet, type="response", se.fit=TRUE)
-    
+
     # Create data frame to store prediction for each fold
     testTable <- testSet %>% select(RegionalID:WMUA_code,n.compounds.T)
-    
+
     testTable$pred <- pred$fit
     testTable$se.fit <- pred$se.fit
-    
-    testTable <- testTable %>% 
+
+    testTable <- testTable %>%
                   mutate(lower=pred-(se.fit*1.96), upper=pred+(se.fit*1.96)) %>%
                   mutate(correct=if_else(n.compounds.T>=lower & n.compounds.T<=upper, 1, 0))
-    
+
     perf[i,j+6] <- sum(testTable$correct)/nrow(testTable)
     perf[i,j+1] <- sqrt(mean((testTable$pred - testTable$n.compounds.T)^2))
   }
