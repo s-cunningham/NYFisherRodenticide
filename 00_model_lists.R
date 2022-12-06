@@ -68,6 +68,6 @@ lsm_formulae <- list(n.compounds.T ~ Sex*Age + ed_15 + (1|RegionalID),
                      n.compounds.T ~ Sex*Age + ai_15 + (1|RegionalID),
                      n.compounds.T ~ Sex*Age + ai_30 + (1|RegionalID),
                      n.compounds.T ~ Sex*Age + ai_60 + (1|RegionalID))
-vnames(lsm_formulae) <- as.character(lsm_formulae)
+names(lsm_formulae) <- as.character(lsm_formulae)
 
 
