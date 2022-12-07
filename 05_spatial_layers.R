@@ -58,7 +58,7 @@ ids <- unite(ids, "id_index", 1:2, sep="_", remove=FALSE)
 samples$name <- ids$id_index
 samples$RegionalID <- ids$id
 samples <- left_join(samples, loc[,1:2], by="RegionalID")
-st_write(samples, "data/spatial/df_random_samples.shp", layer_options="SHPT=POINT")
+# st_write(samples, "data/spatial/df_random_samples.shp", layer_options="SHPT=POINT")
 
 pts <- st_coordinates(samples)
 pts <- cbind(ids$id_index, pts) |> as.data.frame()
@@ -339,10 +339,15 @@ lsm_tforest_output <- sizes %>%
                       what=c("lsm_c_ed",
                              "lsm_c_ai",
                              "lsm_c_contig_mn",
+                             "lsm_c_clumpy",
                              "lsm_c_cohesion",
                              "lsm_c_cpland",
                              "lsm_c_dcad",
-                             "lsm_l_pladj"), 
+                             "lsm_l_frac_mn",
+                             "lsm_c_enn_mn",
+                             "lsm_c_mesh",
+                             "lsm_c_pd",
+                             "lsm_c_shape_mn"), 
                       shape="circle", size=.), .id="buffer")
 
 # Save only metrics for total forest (class = s)
