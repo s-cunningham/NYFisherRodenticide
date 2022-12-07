@@ -92,32 +92,32 @@ source("00_model_lists.R")
 
 #### Run models with glmmTMB ####
 ag.models <- lapply(ag_formulae, FUN=glmmTMB, data=dat1, 
-                    family=compois, control=glmmTMBControl(parallel=nt)) 
+                    family=compois(link = "log"), control=glmmTMBControl(parallel=nt)) 
 model.list <- model.sel(ag.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
-write_csv(model_tab, "output/model_selection/ag_model_selection_table.csv")
+write_csv(model_tab, "output/model_selection/ag_model_selection_table1.csv")
 
 wui.models <- lapply(wui_formulae, FUN=glmmTMB, data=dat1, 
-                      family=compois, control=glmmTMBControl(parallel=nt)) 
+                      family=compois(link = "log"), control=glmmTMBControl(parallel=nt)) 
 model.list <- model.sel(wui.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
-write_csv(model_tab, "output/model_selection/wui_model_selection_table.csv")
+write_csv(model_tab, "output/model_selection/wui_model_selection_table1.csv")
 
 beech.models <- lapply(beech_formulae, FUN=glmmTMB, data=dat1, 
-                     family=compois, control=glmmTMBControl(parallel=nt)) 
+                     family=compois(link = "log"), control=glmmTMBControl(parallel=nt)) 
 model.list <- model.sel(beech.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
-write_csv(model_tab, "output/model_selection/beech_model_selection_table.csv")
+write_csv(model_tab, "output/model_selection/beech_model_selection_table1.csv")
 
 lsm.models <- lapply(lsm_formulae, FUN=glmmTMB, data=dat1, 
-                       family=compois, control=glmmTMBControl(parallel=nt)) 
+                       family=compois(link = "log"), control=glmmTMBControl(parallel=nt)) 
 model.list <- model.sel(lsm.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
-write_csv(model_tab, "output/model_selection/lsm_model_selection_table.csv")
+write_csv(model_tab, "output/model_selection/lsm_model_selection_table1.csv")
 
 ## Model selection for scale
 
