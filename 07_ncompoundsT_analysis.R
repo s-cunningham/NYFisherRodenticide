@@ -91,8 +91,12 @@ cormat <- cor(dat1[,c(17:76)]) |> as.data.frame()
 source("00_model_lists.R")
 
 #### Run models with glmmTMB ####
+
+ag1 <- glmmTMB(n.compounds.T ~ Sex*Age + totalag_15 + (1|WMU) + (1|year) + (1|RegionalID), data=dat1,
+               family=compois(link="log"), control=glmmTMBControl(parallel=nt), start=list(betad=0))
+
 ag.models <- lapply(ag_formulae, FUN=glmmTMB, data=dat1, 
-                    family=compois(link = "log"), control=glmmTMBControl(parallel=nt)) 
+                    family=compois(link = "log"), control=glmmTMBControl(parallel=nt), start=list(betad=0)) 
 model.list <- model.sel(ag.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
