@@ -221,12 +221,15 @@ pts_sf$BAA_pred <- rf_rast
 st_write(pts_sf, "output/beech_baa_pred_250.shp")
 
 
-
-
-
-
-
-
+#### standStructure ####
+# ss <- standStruct(db=nydb, grpBy=PLOT, returnSpatial=TRUE, landType='forest', method='LMA', 
+#                   totals=TRUE, variance=TRUE, byPlot=TRUE, nCores=2)
+# 
+# ss <- ss[(ss$YEAR==2017 | ss$YEAR==2018 | ss$YEAR==2019 | ss$YEAR==2020),]
+# 
+# ggplot() +
+#   geom_sf(data=ss, aes(color=STAGE), size=3)
+# 
 
 
 
