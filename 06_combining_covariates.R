@@ -25,6 +25,8 @@ baa <- read_csv("data/analysis-ready/baa_sum.csv")
 pts <- read_csv("output/random_point_locs.csv")
 wmua <- read_csv("data/analysis-ready/wmuas.csv")
 lsm <- read_csv("data/analysis-ready/forest_lsm.csv")
+build <- read_csv("data/analysis-ready/building-centroid_sum.csv") %>%
+            rename(pt_name=name)
 
 #### Combine data ####
 ## Number of compounds detected
@@ -102,7 +104,8 @@ dat <- dat %>% select(RegionalID:n.compounds.MO, n.compounds.T,buffsize,radius)
 dat <- left_join(dat, ag, by=c("pt_name", "buffsize")) %>%
   left_join(forest, by=c("pt_name", "buffsize")) %>%
   left_join(wui, by=c("pt_name", "buffsize", "radius")) %>%
-  left_join(lsm, by=c("pt_name", "buffsize"))
+  left_join(lsm, by=c("pt_name", "buffsize")) %>%
+  left_join(build, by=c("pt_name", "buffsize"))
 
 ## Add beech mast index
 dat <- left_join(dat, baa, by=c("pt_name", "buffsize", "year")) %>%
