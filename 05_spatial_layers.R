@@ -357,4 +357,20 @@ lsm_tforest_output <- lsm_tforest_output %>%
 
 write_csv(lsm_tforest_output, "data/analysis-ready/forest_lsm.csv")
 
+#### Building layer raster ####
+build_cntroid <- rast("data/rasters/NewYork_centroids.tif")
+build_cntroid <- project(build_cntroid, nlcd) # Match projection to nlcd
 
+build_sum15 <- exact_extract(build_cntroid, buff15, 'sum')
+build_sum15 <- data.frame(name=buff15$name, nbuildings=build_sum15, buffsize=15)
+
+build_sum30 <- exact_extract(build_cntroid, buff30, 'sum')
+build_sum30 <- data.frame(name=buff30$name, nbuildings=build_sum30, buffsize=30)
+
+build_sum60 <- exact_extract(build_cntroid, buff60, 'sum')
+build_sum60 <- data.frame(name=buff60$name, nbuildings=build_sum60, buffsize=60)
+
+build_sum <- bind_rows(build_sum15, build_sum30, build_sum60)
+write_csv(build_sum, "data/analysis-ready/building-centroid_sum.csv")
+
+ggplot(build_sum, aes(x=nbuildings)) + geom_histogram() + facet_wrap(buffsize~.)
