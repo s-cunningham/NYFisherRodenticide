@@ -14,7 +14,6 @@ theme_set(theme_classic())
 # read data
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv")
 dat <- as.data.frame(dat)
-dat <- dat[dat$RegionalID!="2018-9211",] 
 
 # Categorical number of compounds (collapsing higher numbers)
 dat$catNcompMO <- ifelse(dat$n.compounds.MO>=2, "2+", as.character(dat$n.compounds.MO))
@@ -111,7 +110,7 @@ ggplot(dat, aes(x=rand_x, y=rand_y, color=pasture)) + geom_point() +
 ggplot(dat, aes(x=rand_x, y=rand_y, color=crops)) + geom_point() +
   facet_grid(~buffsize) + theme(legend.position="bottom")
 
-ggplot(dat, aes(x=rand_x, y=rand_y, color=totalag)) + geom_point() +
+ggplot(dat, aes(x=rand_x, y=rand_y, color=(nbuildings/buffsize))) + geom_point() +
   facet_grid(~buffsize) + theme(legend.position="bottom")
 
 dat60 <- dat[dat$buffsize==60,]
