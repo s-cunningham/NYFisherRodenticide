@@ -10,7 +10,7 @@ options(scipen=999, digits=3)
 set.seed(1)
 
 #### Parallel processing ####
-nt <- min(parallel::detectCores(),4)
+nt <- min(parallel::detectCores(),6)
 
 #### Read in data ####
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv")
@@ -24,9 +24,9 @@ dat$year <- factor(dat$year)
 dat$RegionalID <- factor(dat$RegionalID)
 
 ## Scale and center variables
-dat[,c(8,19:36)] <- scale(dat[,c(8,19:36)])
+dat[,c(8,19:40,42,43)] <- scale(dat[,c(8,19:40,42,43)])
 
-## Percent AG
+## Percent agriculture
 pctAG <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, pasture, crops, totalag) %>% 
                  distinct() %>% 
                  group_by(RegionalID) %>% 
@@ -39,6 +39,20 @@ baa1 <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, BMI, laggedBMI) 
                 group_by(RegionalID) %>% 
                 pivot_wider(names_from=buffsize, values_from=c(BMI, laggedBMI), values_fn=unique) %>% 
                 as.data.frame()
+
+## Percent forest
+pctFOR <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, deciduous, evergreen, mixed, totalforest) %>% 
+              distinct() %>% 
+              group_by(RegionalID) %>% 
+              pivot_wider(names_from=buffsize, values_from=c(deciduous, evergreen, mixed, totalforest)) %>% 
+              as.data.frame()
+
+## Number of buildings
+build1 <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, nbuildings, build_cat) %>%
+              distinct() %>% 
+              group_by(RegionalID) %>% 
+              pivot_wider(names_from=buffsize, values_from=c(nbuildings, build_cat), values_fn=unique) %>% 
+              as.data.frame()
 
 ## Wildland-urban interface
 intermix1 <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, radius, intermix) %>%
@@ -69,59 +83,71 @@ names(wui1)[4:12] <- c("wui_15_100", "wui_30_100", "wui_60_100",
                        "wui_15_500", "wui_30_500", "wui_60_500") 
 
 ## Landscape metrics
-lsm1 <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, ai:ed) %>% 
+lsm1 <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, ai:shape_mn) %>% 
   distinct() %>% 
   group_by(RegionalID) %>% 
-  pivot_wider(names_from=buffsize, values_from=c(ai:ed), values_fn=unique) 
+  pivot_wider(names_from=buffsize, values_from=c(ai:shape_mn), values_fn=unique) 
 
 #### Set up data to run for each combination of covariates ####
 dat1 <- dat %>% select(RegionalID:n.compounds.T) %>% distinct() %>%
           left_join(pctAG, by=c("RegionalID", "pt_name", "pt_index")) %>%
+          left_join(pctFOR, by=c("RegionalID", "pt_name", "pt_index")) %>%
           left_join(baa1, by=c("RegionalID", "pt_name", "pt_index")) %>%
           left_join(intermix1, by=c("RegionalID", "pt_name", "pt_index")) %>%
           left_join(interface1, by=c("RegionalID", "pt_name", "pt_index")) %>%
           left_join(wui1, by=c("RegionalID", "pt_name", "pt_index")) %>%
-          left_join(lsm1, by=c("RegionalID", "pt_name", "pt_index"))
-
+          left_join(lsm1, by=c("RegionalID", "pt_name", "pt_index")) %>%
+          left_join(build1, by=c("RegionalID", "pt_name", "pt_index"))
+        
 # correlation coefficient
-cormat <- cor(dat1[,c(17:76)]) |> as.data.frame()
-# write_csv(cormat, "output/correlation_matrix.csv")
+cormat <- cor(dat1[,c(17:106)]) |> as.data.frame()
+write_csv(cormat, "output/correlation_matrix.csv")
 
 #### Read in formulas ####
 source("00_model_lists.R")
 
 #### Run models with glmmTMB ####
-
-ag1 <- glmmTMB(n.compounds.T ~ Sex*Age + totalag_15 + (1|WMU) + (1|year) + (1|RegionalID), data=dat1,
-               family=compois(link="log"), control=glmmTMBControl(parallel=nt), start=list(betad=0))
-
 ag.models <- lapply(ag_formulae, FUN=glmmTMB, data=dat1, 
-                    family=compois(link = "log"), control=glmmTMBControl(parallel=nt), start=list(betad=0)) 
+                    family=compois(link = "log"), control=glmmTMBControl(parallel=nt), start=list(beta=c(-0.5, -0.5)))
 model.list <- model.sel(ag.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
-write_csv(model_tab, "output/model_selection/ag_model_selection_table1.csv")
-
-wui.models <- lapply(wui_formulae, FUN=glmmTMB, data=dat1, 
-                      family=compois(link = "log"), control=glmmTMBControl(parallel=nt)) 
-model.list <- model.sel(wui.models)
-model_tab <- as.data.frame(model.list)
-model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
-write_csv(model_tab, "output/model_selection/wui_model_selection_table1.csv")
+write_csv(model_tab, "output/model_selection/ag_model_selection_table.csv")
 
 beech.models <- lapply(beech_formulae, FUN=glmmTMB, data=dat1, 
-                     family=compois(link = "log"), control=glmmTMBControl(parallel=nt)) 
+                     family=compois(link = "log"), control=glmmTMBControl(parallel=nt), start=list(beta=c(-0.5, -0.5))) 
 model.list <- model.sel(beech.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
-write_csv(model_tab, "output/model_selection/beech_model_selection_table1.csv")
+write_csv(model_tab, "output/model_selection/beech_model_selection_table.csv")
 
-lsm.models <- lapply(lsm_formulae, FUN=glmmTMB, data=dat1, 
-                       family=compois(link = "log"), control=glmmTMBControl(parallel=nt)) 
+forest.models <- lapply(forest_formulae, FUN=glmmTMB, data=dat1, 
+                       family=compois(link = "log"), control=glmmTMBControl(parallel=nt), start=list(beta=c(-0.5, -0.5))) 
+model.list <- model.sel(forest.models)
+model_tab <- as.data.frame(model.list)
+model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
+write_csv(model_tab, "output/model_selection/forest_model_selection_table.csv")
+
+build.models <- lapply(build_formulae, FUN=glmmTMB, data=dat1, 
+                     family=compois(link = "log"), control=glmmTMBControl(parallel=nt), start=list(beta=c(-0.5, -0.5))) 
 model.list <- model.sel(lsm.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
-write_csv(model_tab, "output/model_selection/lsm_model_selection_table1.csv")
+write_csv(model_tab, "output/model_selection/building_model_selection_table.csv")
+
+lsm.models <- lapply(lsm_formulae, FUN=glmmTMB, data=dat1, 
+                     family=compois(link = "log"), control=glmmTMBControl(parallel=nt), start=list(beta=c(-0.5, -0.5))) 
+model.list <- model.sel(lsm.models)
+model_tab <- as.data.frame(model.list)
+model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
+write_csv(model_tab, "output/model_selection/lsm_model_selection_table.csv")
+
+wui.models <- lapply(wui_formulae, FUN=glmmTMB, data=dat1, 
+                     family=compois(link = "log"), control=glmmTMBControl(parallel=nt), start=list(beta=c(-0.5, -0.5))) 
+model.list <- model.sel(wui.models)
+model_tab <- as.data.frame(model.list)
+model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
+write_csv(model_tab, "output/model_selection/wui_model_selection_table.csv")
 
 ## Model selection for scale
 
