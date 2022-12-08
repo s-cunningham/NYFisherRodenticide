@@ -85,6 +85,22 @@ lsm <- lsm %>%
   pivot_wider(names_from=metric, values_from=value) %>%
   rename(buffsize=buffer, pt_name=plot_id)
 
+# Create categorical variable for buildings
+build <- build %>% mutate(build_cat=case_when(
+                             nbuildings<1 ~ "None",
+                             (nbuildings>=1 & nbuildings<=60) & buffsize==15 ~ "1stQuart",
+                             (nbuildings>=1 & nbuildings<=149) & buffsize==30 ~ "1stQuart",
+                             (nbuildings>=1 & nbuildings<=339) & buffsize==60 ~ "1stQuart",
+                             (nbuildings>60 & nbuildings<=132) & buffsize==15 ~ "2ndQuart",
+                             (nbuildings>149 & nbuildings<=287) & buffsize==30 ~ "2ndQuart",
+                             (nbuildings>339 & nbuildings<=610) & buffsize==60 ~ "2ndQuart",
+                             (nbuildings>132 & nbuildings<=241) & buffsize==15 ~ "3rdQuart",
+                             (nbuildings>287 & nbuildings<=503) & buffsize==30 ~ "3rdQuart",
+                             (nbuildings>610 & nbuildings<=1094) & buffsize==60 ~ "3rdQuart",
+                             (nbuildings>241 & nbuildings<=5464) & buffsize==15 ~ "4thQuart",
+                             (nbuildings>503 & nbuildings<=8309) & buffsize==30 ~ "4thQuart",
+                             (nbuildings>1094 & nbuildings<=10798) & buffsize==60 ~ "4thQuart"))
+
 ## Joining data
 # Join location, age & sex details to random points
 dets <- left_join(pts, dets, by="RegionalID")
