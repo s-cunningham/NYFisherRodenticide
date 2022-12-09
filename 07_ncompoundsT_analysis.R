@@ -23,9 +23,6 @@ dat$WMUA_code <- as.factor(dat$WMUA_code)
 dat$year <- factor(dat$year)
 dat$RegionalID <- factor(dat$RegionalID)
 
-## Scale and center variables
-dat[,c(8,19:40,42,43)] <- scale(dat[,c(8,19:40,42,43)])
-
 ## Percent agriculture
 pctAG <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, pasture, crops, totalag) %>% 
                  distinct() %>% 
@@ -98,10 +95,14 @@ dat1 <- dat %>% select(RegionalID:n.compounds.T) %>% distinct() %>%
           left_join(wui1, by=c("RegionalID", "pt_name", "pt_index")) %>%
           left_join(lsm1, by=c("RegionalID", "pt_name", "pt_index")) %>%
           left_join(build1, by=c("RegionalID", "pt_name", "pt_index"))
-        
+
+
+## Scale and center variables
+dat[,c(8,17:106)] <- scale(dat[,c(8,17:106)])
+
 # correlation coefficient
 cormat <- cor(dat1[,c(17:106)]) |> as.data.frame()
-write_csv(cormat, "output/correlation_matrix.csv")
+# write_csv(cormat, "output/correlation_matrix.csv")
 
 #### Read in formulas ####
 source("00_model_lists.R")
