@@ -108,7 +108,7 @@ source("00_model_lists.R")
 
 #### Run models with glmmTMB ####
 ag.models <- lapply(ag_formulae, FUN=glmmTMB, data=dat1, 
-                    family=compois(link = "log"), control=glmmTMBControl(parallel=nt), start=list(beta=c(-0.5, -0.5)))
+                    family=compois(link = "log"), control=glmmTMBControl(parallel=nt), start=list(beta=c(0.5, 0.5)))
 model.list <- model.sel(ag.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
