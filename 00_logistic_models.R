@@ -1,0 +1,103 @@
+
+
+ag_formulae <- list(bin.exp ~ totalag_15 + (1|RegionalID),
+                    bin.exp ~ totalag_30 + (1|RegionalID),
+                    bin.exp ~ totalag_60 + (1|RegionalID),
+                    bin.exp ~ crops_15 + (1|RegionalID),
+                    bin.exp ~ crops_30 + (1|RegionalID),
+                    bin.exp ~ crops_60 + (1|RegionalID),
+                    bin.exp ~ pasture_15 + (1|RegionalID),
+                    bin.exp ~ pasture_30 + (1|RegionalID),
+                    bin.exp ~ pasture_60 + (1|RegionalID))
+names(ag_formulae) <- as.character(ag_formulae)
+
+wui_formulae <- list(bin.exp ~ mix_15_100 + (1|RegionalID),
+                     bin.exp ~ mix_30_100 + (1|RegionalID),
+                     bin.exp ~ mix_60_100 + (1|RegionalID),
+                     bin.exp ~ mix_15_250 + (1|RegionalID),
+                     bin.exp ~ mix_30_250 + (1|RegionalID),
+                     bin.exp ~ mix_60_250 + (1|RegionalID),
+                     bin.exp ~ mix_15_500 + (1|RegionalID),
+                     bin.exp ~ mix_30_500 + (1|RegionalID),
+                     bin.exp ~ mix_60_500 + (1|RegionalID),
+                     bin.exp ~ face_15_100 + (1|RegionalID),
+                     bin.exp ~ face_30_100 + (1|RegionalID),
+                     bin.exp ~ face_60_100 + (1|RegionalID),
+                     bin.exp ~ face_15_250 + (1|RegionalID),
+                     bin.exp ~ face_30_250 + (1|RegionalID),
+                     bin.exp ~ face_60_250 + (1|RegionalID),
+                     bin.exp ~ face_15_500 + (1|RegionalID),
+                     bin.exp ~ face_30_500 + (1|RegionalID),
+                     bin.exp ~ face_60_500 + (1|RegionalID),
+                     bin.exp ~ wui_15_100 + (1|RegionalID),
+                     bin.exp ~ wui_30_100 + (1|RegionalID),
+                     bin.exp ~ wui_60_100 + (1|RegionalID),
+                     bin.exp ~ wui_15_250 + (1|RegionalID),
+                     bin.exp ~ wui_30_250 + (1|RegionalID),
+                     bin.exp ~ wui_60_250 + (1|RegionalID),
+                     bin.exp ~ wui_15_500 + (1|RegionalID),
+                     bin.exp ~ wui_30_500 + (1|RegionalID),
+                     bin.exp ~ wui_60_500 + (1|RegionalID))
+names(wui_formulae) <- as.character(wui_formulae)
+
+beech_formulae <- list(bin.exp ~ laggedBMI_15 + (1|RegionalID),
+                       bin.exp ~ laggedBMI_30 + (1|RegionalID),
+                       bin.exp ~ laggedBMI_60 + (1|RegionalID),
+                       bin.exp ~ BMI_15 + (1|RegionalID),
+                       bin.exp ~ BMI_30 + (1|RegionalID),
+                       bin.exp ~ BMI_60 + (1|RegionalID))
+names(beech_formulae) <- as.character(beech_formulae)
+
+lsm_formulae <- list(bin.exp ~ ed_15 + (1|RegionalID),
+                     bin.exp ~ ed_30 + (1|RegionalID),
+                     bin.exp ~ ed_60 + (1|RegionalID),
+                     bin.exp ~ dcad_15 + (1|RegionalID),
+                     bin.exp ~ dcad_30 + (1|RegionalID),
+                     bin.exp ~ dcad_60 + (1|RegionalID),                     
+                     bin.exp ~ cohesion_15 + (1|RegionalID),
+                     bin.exp ~ cohesion_30 + (1|RegionalID),
+                     bin.exp ~ cohesion_60 + (1|RegionalID),
+                     bin.exp ~ contig_mn_15 + (1|RegionalID),
+                     bin.exp ~ contig_mn_30 + (1|RegionalID),
+                     bin.exp ~ contig_mn_60 + (1|RegionalID),
+                     bin.exp ~ ai_15 + (1|RegionalID),
+                     bin.exp ~ ai_30 + (1|RegionalID),
+                     bin.exp ~ ai_60 + (1|RegionalID),
+                     bin.exp ~ frac_15 + (1|RegionalID),
+                     bin.exp ~ frac_30 + (1|RegionalID),
+                     bin.exp ~ frac_60 + (1|RegionalID),
+                     bin.exp ~ mesh_15 + (1|RegionalID),
+                     bin.exp ~ mesh_30 + (1|RegionalID),
+                     bin.exp ~ mesh_60 + (1|RegionalID),
+                     bin.exp ~ pd_15 + (1|RegionalID),
+                     bin.exp ~ pd_30 + (1|RegionalID),
+                     bin.exp ~ pd_60 + (1|RegionalID),
+                     bin.exp ~ shape_mn_15 + (1|RegionalID),
+                     bin.exp ~ shape_mn_30 + (1|RegionalID),
+                     bin.exp ~ shape_mn_60 + (1|RegionalID),
+                     bin.exp ~ clumpy_15 + (1|RegionalID),
+                     bin.exp ~ clumpy_30 + (1|RegionalID),
+                     bin.exp ~ clumpy_60 + (1|RegionalID))
+names(lsm_formulae) <- as.character(lsm_formulae)
+
+forest_formulae <- list(bin.exp ~ totalforest_15 + (1|RegionalID),
+                        bin.exp ~ totalforest_30 + (1|RegionalID),
+                        bin.exp ~ totalforest_60 + (1|RegionalID),
+                        bin.exp ~ deciduous_15 + (1|RegionalID),
+                        bin.exp ~ deciduous_30 + (1|RegionalID),
+                        bin.exp ~ deciduous_60 + (1|RegionalID),
+                        bin.exp ~ evergreen_15 + (1|RegionalID),
+                        bin.exp ~ evergreen_30 + (1|RegionalID),
+                        bin.exp ~ evergreen_60 + (1|RegionalID),
+                        bin.exp ~ mixed_15 + (1|RegionalID),
+                        bin.exp ~ mixed_30 + (1|RegionalID),
+                        bin.exp ~ mixed_60 + (1|RegionalID))
+names(forest_formulae) <- as.character(forest_formulae)
+
+build_formulae <- list(bin.exp ~ nbuildings_15 + (1|RegionalID),
+                       bin.exp ~ nbuildings_30 + (1|RegionalID),
+                       bin.exp ~ nbuildings_60 + (1|RegionalID),
+                       bin.exp ~ build_cat_15 + (1|RegionalID),
+                       bin.exp ~ build_cat_30 + (1|RegionalID),
+                       bin.exp ~ build_cat_60 + (1|RegionalID))
+names(build_formulae) <- as.character(build_formulae)
