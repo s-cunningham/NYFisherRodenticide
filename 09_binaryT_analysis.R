@@ -118,12 +118,10 @@ for (i in 1:10) {
   pt <- brod[brod$pt_index==i,]
   
   # Run model with deltaAICc < 2
-  m1_pt <- glmer(bin.exp ~ Sex*Age + totalag_60 + mix_15_100 + 
-                   laggedBMI_30 + (1|WMU) + (1|year), 
-                  family=binomial(link="logit"), data=pt)
+  m1_pt <- glmer(bin.exp ~ Sex + Age +  *totalforest_30 + pasture_60 + laggedBMI_30 + (1|WMU) + (1|year), 
+                 family=binomial(link="logit"), data=pt)
   
-  
-  # 5-fold cross validation
+    # 5-fold cross validation
   row_idx <- sample(1:5, nrow(pt), replace=TRUE)
   for (j in 1:5) {
     
@@ -132,8 +130,7 @@ for (i in 1:10) {
     testSet <- pt[row_idx[row_idx!=j],] %>% as_tibble()
     
     # Fit model on training set
-    m1_cv <- glmer(bin.exp ~ Sex*Age + totalag_60 + mix_15_100 + 
-                     laggedBMI_30 + (1|WMU) + (1|year), 
+    m1_cv <- glmer(bin.exp ~ Sex*Age + totalag_60 + mix_15_100 + laggedBMI_30 + (1|WMU) + (1|year), 
                    family=binomial(link="logit"), data=pt)
     pred <- predict(m1_cv, newdata=testSet, type="response", se.fit=TRUE)
     

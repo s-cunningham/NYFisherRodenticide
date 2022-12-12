@@ -132,7 +132,7 @@ write_csv(model_tab, "output/model_selection/forest_model_selection_table.csv")
 
 build.models <- lapply(build_formulae, FUN=glmmTMB, data=dat1, 
                      family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
-model.list <- model.sel(lsm.models)
+model.list <- model.sel(build.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
 model_tab
