@@ -62,7 +62,10 @@ for (i in 10:20) {
   print(sum(is.na(dat[,i])))
 }
 
-# Convert to long format for ggplotting
+## write wide data
+write_csv(dat, "output/AR_results_wide.csv")
+
+## Convert to long format for ggplotting and later analysis
 datl <- as.data.frame(pivot_longer(dat, cols=11:21, names_to="compound", values_to="ppm"))
 
 # Remove compounds with no detections
