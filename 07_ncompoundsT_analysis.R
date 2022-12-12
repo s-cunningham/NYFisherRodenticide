@@ -98,7 +98,7 @@ dat1 <- dat %>% select(RegionalID:n.compounds.T) %>% distinct() %>%
 
 
 ## Scale and center variables
-dat[,c(8,17:106)] <- scale(dat[,c(8,17:106)])
+dat1[,c(8,17:106)] <- scale(dat1[,c(8,17:106)])
 
 # correlation coefficient
 cormat <- cor(dat1[,c(17:106)]) |> as.data.frame()
@@ -109,42 +109,44 @@ source("00_model_lists.R")
 
 #### Run models with glmmTMB ####
 ag.models <- lapply(ag_formulae, FUN=glmmTMB, data=dat1, 
-                    family=compois(link = "log"), control=glmmTMBControl(parallel=nt), start=list(beta=c(0.5, 0.5)))
+                    family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
 model.list <- model.sel(ag.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
 write_csv(model_tab, "output/model_selection/ag_model_selection_table.csv")
 
 beech.models <- lapply(beech_formulae, FUN=glmmTMB, data=dat1, 
-                     family=compois(link = "log"), control=glmmTMBControl(parallel=nt), start=list(beta=c(-0.5, -0.5))) 
+                     family=compois(link = "log"), control=glmmTMBControl(parallel=nt)) 
 model.list <- model.sel(beech.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
 write_csv(model_tab, "output/model_selection/beech_model_selection_table.csv")
 
 forest.models <- lapply(forest_formulae, FUN=glmmTMB, data=dat1, 
-                       family=compois(link = "log"), control=glmmTMBControl(parallel=nt), start=list(beta=c(-0.5, -0.5))) 
+                       family=compois(link = "log"), control=glmmTMBControl(parallel=nt)) 
 model.list <- model.sel(forest.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
+model_tab
 write_csv(model_tab, "output/model_selection/forest_model_selection_table.csv")
 
 build.models <- lapply(build_formulae, FUN=glmmTMB, data=dat1, 
-                     family=compois(link = "log"), control=glmmTMBControl(parallel=nt), start=list(beta=c(-0.5, -0.5))) 
+                     family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
 model.list <- model.sel(lsm.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
+model_tab
 write_csv(model_tab, "output/model_selection/building_model_selection_table.csv")
 
 lsm.models <- lapply(lsm_formulae, FUN=glmmTMB, data=dat1, 
-                     family=compois(link = "log"), control=glmmTMBControl(parallel=nt), start=list(beta=c(-0.5, -0.5))) 
+                     family=compois(link = "log"), control=glmmTMBControl(parallel=nt)) 
 model.list <- model.sel(lsm.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
 write_csv(model_tab, "output/model_selection/lsm_model_selection_table.csv")
 
 wui.models <- lapply(wui_formulae, FUN=glmmTMB, data=dat1, 
-                     family=compois(link = "log"), control=glmmTMBControl(parallel=nt), start=list(beta=c(-0.5, -0.5))) 
+                     family=compois(link = "log"), control=glmmTMBControl(parallel=nt)) 
 model.list <- model.sel(wui.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
