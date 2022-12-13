@@ -166,9 +166,6 @@ lsm_formulae <- list(n.compounds.T ~ ed_15 + (1|WMU) + (1|year),
                      n.compounds.T ~ ai_15 + (1|WMU) + (1|year),
                      n.compounds.T ~ ai_30 + (1|WMU) + (1|year),
                      n.compounds.T ~ ai_60 + (1|WMU) + (1|year),
-                     n.compounds.T ~ frac_15 + (1|WMU) + (1|year),
-                     n.compounds.T ~ frac_30 + (1|WMU) + (1|year),
-                     n.compounds.T ~ frac_60 + (1|WMU) + (1|year),
                      n.compounds.T ~ mesh_15 + (1|WMU) + (1|year),
                      n.compounds.T ~ mesh_30 + (1|WMU) + (1|year),
                      n.compounds.T ~ mesh_60 + (1|WMU) + (1|year),
@@ -205,3 +202,12 @@ build_formulae <- list(n.compounds.T ~ nbuildings_15 + (1|WMU) + (1|year),
                        n.compounds.T ~ build_cat_60 + (1|WMU) + (1|year))
 names(build_formulae) <- as.character(build_formulae)
 
+
+
+global_formulae <- list(n.compounds.T ~ Sex + Age + build_cat_60*ai_60 + pasture_60 + laggedBMI_30 + (1|WMU) + (1|year),
+                        n.compounds.T ~ Sex * Age + build_cat_60*ai_60 + pasture_60 + laggedBMI_30 + (1|WMU) + (1|year),
+                        n.compounds.T ~ Sex + Age + build_cat_60*mixed_30 + pasture_60 + laggedBMI_30 + (1|WMU) + (1|year),
+                        n.compounds.T ~ Sex * Age + build_cat_60*mixed_30 + pasture_60 + laggedBMI_30 + (1|WMU) + (1|year),
+                        n.compounds.T ~ Sex + Age + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU) + (1|year),
+                        n.compounds.T ~ Sex * Age + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU) + (1|year))
+names(global_formulae) <- as.character(global_formulae)
