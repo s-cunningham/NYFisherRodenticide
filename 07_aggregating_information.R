@@ -1,0 +1,32 @@
+library(tidyverse)
+
+## Calculating number of individuals with 
+# Individual compounds
+# Landscape covariates
+dat <- read_csv("output/AR_results_wide.csv")
+
+# Reformat screening results
+dat[11:21] <- lapply(dat[11:21], function(x) replace(x, is.na(x), 0))
+dat[11:21] <- lapply(dat[11:21], function(x) replace(x, x>0, 1))
+
+# sum columns to count how many had at least 1 exposure
+dat <- dat %>% mutate(any=Warfarin+Coumachlor+Diphacinone+Pindone+Brodifacoum+Difenacoum+
+                        Bromadiolone+Difethialone+Dicoumarol+Coumafuryl+Chlorophacinone)
+max(dat$any)
+dat %>% group_by(any) %>% count()
+
+ggplot(dat, aes(x=any)) + geom_bar() + 
+  ylab("Number of individuals") + xlab("Number of compounds") +
+  theme_bw()
+
+dat <- dat %>% mutate(any=if_else(any==0, 0, 1))
+
+sum(dat$any)
+
+dat %>% group_by(AgeClass,Sex) %>% count()
+
+# make long format
+dat <- dat %>% pivot_longer(11:21, names_to="compound", values_to="exposed")
+
+## Sum values
+dat %>% group_by(compound) %>% summarize(n=sum(exposed))
