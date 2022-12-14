@@ -5,6 +5,7 @@ library(tidyverse)
 library(MuMIn)
 library(glmmTMB)
 library(DHARMa)
+library(caret)
 
 options(scipen=999, digits=3)
 set.seed(1)
@@ -108,6 +109,7 @@ cormat <- cor(dat1[,c(17:106)]) |> as.data.frame()
 source("00_model_lists.R")
 
 #### Run models with glmmTMB ####
+## Model selection for scale
 ag.models <- lapply(ag_formulae, FUN=glmmTMB, data=dat1, 
                     family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
 model.list <- model.sel(ag.models)
@@ -152,21 +154,14 @@ model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
 write_csv(model_tab, "output/model_selection/wui_model_selection_table.csv")
 
-## Model selection for scale
-
-
-# clear deltaAIC and model weights
-all$delta <- NA
-all$weight <- NA
-
-# Reorder according to AICc
-N.order <- order(all$AICc)
-all <- all[N.order,]
-
-# Recalculate deltaAIC and model weights
-all$delta <- all$AICc - all$AICc[1]
-w <- qpcR::akaike.weights(all$AICc)
-all$weight <- w$weights
+# Check small set of "global models"
+global.models <- lapply(global_formulae, FUN=glmmTMB, data=dat1, 
+                       family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
+model.list <- model.sel(global.models)
+model_tab <- as.data.frame(model.list)
+model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
+model_tab
+write_csv(model_tab, "output/model_selection/global_model_selection_table.csv")
 
 #### Running iteration models ####
 
@@ -175,6 +170,12 @@ m_est <- m_stderr <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
 perf <- matrix(NA, ncol=11, nrow=10)
 perf[,1] <- 1:10
 
+kappa <- matrix(NA, ncol=6, nrow=10)
+kappa[,1] <- 1:10
+
+classstats <- data.frame()
+
+system.time(
 # Loop over each point set
 for (i in 1:10) {
   
@@ -183,8 +184,7 @@ for (i in 1:10) {
   
   # Run model with deltaAICc < 2
 
-  m1_pt <- glmmTMB(n.compounds.T ~ Sex * Age + ed_30 + totalag_60 + mix_60_100 + 
-                      laggedBMI_15 + (1|WMU), data=pt, 
+  m1_pt <- glmmTMB(n.compounds.T ~ Sex + Age + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU), data=pt, 
                       family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
 
   m1s <- summary(m1_pt)
@@ -194,12 +194,11 @@ for (i in 1:10) {
   for (j in 1:5) {
 
     # Split data into train & test
-    trainSet <- pt[row_idx[row_idx==j],] %>% as_tibble()
-    testSet <- pt[row_idx[row_idx!=j],] %>% as_tibble()
+    trainSet <- pt[row_idx==j,] %>% as_tibble()
+    testSet <- pt[row_idx!=j,] %>% as_tibble()
 
-        # Fit model on training set
-    m1_cv <- glmmTMB(n.compounds.T ~ Sex + Age + totalag_60 + mix_60_100 +
-                       BMI_15 + (1|WMU) + (1|year), data=pt,
+    # Fit model on training set
+    m1_cv <- glmmTMB(n.compounds.T ~ Sex + Age + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU), data=pt,
                      family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
     pred <- predict(m1_cv, newdata=testSet, type="response", se.fit=TRUE)
 
@@ -215,11 +214,25 @@ for (i in 1:10) {
 
     perf[i,j+6] <- sum(testTable$correct)/nrow(testTable)
     perf[i,j+1] <- sqrt(mean((testTable$pred - testTable$n.compounds.T)^2))
+    
+    all_confusion <- confusionMatrix(
+      # predictions then true values
+      data = factor(round(testTable$pred), levels=0:5),
+      reference = factor(testTable$n.compounds.T, levels=0:5),
+    )
+    
+    classcm <- as_tibble(all_confusion$byClass)
+    classcm$iteration <- i
+    classcm$fold <- j
+    classstats <- bind_rows(classstats, classcm)
+    
+    kappa[i,j+1] <- all_confusion$overall[[2]]
+
   }
 
   # save averaged confidence intervals
-  pct2.5 <- rbind(pct2.5, t(confint(m1_pt))[1,1:7])
-  pct97.5 <- rbind(pct97.5, t(confint(m1_pt))[2,1:7])
+  pct2.5 <- rbind(pct2.5, t(confint(m1_pt))[1,1:(nrow(confint(m1_pt))-1)])
+  pct97.5 <- rbind(pct97.5, t(confint(m1_pt))[2,1:(nrow(confint(m1_pt))-1)])
 
   # Save point set estimates
   m_est <- rbind(m_est, coef(m1s)$cond[,1])
@@ -232,18 +245,20 @@ for (i in 1:10) {
     names(m_stderr) <- c(row.names(m1s$coefficients$cond))
     names(pct2.5) <- c(row.names(m1s$coefficients$cond))
     names(pct97.5) <- c(row.names(m1s$coefficients$cond))
-    names(m_ranef) <- c("RE_WMU", "RE_year")
+    names(m_ranef) <- c("RE_WMU")
   }
   
-}
+})
 
 # Calculate average performance metric
 perf <- as.data.frame(perf)
 names(perf) <- c("Iter", "RMSE1", "RMSE2", "RMSE3", "RMSE4", "RMSE5", "Accur1", "Accur2", "Accur3", "Accur4", "Accur5")
-perf <- perf %>% as_tibble() %>% 
+perf2 <- perf %>% as_tibble() %>% 
           mutate(RMSE=(RMSE1+RMSE2+RMSE3+RMSE4+RMSE5)/5,
                  Accuracy=(Accur1+Accur2+Accur3+Accur4+Accur5)/5) %>%
           select(Iter, RMSE, Accuracy)
+mean(perf2$Accuracy)
+range(perf2$Accuracy)
 
 # Calculate averages for each coefficient
 coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)], na.rm=TRUE)
