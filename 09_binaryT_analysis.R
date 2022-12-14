@@ -1,9 +1,10 @@
 library(tidyverse)
 library(lme4)
 library(MuMIn)
+library(caret)
 
 options(scipen=999, digits=3)
-set.seed(123)
+set.seed(1)
 
 #### Read in data ####
 # Landscape covariates
@@ -97,7 +98,7 @@ dat1 <- dat %>% select(RegionalID:bin.exp) %>% distinct() %>%
 
 ## Scale and center variables
 dat1[,c(8,17:106)] <- scale(dat1[,c(8,17:106)])
-write_csv(dat1, "output/binary_model_data.csv")
+# write_csv(dat1, "output/binary_model_data.csv")
 
 # Subset by compound
 brod <- dat1[dat1$compound=="Brodifacoum",]
@@ -111,6 +112,11 @@ diph <- dat1[dat1$compound=="Diphacinone",]
 ## Loop over each set of random points
 m_est <- m_stderr <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
 
+kappa <- matrix(NA, ncol=6, nrow=10)
+kappa[,1] <- 1:10
+
+cmpm <- data.frame()
+
 # Loop over each point set
 for (i in 1:10) {
   
@@ -118,34 +124,51 @@ for (i in 1:10) {
   pt <- brod[brod$pt_index==i,]
   
   # Run model with deltaAICc < 2
-  m1_pt <- glmer(bin.exp ~ Sex + Age +  *totalforest_30 + pasture_60 + laggedBMI_30 + (1|WMU) + (1|year), 
+  m1_pt <- lme4::glmer(bin.exp ~ Sex + Age + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU), 
                  family=binomial(link="logit"), data=pt)
   
-    # 5-fold cross validation
+  # 5-fold cross validation
   row_idx <- sample(1:5, nrow(pt), replace=TRUE)
   for (j in 1:5) {
     
     # Split data into train & test
-    trainSet <- pt[row_idx[row_idx==j],] %>% as_tibble()
-    testSet <- pt[row_idx[row_idx!=j],] %>% as_tibble()
+    trainSet <- pt[row_idx==j,] %>% as_tibble()
+    testSet <- pt[row_idx!=j,] %>% as_tibble()
     
     # Fit model on training set
-    m1_cv <- glmer(bin.exp ~ Sex*Age + totalag_60 + mix_15_100 + laggedBMI_30 + (1|WMU) + (1|year), 
+    m1_cv <- glmer(bin.exp ~ Sex + Age + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU), 
                    family=binomial(link="logit"), data=pt)
-    pred <- predict(m1_cv, newdata=testSet, type="response", se.fit=TRUE)
+    pred <- predict(m1_cv, newdata=testSet, type="response", re.form=NA)
     
+    # Code from lme4 FAQ (Bolker)
+    mm <- model.matrix(terms(m1_cv),testSet)
+    pvar1 <- diag(mm %*% tcrossprod(vcov(m1_cv),mm))
+    tvar1 <- pvar1+VarCorr(m1_cv)$WMU[1]
+    cmult <- 1.96
+
     # Create data frame to store prediction for each fold
-    testTable <- testSet %>% select(RegionalID:WMUA_code,n.compounds.T)
+    testTable <- testSet %>% select(RegionalID:WMUA_code,bin.exp)
     
-    testTable$pred <- pred$fit
-    testTable$se.fit <- pred$se.fit
+    testTable <- data.frame(
+      testTable, pred=round(pred)
+      , plo = testSet$bin.exp-cmult*sqrt(pvar1)
+      , phi = testSet$bin.exp+cmult*sqrt(pvar1)
+      , tlo = testSet$bin.exp-cmult*sqrt(tvar1)
+      , thi = testSet$bin.exp+cmult*sqrt(tvar1)
+    )
+
+    bin_confusion <- confusionMatrix(
+      # predictions then true values
+      data = factor(testTable$pred, levels=0:1),
+      reference = factor(testTable$bin.exp, levels=0:1),
+      # what is positive exposure value
+      positive = "1"
+    )
     
-    testTable <- testTable %>% 
-      mutate(lower=pred-(se.fit*1.96), upper=pred+(se.fit*1.96)) %>%
-      mutate(correct=if_else(n.compounds.T>=lower & n.compounds.T<=upper, 1, 0))
-    
-    perf[i,j+6] <- sum(testTable$correct)/nrow(testTable)
-    perf[i,j+1] <- sqrt(mean((testTable$pred - testTable$n.compounds.T)^2))
+    cm <- as.data.frame(t(bin_confusion$overall))
+    cm$iteration <- i
+    cm$fold <- j
+    cmpm <- bind_rows(cmpm, cm)
   }
   
   m1s <- summary(m1_pt)
@@ -168,18 +191,17 @@ for (i in 1:10) {
     names(m_stderr) <- row.names(m1sdf)
     names(pct2.5) <- row.names(m1sdf)
     names(pct97.5) <- row.names(m1sdf)
-    names(m_ranef) <- c("RE_WMU", "RE_year")
+    names(m_ranef) <- c("RE_WMU")
   }
   
 }
 
 # Calculate average performance metric
-perf <- as.data.frame(perf)
-names(perf) <- c("Iter", "RMSE1", "RMSE2", "RMSE3", "RMSE4", "RMSE5", "Accur1", "Accur2", "Accur3", "Accur4", "Accur5")
-perf <- perf %>% as_tibble() %>% 
-  mutate(RMSE=(RMSE1+RMSE2+RMSE3+RMSE4+RMSE5)/5,
-         Accuracy=(Accur1+Accur2+Accur3+Accur4+Accur5)/5) %>%
-  select(Iter, RMSE, Accuracy)
+mean(cmpm$Kappa)
+mean(cmpm$Accuracy)
+
+# save overall performance stats
+write_csv(cmpm, "results/binary_brodifacoum_performance.csv")
 
 # Calculate averages for each coefficient
 coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)], na.rm=TRUE)
@@ -206,6 +228,10 @@ write_csv(ranef_avg, "results/binaryTbrodifacoum_coef-random-effects.csv")
 ## Loop over each set of random points
 m_est <- m_stderr <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
 
+kappa <- matrix(NA, ncol=6, nrow=10)
+kappa[,1] <- 1:10
+
+cmpm <- data.frame()
 # Loop over each point set
 for (i in 1:10) {
   
@@ -213,8 +239,8 @@ for (i in 1:10) {
   pt <- brom[brom$pt_index==i,]
   
   # Run model with deltaAICc < 2
-  m1_pt <- glmer(bin.exp ~ Sex*Age + totalag_60 + mix_15_100 + laggedBMI_30 + 
-                   (1|WMU) + (1|year), family=binomial(link="logit"),data=pt)
+  m1_pt <- glmer(bin.exp ~ Sex + Age + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU),
+                 family=binomial(link="logit"),data=pt)
   
   m1s <- summary(m1_pt)
   m1sdf <- m1s$coefficients
@@ -224,27 +250,43 @@ for (i in 1:10) {
   for (j in 1:5) {
     
     # Split data into train & test
-    trainSet <- pt[row_idx[row_idx==j],] %>% as_tibble()
-    testSet <- pt[row_idx[row_idx!=j],] %>% as_tibble()
+    trainSet <- pt[row_idx==j,] %>% as_tibble()
+    testSet <- pt[row_idx!=j,] %>% as_tibble()
     
     # Fit model on training set
-    m1_cv <- glmer(bin.exp ~ Sex*Age + totalag_60 + mix_15_100 + 
-                     laggedBMI_30 + (1|WMU) + (1|year), 
+    m1_cv <- glmer(bin.exp ~ Sex + Age + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU), 
                    family=binomial(link="logit"), data=pt)
-    pred <- predict(m1_cv, newdata=testSet, type="response", se.fit=TRUE)
+    pred <- predict(m1_cv, newdata=testSet, type="response", re.form=NA)
+    
+    # Code from lme4 FAQ (Bolker)
+    mm <- model.matrix(terms(m1_cv),testSet)
+    pvar1 <- diag(mm %*% tcrossprod(vcov(m1_cv),mm))
+    tvar1 <- pvar1+VarCorr(m1_cv)$WMU[1]
+    cmult <- 1.96
     
     # Create data frame to store prediction for each fold
-    testTable <- testSet %>% select(RegionalID:WMUA_code,n.compounds.T)
+    testTable <- testSet %>% select(RegionalID:WMUA_code,bin.exp)
     
-    testTable$pred <- pred$fit
-    testTable$se.fit <- pred$se.fit
+    testTable <- data.frame(
+      testTable, pred=round(pred)
+      , plo = testSet$bin.exp-cmult*sqrt(pvar1)
+      , phi = testSet$bin.exp+cmult*sqrt(pvar1)
+      , tlo = testSet$bin.exp-cmult*sqrt(tvar1)
+      , thi = testSet$bin.exp+cmult*sqrt(tvar1)
+    )
     
-    testTable <- testTable %>% 
-      mutate(lower=pred-(se.fit*1.96), upper=pred+(se.fit*1.96)) %>%
-      mutate(correct=if_else(n.compounds.T>=lower & n.compounds.T<=upper, 1, 0))
+    bin_confusion <- confusionMatrix(
+      # predictions then true values
+      data = factor(testTable$pred, levels=0:1),
+      reference = factor(testTable$bin.exp, levels=0:1),
+      # what is positive exposure value
+      positive = "1"
+    )
     
-    perf[i,j+6] <- sum(testTable$correct)/nrow(testTable)
-    perf[i,j+1] <- sqrt(mean((testTable$pred - testTable$n.compounds.T)^2))
+    cm <- as.data.frame(t(bin_confusion$overall))
+    cm$iteration <- i
+    cm$fold <- j
+    cmpm <- bind_rows(cmpm, cm)
   }
   
   # save averaged confidence intervals
@@ -264,17 +306,16 @@ for (i in 1:10) {
     names(m_stderr) <- row.names(m1sdf)
     names(pct2.5) <- row.names(m1sdf)
     names(pct97.5) <- row.names(m1sdf)
-    names(m_ranef) <- c("RE_WMU", "RE_year")
+    names(m_ranef) <- c("RE_WMU")
   }
 }
 
 # Calculate average performance metric
-perf <- as.data.frame(perf)
-names(perf) <- c("Iter", "RMSE1", "RMSE2", "RMSE3", "RMSE4", "RMSE5", "Accur1", "Accur2", "Accur3", "Accur4", "Accur5")
-perf <- perf %>% as_tibble() %>% 
-  mutate(RMSE=(RMSE1+RMSE2+RMSE3+RMSE4+RMSE5)/5,
-         Accuracy=(Accur1+Accur2+Accur3+Accur4+Accur5)/5) %>%
-  select(Iter, RMSE, Accuracy)
+mean(cmpm$Kappa)
+mean(cmpm$Accuracy)
+
+# save overall performance stats
+write_csv(cmpm, "results/binary_bromadiolone_performance.csv")
 
 # Calculate averages for each coefficient
 coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)], na.rm=TRUE)
@@ -299,6 +340,11 @@ write_csv(ranef_avg, "results/binaryTbromadiolone_coef-random-effects.csv")
 ## Loop over each set of random points
 m_est <- m_stderr <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
 
+kappa <- matrix(NA, ncol=6, nrow=10)
+kappa[,1] <- 1:10
+
+cmpm <- data.frame()
+
 # Loop over each point set
 for (i in 1:10) {
   
@@ -306,7 +352,7 @@ for (i in 1:10) {
   pt <- diph[diph$pt_index==i,]
   
   # Run model with deltaAICc < 2
-  m1_pt <- glmer(bin.exp ~ Sex*Age + totalag_60 + mix_15_100 + laggedBMI_30 + (1|WMU), 
+  m1_pt <- glmer(bin.exp ~ Sex + Age + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU), 
                family=binomial(link="logit"), data=pt)
   if (!isSingular(m1_pt)) {
     
@@ -318,27 +364,43 @@ for (i in 1:10) {
     for (j in 1:5) {
       
       # Split data into train & test
-      trainSet <- pt[row_idx[row_idx==j],] %>% as_tibble()
-      testSet <- pt[row_idx[row_idx!=j],] %>% as_tibble()
+      trainSet <- pt[row_idx==j,] %>% as_tibble()
+      testSet <- pt[row_idx!=j,] %>% as_tibble()
       
       # Fit model on training set
-      m1_cv <- glmer(bin.exp ~ Sex*Age + totalag_60 + mix_15_100 + 
-                       laggedBMI_30 + (1|WMU) + (1|year), 
+      m1_cv <- glmer(bin.exp ~ Sex + Age + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU), 
                      family=binomial(link="logit"), data=pt)
-      pred <- predict(m1_cv, newdata=testSet, type="response", se.fit=TRUE)
+      pred <- predict(m1_cv, newdata=testSet, type="response", re.form=NA)
+      
+      # Code from lme4 FAQ (Bolker)
+      mm <- model.matrix(terms(m1_cv),testSet)
+      pvar1 <- diag(mm %*% tcrossprod(vcov(m1_cv),mm))
+      tvar1 <- pvar1+VarCorr(m1_cv)$WMU[1]
+      cmult <- 1.96
       
       # Create data frame to store prediction for each fold
-      testTable <- testSet %>% select(RegionalID:WMUA_code,n.compounds.T)
+      testTable <- testSet %>% select(RegionalID:WMUA_code,bin.exp)
       
-      testTable$pred <- pred$fit
-      testTable$se.fit <- pred$se.fit
+      testTable <- data.frame(
+        testTable, pred=round(pred)
+        , plo = testSet$bin.exp-cmult*sqrt(pvar1)
+        , phi = testSet$bin.exp+cmult*sqrt(pvar1)
+        , tlo = testSet$bin.exp-cmult*sqrt(tvar1)
+        , thi = testSet$bin.exp+cmult*sqrt(tvar1)
+      )
       
-      testTable <- testTable %>% 
-        mutate(lower=pred-(se.fit*1.96), upper=pred+(se.fit*1.96)) %>%
-        mutate(correct=if_else(n.compounds.T>=lower & n.compounds.T<=upper, 1, 0))
+      bin_confusion <- confusionMatrix(
+        # predictions then true values
+        data = factor(testTable$pred, levels=0:1),
+        reference = factor(testTable$bin.exp, levels=0:1),
+        # what is positive exposure value
+        positive = "1"
+      )
       
-      perf[i,j+6] <- sum(testTable$correct)/nrow(testTable)
-      perf[i,j+1] <- sqrt(mean((testTable$pred - testTable$n.compounds.T)^2))
+      cm <- as.data.frame(t(bin_confusion$overall))
+      cm$iteration <- i
+      cm$fold <- j
+      cmpm <- bind_rows(cmpm, cm)
     }
     
     # save averaged confidence intervals
@@ -365,12 +427,11 @@ for (i in 1:10) {
 }
 
 # Calculate average performance metric
-perf <- as.data.frame(perf)
-names(perf) <- c("Iter", "RMSE1", "RMSE2", "RMSE3", "RMSE4", "RMSE5", "Accur1", "Accur2", "Accur3", "Accur4", "Accur5")
-perf <- perf %>% as_tibble() %>% 
-  mutate(RMSE=(RMSE1+RMSE2+RMSE3+RMSE4+RMSE5)/5,
-         Accuracy=(Accur1+Accur2+Accur3+Accur4+Accur5)/5) %>%
-  select(Iter, RMSE, Accuracy)
+mean(cmpm$Kappa)
+mean(cmpm$Accuracy)
+
+# save overall performance stats
+write_csv(cmpm, "results/binary_diphacinone_performance.csv")
 
 # Calculate averages for each coefficient
 coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)], na.rm=TRUE)
