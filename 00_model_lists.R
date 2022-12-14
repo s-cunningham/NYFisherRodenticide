@@ -208,6 +208,8 @@ global_formulae <- list(n.compounds.T ~ Sex + Age + build_cat_60*ai_60 + pasture
                         n.compounds.T ~ Sex * Age + build_cat_60*ai_60 + pasture_60 + laggedBMI_30 + (1|WMU) + (1|year),
                         n.compounds.T ~ Sex + Age + build_cat_60*mixed_30 + pasture_60 + laggedBMI_30 + (1|WMU) + (1|year),
                         n.compounds.T ~ Sex * Age + build_cat_60*mixed_30 + pasture_60 + laggedBMI_30 + (1|WMU) + (1|year),
+                        n.compounds.T ~ Sex + Age + wui_60_100 + pasture_60 + laggedBMI_30 + ai_60 + (1|WMU) + (1|year),
+                        n.compounds.T ~ Sex * Age + wui_60_100 + pasture_60 + laggedBMI_30 + ai_60 + (1|WMU) + (1|year),
                         n.compounds.T ~ Sex + Age + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU) + (1|year),
                         n.compounds.T ~ Sex * Age + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU) + (1|year))
 names(global_formulae) <- as.character(global_formulae)
