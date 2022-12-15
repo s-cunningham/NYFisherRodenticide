@@ -124,7 +124,7 @@ for (i in 1:10) {
   pt <- brod[brod$pt_index==i,]
   
   # Run model with deltaAICc < 2
-  m1_pt <- lme4::glmer(bin.exp ~ Sex + Age + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU), 
+  m1_pt <- lme4::glmer(bin.exp ~ Sex + Age + I(Age^2)  + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU), 
                  family=binomial(link="logit"), data=pt)
   
   # 5-fold cross validation
@@ -136,7 +136,7 @@ for (i in 1:10) {
     testSet <- pt[row_idx!=j,] %>% as_tibble()
     
     # Fit model on training set
-    m1_cv <- glmer(bin.exp ~ Sex + Age + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU), 
+    m1_cv <- glmer(bin.exp ~ Sex + Age + I(Age^2)  + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU), 
                    family=binomial(link="logit"), data=pt)
     pred <- predict(m1_cv, newdata=testSet, type="response", re.form=NA)
     
@@ -242,7 +242,7 @@ for (i in 1:10) {
   pt <- brom[brom$pt_index==i,]
   
   # Run model with deltaAICc < 2
-  m1_pt <- glmer(bin.exp ~ Sex + Age + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU),
+  m1_pt <- glmer(bin.exp ~ Sex + Age + I(Age^2)  + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU),
                  family=binomial(link="logit"),data=pt)
   
   m1s <- summary(m1_pt)
@@ -257,7 +257,7 @@ for (i in 1:10) {
     testSet <- pt[row_idx!=j,] %>% as_tibble()
     
     # Fit model on training set
-    m1_cv <- glmer(bin.exp ~ Sex + Age + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU), 
+    m1_cv <- glmer(bin.exp ~ Sex + Age + I(Age^2)  + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU), 
                    family=binomial(link="logit"), data=pt)
     pred <- predict(m1_cv, newdata=testSet, type="response", re.form=NA)
     
@@ -359,7 +359,7 @@ for (i in 1:10) {
   pt <- diph[diph$pt_index==i,]
   
   # Run model with deltaAICc < 2
-  m1_pt <- glmer(bin.exp ~ Sex + Age + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU), 
+  m1_pt <- glmer(bin.exp ~ Sex + Age + I(Age^2) + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU), 
                family=binomial(link="logit"), data=pt)
   if (!isSingular(m1_pt)) {
     
@@ -375,7 +375,7 @@ for (i in 1:10) {
       testSet <- pt[row_idx!=j,] %>% as_tibble()
       
       # Fit model on training set
-      m1_cv <- glmer(bin.exp ~ Sex + Age + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU), 
+      m1_cv <- glmer(bin.exp ~ Sex + Age + I(Age^2)  + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU), 
                      family=binomial(link="logit"), data=pt)
       pred <- predict(m1_cv, newdata=testSet, type="response", re.form=NA)
       

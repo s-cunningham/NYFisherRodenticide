@@ -174,6 +174,7 @@ kappa <- matrix(NA, ncol=6, nrow=10)
 kappa[,1] <- 1:10
 
 classstats <- data.frame()
+overallstats <- data.frame()
 
 system.time(
 # Loop over each point set
@@ -236,6 +237,11 @@ for (i in 1:10) {
     classcm$fold <- j
     classstats <- bind_rows(classstats, classcm)
     
+    overall <- as_tibble(t(all_confusion$overall))
+    overall$iteration <- i
+    overall$fold <- j
+    overallstats <- bind_rows(overallstats, overall)
+    
     kappa[i,j+1] <- all_confusion$overall[[2]]
 
   }
@@ -285,7 +291,17 @@ names(coef_summary)[2] <- "Intercept"
 write_csv(coef_summary, "results/ncompT_coef-summary.csv")
 write_csv(ranef_avg, "results/ncompT_coef-random-effects.csv")
 
+# Calculate class accuracy
+classstats <- classstats %>% as_tibble %>%
+                mutate(Accuracy = Sensitivity*Prevalence + (Specificity*(1-Prevalence)))
+classstats$group <- rep(0:5, 10*5)
 
+class_accu <- classstats %>% group_by(iteration, group) %>% 
+  summarize(class_acc=mean(Specificity)) %>% 
+  pivot_wider(names_from=group, values_from=class_acc)
+
+write_csv(classstats, "results/ncompounds_class-stats.csv")
+write_csv(overallstats,  "results/ncompounds_overall_stats.csv")
 
 
 
