@@ -110,7 +110,7 @@ diph <- dat1[dat1$compound=="Diphacinone",]
 ## Run models ##
 
 ## Loop over each set of random points
-m_est <- m_stderr <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
+m_est <- m_stderr <- m_zscore <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
 
 kappa <- matrix(NA, ncol=6, nrow=10)
 kappa[,1] <- 1:10
@@ -183,12 +183,14 @@ for (i in 1:10) {
   # Save point set estimates
   m_est <- rbind(m_est, coef(m1s)[,1])
   m_stderr <- rbind(m_stderr, coef(m1s)[,2])
+  m_zscore <- rbind(m_zscore, coef(m1s)[,3])
   m_ranef <- rbind(m_ranef, unlist(VarCorr(m1_pt)))
   
   # Rename (only need to do once)
   if (i==1) {
     names(m_est) <- row.names(m1sdf)
     names(m_stderr) <- row.names(m1sdf)
+    names(m_zscore) <- row.names(m1sdf)
     names(pct2.5) <- row.names(m1sdf)
     names(pct97.5) <- row.names(m1sdf)
     names(m_ranef) <- c("RE_WMU")
@@ -206,16 +208,17 @@ write_csv(cmpm, "results/binary_brodifacoum_performance.csv")
 # Calculate averages for each coefficient
 coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)], na.rm=TRUE)
 stderr_avg <- colMeans(m_stderr[sapply(m_stderr, is.numeric)], na.rm=TRUE)
+zscore_avg <- colMeans(m_zscore[sapply(m_zscore, is.numeric)], na.rm=TRUE)
 pct2.5_avg <- colMeans(pct2.5[sapply(pct2.5, is.numeric)], na.rm=TRUE)
 pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)], na.rm=TRUE)
 ranef_avg <- as.data.frame(colMeans(m_ranef[sapply(m_ranef, is.numeric)])) %>% rownames_to_column("RE")
 names(ranef_avg)[2] <- "variance"
 
 # Combine and clean up data frame
-coef_summary <- bind_rows(coef_avg, stderr_avg, pct2.5_avg, pct97.5_avg)
+coef_summary <- bind_rows(coef_avg, stderr_avg, zscore_avg, pct2.5_avg, pct97.5_avg)
 names(coef_summary) <- row.names(m1sdf)
 coef_summary <- as.data.frame(coef_summary)
-coefs <- c("param_est", "std_error", "2.5CI", "97.5CI")
+coefs <- c("param_est", "std_error", "z-score", "2.5CI", "97.5CI")
 coef_summary <- data.frame(coef=coefs, coef_summary)
 
 # Write to file
@@ -226,7 +229,7 @@ write_csv(ranef_avg, "results/binaryTbrodifacoum_coef-random-effects.csv")
 ## Running final models ##
 
 ## Loop over each set of random points
-m_est <- m_stderr <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
+m_est <- m_stderr <- m_zscore <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
 
 kappa <- matrix(NA, ncol=6, nrow=10)
 kappa[,1] <- 1:10
@@ -298,12 +301,14 @@ for (i in 1:10) {
   # Save point set estimates
   m_est <- rbind(m_est, coef(m1s)[,1])
   m_stderr <- rbind(m_stderr, coef(m1s)[,2])
+  m_zscore <- rbind(m_zscore, coef(m1s)[,3])
   m_ranef <- rbind(m_ranef, unlist(VarCorr(m1_pt)))
   
   # Rename (only need to do once)
   if (i==1) {
     names(m_est) <- row.names(m1sdf)
     names(m_stderr) <- row.names(m1sdf)
+    names(m_zscore) <- row.names(m1sdf)
     names(pct2.5) <- row.names(m1sdf)
     names(pct97.5) <- row.names(m1sdf)
     names(m_ranef) <- c("RE_WMU")
@@ -320,15 +325,17 @@ write_csv(cmpm, "results/binary_bromadiolone_performance.csv")
 # Calculate averages for each coefficient
 coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)], na.rm=TRUE)
 stderr_avg <- colMeans(m_stderr[sapply(m_stderr, is.numeric)], na.rm=TRUE)
+zscore_avg <- colMeans(m_zscore[sapply(m_zscore, is.numeric)], na.rm=TRUE)
 pct2.5_avg <- colMeans(pct2.5[sapply(pct2.5, is.numeric)], na.rm=TRUE)
 pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)], na.rm=TRUE)
 ranef_avg <- as.data.frame(colMeans(m_ranef[sapply(m_ranef, is.numeric)])) %>% rownames_to_column("RE")
 names(ranef_avg)[2] <- "variance"
 
 # Combine and clean up data frame
-coef_summary <- bind_rows(coef_avg, stderr_avg, pct2.5_avg, pct97.5_avg)
+coef_summary <- bind_rows(coef_avg, stderr_avg, zscore_avg, pct2.5_avg, pct97.5_avg)
+names(coef_summary) <- row.names(m1sdf)
 coef_summary <- as.data.frame(coef_summary)
-coefs <- c("param_est", "std_error", "2.5CI", "97.5CI")
+coefs <- c("param_est", "std_error", "z-score", "2.5CI", "97.5CI")
 coef_summary <- data.frame(coef=coefs, coef_summary)
 
 # Write to file
@@ -338,7 +345,7 @@ write_csv(ranef_avg, "results/binaryTbromadiolone_coef-random-effects.csv")
 #### Diphacinone ####
 
 ## Loop over each set of random points
-m_est <- m_stderr <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
+m_est <- m_stderr <- m_zscore <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
 
 kappa <- matrix(NA, ncol=6, nrow=10)
 kappa[,1] <- 1:10
@@ -412,12 +419,14 @@ for (i in 1:10) {
     # Save point set estimates
     m_est <- rbind(m_est, coef(m1s)[,1])
     m_stderr <- rbind(m_stderr, coef(m1s)[,2])
+    m_zscore <- rbind(m_zscore, coef(m1s)[,3])
     m_ranef <- rbind(m_ranef, unlist(VarCorr(m1_pt)))
     
     # Rename (only need to do once)
     if (i==1) {
       names(m_est) <- row.names(m1sdf)
       names(m_stderr) <- row.names(m1sdf)
+      names(m_zscore) <- row.names(m1sdf)
       names(pct2.5) <- row.names(m1sdf)
       names(pct97.5) <- row.names(m1sdf)
       names(m_ranef) <- c("RE_year")
@@ -436,15 +445,17 @@ write_csv(cmpm, "results/binary_diphacinone_performance.csv")
 # Calculate averages for each coefficient
 coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)], na.rm=TRUE)
 stderr_avg <- colMeans(m_stderr[sapply(m_stderr, is.numeric)], na.rm=TRUE)
+zscore_avg <- colMeans(m_zscore[sapply(m_zscore, is.numeric)], na.rm=TRUE)
 pct2.5_avg <- colMeans(pct2.5[sapply(pct2.5, is.numeric)], na.rm=TRUE)
 pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)], na.rm=TRUE)
 ranef_avg <- as.data.frame(colMeans(m_ranef[sapply(m_ranef, is.numeric)])) %>% rownames_to_column("RE")
 names(ranef_avg)[2] <- "variance"
 
 # Combine and clean up data frame
-coef_summary <- bind_rows(coef_avg, stderr_avg, pct2.5_avg, pct97.5_avg)
+coef_summary <- bind_rows(coef_avg, stderr_avg, zscore_avg, pct2.5_avg, pct97.5_avg)
+names(coef_summary) <- row.names(m1sdf)
 coef_summary <- as.data.frame(coef_summary)
-coefs <- c("param_est", "std_error", "2.5CI", "97.5CI")
+coefs <- c("param_est", "std_error", "z-score", "2.5CI", "97.5CI")
 coef_summary <- data.frame(coef=coefs, coef_summary)
 
 # Write to file
