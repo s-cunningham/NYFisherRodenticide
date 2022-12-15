@@ -166,7 +166,7 @@ write_csv(model_tab, "output/model_selection/global_model_selection_table.csv")
 #### Running iteration models ####
 
 ## Loop over each set of random points
-m_est <- m_stderr <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
+m_est <- m_stderr <- m_zscore <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
 perf <- matrix(NA, ncol=11, nrow=10)
 perf[,1] <- 1:10
 
@@ -188,6 +188,16 @@ for (i in 1:10) {
                       family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
 
   m1s <- summary(m1_pt)
+  
+  # save averaged confidence intervals
+  pct2.5 <- rbind(pct2.5, t(confint(m1_pt))[1,1:(nrow(confint(m1_pt))-1)])
+  pct97.5 <- rbind(pct97.5, t(confint(m1_pt))[2,1:(nrow(confint(m1_pt))-1)])
+  
+  # Save point set estimates
+  m_est <- rbind(m_est, coef(m1s)$cond[,1])
+  m_stderr <- rbind(m_stderr, coef(m1s)$cond[,2])
+  m_zscore <- rbind(m_zscore, coef(m1s)$cond[,3])
+  m_ranef <- rbind(m_ranef, unlist(VarCorr(m1_pt)))
   
   # 5-fold cross validation
   row_idx <- sample(1:5, nrow(pt), replace=TRUE)
@@ -230,19 +240,11 @@ for (i in 1:10) {
 
   }
 
-  # save averaged confidence intervals
-  pct2.5 <- rbind(pct2.5, t(confint(m1_pt))[1,1:(nrow(confint(m1_pt))-1)])
-  pct97.5 <- rbind(pct97.5, t(confint(m1_pt))[2,1:(nrow(confint(m1_pt))-1)])
-
-  # Save point set estimates
-  m_est <- rbind(m_est, coef(m1s)$cond[,1])
-  m_stderr <- rbind(m_stderr, coef(m1s)$cond[,2])
-  m_ranef <- rbind(m_ranef, unlist(VarCorr(m1_pt)))
-
   # Rename (only need to do once)
   if (i==1) {
     names(m_est) <- c(row.names(m1s$coefficients$cond))
     names(m_stderr) <- c(row.names(m1s$coefficients$cond))
+    names(m_zscore) <- c(row.names(m1s$coefficients$cond))
     names(pct2.5) <- c(row.names(m1s$coefficients$cond))
     names(pct97.5) <- c(row.names(m1s$coefficients$cond))
     names(m_ranef) <- c("RE_WMU")
@@ -263,6 +265,7 @@ range(perf2$Accuracy)
 # Calculate averages for each coefficient
 coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)], na.rm=TRUE)
 stderr_avg <- colMeans(m_stderr[sapply(m_stderr, is.numeric)], na.rm=TRUE)
+zscore_avg <- colMeans(m_zscore[sapply(m_zscore, is.numeric)], na.rm=TRUE)
 pct2.5_avg <- colMeans(pct2.5[sapply(pct2.5, is.numeric)], na.rm=TRUE)
 pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)], na.rm=TRUE)
 ranef_avg <- as.data.frame(colMeans(m_ranef[sapply(m_ranef, is.numeric)])) %>% rownames_to_column("RE")
@@ -272,9 +275,9 @@ mean(m_est[,2])
 sd(m_est[,2])
 
 # Combine and clean up data frame
-coef_summary <- bind_rows(coef_avg, stderr_avg, pct2.5_avg, pct97.5_avg)
+coef_summary <- bind_rows(coef_avg, stderr_avg, zscore_avg, pct2.5_avg, pct97.5_avg)
 coef_summary <- as.data.frame(coef_summary)
-coefs <- c("param_est", "std_error", "2.5CI", "97.5CI")
+coefs <- c("param_est", "std_error", "z-score", "2.5CI", "97.5CI")
 coef_summary <- data.frame(coef=coefs, coef_summary)
 names(coef_summary)[2] <- "Intercept"
 
