@@ -2,6 +2,7 @@ library(tidyverse)
 library(lme4)
 library(MuMIn)
 library(caret)
+library(broom)
 
 options(scipen=999, digits=3)
 set.seed(1)
@@ -112,6 +113,8 @@ diph <- dat1[dat1$compound=="Diphacinone",]
 ## Loop over each set of random points
 m_est <- m_stderr <- m_zscore <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
 
+ranef_coef <- data.frame()
+
 kappa <- matrix(NA, ncol=6, nrow=10)
 kappa[,1] <- 1:10
 
@@ -126,6 +129,26 @@ for (i in 1:10) {
   # Run model with deltaAICc < 2
   m1_pt <- lme4::glmer(bin.exp ~ Sex + Age + I(Age^2)  + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU), 
                  family=binomial(link="logit"), data=pt)
+  
+  m1s <- summary(m1_pt)
+  m1sdf <- m1s$coefficients
+  
+  # save averaged confidence intervals
+  ci <- confint.merMod(m1_pt, method="Wald")
+  ci <- ci[complete.cases(ci),]
+  pct2.5 <- rbind(pct2.5, t(ci)[1,1:nrow(ci)])
+  pct97.5 <- rbind(pct97.5, t(ci)[2,1:nrow(ci)])
+  
+  # Save point set estimates
+  m_est <- rbind(m_est, coef(m1s)[,1])
+  m_stderr <- rbind(m_stderr, coef(m1s)[,2])
+  m_zscore <- rbind(m_zscore, coef(m1s)[,3])
+  m_ranef <- rbind(m_ranef, unlist(VarCorr(m1_pt)))
+  
+  # Save the coefficients for each level of the random effect
+  ranefc <- as_tibble(ranef(m1_pt)) 
+  ranefc$iter <- i
+  ranef_coef <- bind_rows(ranef_coef, ranefc)
   
   # 5-fold cross validation
   row_idx <- sample(1:5, nrow(pt), replace=TRUE)
@@ -170,21 +193,6 @@ for (i in 1:10) {
     cm$fold <- j
     cmpm <- bind_rows(cmpm, cm)
   }
-  
-  m1s <- summary(m1_pt)
-  m1sdf <- m1s$coefficients
-  
-  # save averaged confidence intervals
-  ci <- confint.merMod(m1_pt, method="Wald")
-  ci <- ci[complete.cases(ci),]
-  pct2.5 <- rbind(pct2.5, t(ci)[1,1:nrow(ci)])
-  pct97.5 <- rbind(pct97.5, t(ci)[2,1:nrow(ci)])
-  
-  # Save point set estimates
-  m_est <- rbind(m_est, coef(m1s)[,1])
-  m_stderr <- rbind(m_stderr, coef(m1s)[,2])
-  m_zscore <- rbind(m_zscore, coef(m1s)[,3])
-  m_ranef <- rbind(m_ranef, unlist(VarCorr(m1_pt)))
   
   # Rename (only need to do once)
   if (i==1) {
@@ -214,7 +222,14 @@ pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)], na.rm=TRUE)
 ranef_avg <- as.data.frame(colMeans(m_ranef[sapply(m_ranef, is.numeric)])) %>% rownames_to_column("RE")
 names(ranef_avg)[2] <- "variance"
 
-# Combine and clean up data frame
+# Save averaged values for each level of random effect
+re <- ranef_coef %>% 
+            group_by(grp) %>% 
+            summarize(REval=mean(condval), REsd=mean(condsd), 
+              RErangeL=range(condval)[1], RErangeH=range(condval)[2]) 
+write_csv(re, "results/brodifacoum_random_effects_coefficients.csv")
+
+# Combine and clean up data frame for fixed effects
 coef_summary <- bind_rows(coef_avg, stderr_avg, zscore_avg, pct2.5_avg, pct97.5_avg)
 names(coef_summary) <- row.names(m1sdf)
 coef_summary <- as.data.frame(coef_summary)
@@ -223,7 +238,7 @@ coef_summary <- data.frame(coef=coefs, coef_summary)
 
 # Write to file
 write_csv(coef_summary, "results/binaryTbrodifacoum_coef-summary.csv")
-write_csv(ranef_avg, "results/binaryTbrodifacoum_coef-random-effects.csv")
+write_csv(ranef_avg, "results/binaryTbrodifacoum_random-effect-var.csv")
 
 #### Bromadiolone ####
 ## Running final models ##
@@ -233,6 +248,8 @@ m_est <- m_stderr <- m_zscore <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
 
 kappa <- matrix(NA, ncol=6, nrow=10)
 kappa[,1] <- 1:10
+
+ranef_coef <- data.frame()
 
 cmpm <- data.frame()
 # Loop over each point set
@@ -247,6 +264,23 @@ for (i in 1:10) {
   
   m1s <- summary(m1_pt)
   m1sdf <- m1s$coefficients
+  
+  # Save the coefficients for each level of the random effect
+  ranefc <- as_tibble(ranef(m1_pt)) 
+  ranefc$iter <- i
+  ranef_coef <- bind_rows(ranef_coef, ranefc)
+  
+  # save averaged confidence intervals
+  ci <- confint.merMod(m1_pt, method="Wald")
+  ci <- ci[complete.cases(ci),]
+  pct2.5 <- rbind(pct2.5, t(ci)[1,1:nrow(ci)])
+  pct97.5 <- rbind(pct97.5, t(ci)[2,1:nrow(ci)])
+  
+  # Save point set estimates
+  m_est <- rbind(m_est, coef(m1s)[,1])
+  m_stderr <- rbind(m_stderr, coef(m1s)[,2])
+  m_zscore <- rbind(m_zscore, coef(m1s)[,3])
+  m_ranef <- rbind(m_ranef, unlist(VarCorr(m1_pt)))
   
   # 5-fold cross validation
   row_idx <- sample(1:5, nrow(pt), replace=TRUE)
@@ -291,18 +325,7 @@ for (i in 1:10) {
     cm$fold <- j
     cmpm <- bind_rows(cmpm, cm)
   }
-  
-  # save averaged confidence intervals
-  ci <- confint.merMod(m1_pt, method="Wald")
-  ci <- ci[complete.cases(ci),]
-  pct2.5 <- rbind(pct2.5, t(ci)[1,1:nrow(ci)])
-  pct97.5 <- rbind(pct97.5, t(ci)[2,1:nrow(ci)])
-  
-  # Save point set estimates
-  m_est <- rbind(m_est, coef(m1s)[,1])
-  m_stderr <- rbind(m_stderr, coef(m1s)[,2])
-  m_zscore <- rbind(m_zscore, coef(m1s)[,3])
-  m_ranef <- rbind(m_ranef, unlist(VarCorr(m1_pt)))
+
   
   # Rename (only need to do once)
   if (i==1) {
@@ -331,6 +354,13 @@ pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)], na.rm=TRUE)
 ranef_avg <- as.data.frame(colMeans(m_ranef[sapply(m_ranef, is.numeric)])) %>% rownames_to_column("RE")
 names(ranef_avg)[2] <- "variance"
 
+# Save averaged values for each level of random effect
+re <- ranef_coef %>% 
+  group_by(grp) %>% 
+  summarize(REval=mean(condval), REsd=mean(condsd), 
+            RErangeL=range(condval)[1], RErangeH=range(condval)[2]) 
+write_csv(re, "results/bromadiolone_random_effects_coefficients.csv")
+
 # Combine and clean up data frame
 coef_summary <- bind_rows(coef_avg, stderr_avg, zscore_avg, pct2.5_avg, pct97.5_avg)
 names(coef_summary) <- row.names(m1sdf)
@@ -340,7 +370,7 @@ coef_summary <- data.frame(coef=coefs, coef_summary)
 
 # Write to file
 write_csv(coef_summary, "results/binaryTbromadiolone_coef-summary.csv")
-write_csv(ranef_avg, "results/binaryTbromadiolone_coef-random-effects.csv")
+write_csv(ranef_avg, "results/binaryTbromadiolone_random-effect-var.csv")
 
 #### Diphacinone ####
 
@@ -350,6 +380,7 @@ m_est <- m_stderr <- m_zscore <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
 kappa <- matrix(NA, ncol=6, nrow=10)
 kappa[,1] <- 1:10
 
+ranef_coef <- data.frame()
 cmpm <- data.frame()
 
 # Loop over each point set
@@ -365,6 +396,23 @@ for (i in 1:10) {
     
     m1s <- summary(m1_pt)
     m1sdf <- m1s$coefficients
+    
+    # Save the coefficients for each level of the random effect
+    ranefc <- as_tibble(ranef(m1_pt)) 
+    ranefc$iter <- i
+    ranef_coef <- bind_rows(ranef_coef, ranefc)
+    
+    # save averaged confidence intervals
+    ci <- confint.merMod(m1_pt, method="Wald")
+    ci <- ci[complete.cases(ci),]
+    pct2.5 <- rbind(pct2.5, t(ci)[1,1:nrow(ci)])
+    pct97.5 <- rbind(pct97.5, t(ci)[2,1:nrow(ci)])
+    
+    # Save point set estimates
+    m_est <- rbind(m_est, coef(m1s)[,1])
+    m_stderr <- rbind(m_stderr, coef(m1s)[,2])
+    m_zscore <- rbind(m_zscore, coef(m1s)[,3])
+    m_ranef <- rbind(m_ranef, unlist(VarCorr(m1_pt)))
     
     # 5-fold cross validation
     row_idx <- sample(1:5, nrow(pt), replace=TRUE)
@@ -409,19 +457,7 @@ for (i in 1:10) {
       cm$fold <- j
       cmpm <- bind_rows(cmpm, cm)
     }
-    
-    # save averaged confidence intervals
-    ci <- confint.merMod(m1_pt, method="Wald")
-    ci <- ci[complete.cases(ci),]
-    pct2.5 <- rbind(pct2.5, t(ci)[1,1:nrow(ci)])
-    pct97.5 <- rbind(pct97.5, t(ci)[2,1:nrow(ci)])
-    
-    # Save point set estimates
-    m_est <- rbind(m_est, coef(m1s)[,1])
-    m_stderr <- rbind(m_stderr, coef(m1s)[,2])
-    m_zscore <- rbind(m_zscore, coef(m1s)[,3])
-    m_ranef <- rbind(m_ranef, unlist(VarCorr(m1_pt)))
-    
+
     # Rename (only need to do once)
     if (i==1) {
       names(m_est) <- row.names(m1sdf)
@@ -451,6 +487,20 @@ pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)], na.rm=TRUE)
 ranef_avg <- as.data.frame(colMeans(m_ranef[sapply(m_ranef, is.numeric)])) %>% rownames_to_column("RE")
 names(ranef_avg)[2] <- "variance"
 
+# Save averaged values for each level of random effect
+re <- ranef_coef %>% 
+  group_by(grp) %>% 
+  summarize(REval=mean(condval), REsd=mean(condsd), 
+            RErangeL=range(condval)[1], RErangeH=range(condval)[2]) 
+write_csv(re, "results/random_effects_coefficients.csv")
+
+# Save averaged values for each level of random effect
+re <- ranef_coef %>% 
+  group_by(grp) %>% 
+  summarize(REval=mean(condval), REsd=mean(condsd), 
+            RErangeL=range(condval)[1], RErangeH=range(condval)[2]) 
+write_csv(re, "results/diphacinone_random_effects_coefficients.csv")
+
 # Combine and clean up data frame
 coef_summary <- bind_rows(coef_avg, stderr_avg, zscore_avg, pct2.5_avg, pct97.5_avg)
 names(coef_summary) <- row.names(m1sdf)
@@ -460,5 +510,5 @@ coef_summary <- data.frame(coef=coefs, coef_summary)
 
 # Write to file
 write_csv(coef_summary, "results/binaryTdiphacinone_coef-summary.csv")
-write_csv(ranef_avg, "results/binaryTdiphacinone_coef-random-effects.csv")
+write_csv(ranef_avg, "results/binaryTdiphacinone_random-effect-var.csv")
 
