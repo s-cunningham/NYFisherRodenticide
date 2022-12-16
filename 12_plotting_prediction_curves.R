@@ -5,14 +5,27 @@ library(boot)
 library(tidyverse)
 library(patchwork)
 
+## Source function files
+source("00_AR_functions.R")
+
+## Set ggplot theme
+theme_set(theme_classic())
+
 #### Number of compounds ####
-dat <- read_csv("output/model_data.csv")
+# dat <- read_csv("output/model_data.csv")
 
 #### Binary analyses #####
 dat <- read_csv("output/binary_model_data_unscaled.csv") %>%
             select(RegionalID:bin.exp, pasture_60, laggedBMI_30, wui_60_100)
 
+# Scale data
+dat <- within(dat, Age.s <- scale(Age))
 dat[,c(8,17:19)] <- scale(dat[,c(8,17:19)])
+
+# Caluculate means
+meanWUI <- mean(dat$wui_60_100)
+meanPasture <- mean(dat$pasture_60)
+meanMast <- mean(dat$laggedBMI_30)
 
 # Subset by compound
 brod <- dat[dat$compound=="Brodifacoum",]
@@ -41,20 +54,48 @@ diph_fe <- read_csv("results/binaryTdiphacinone_coef-summary.csv") %>% rename(in
                                                                               pasture=pasture_60,
                                                                               mast=laggedBMI_30)
 
-# Create function to build data for prediction curve
+## Calculate expected values
+brod_m <- exp_val_calc(brod_fe, brod_re, compound="brodifacoum", sex=1, meanWUI, meanPasture, meanMast, ageStart=min(dat$Age), ageEnd=max(dat$Age), lo=100)
+brod_f <- exp_val_calc(brod_fe, brod_re, compound="brodifacoum", sex=0, meanWUI, meanPasture, meanMast, ageStart=min(dat$Age), ageEnd=max(dat$Age), lo=100)
 
-exp_val_calc <- function(fixed, random, sex, meanWUI, meanPasture, meanMast, ageStart, ageEnd, inc) {}
+brom_m <- exp_val_calc(brom_fe, brom_re, compound="bromadiolone", sex=1, meanWUI, meanPasture, meanMast, ageStart=min(dat$Age), ageEnd=max(dat$Age), lo=100)
+brom_f <- exp_val_calc(brom_fe, brom_re, compound="bromadiolone", sex=0, meanWUI, meanPasture, meanMast, ageStart=min(dat$Age), ageEnd=max(dat$Age), lo=100)
 
-age_iter <- seq(ageStart, ageEnd, inc)
+diph_m <- exp_val_calc(diph_fe, diph_re, compound="diphacinone", sex=1, meanWUI, meanPasture, meanMast, ageStart=min(dat$Age), ageEnd=max(dat$Age), lo=100)
+diph_f <- exp_val_calc(diph_fe, diph_re, compound="diphacinone", sex=0, meanWUI, meanPasture, meanMast, ageStart=min(dat$Age), ageEnd=max(dat$Age), lo=100)
 
-level_probs <- random %>% group_by(grp) %>% summarize(wmu_prop=n()/nrow(random))
+# Combine into single data frame
+pred_vals <- list(brod_m, brod_f, brom_m, brom_f, diph_m, diph_f) %>%
+                reduce(full_join) %>%
+                select(compound:Age, exp_val) %>%
+                mutate(unscAge=Age * attr(dat$Age.s, 'scaled:scale') + attr(dat$Age.s, 'scaled:center'))
+pred_vals 
 
-for (i in 1:length(age_iter)) {
-  
-  exp_val <- inv.logit(fixed$intercept[1] + fixed$SexM[1]*sex + fixed$Age[1]*age_iter[i] + fixed$Age2[1]*(age_iter[i]^2) +
-                         fixed$WUI[1]*meanWUI + fixed$pasture[1]*meanPasture + fixed$mast[1]*meanMast + REval[j]*)
-  
-}
+pred_vals %>% group_by(compound, sex, level, Age) %>% count()
+
+# mean line
+pred_mean <- pred_vals %>% group_by(compound, sex, unscAge) %>% summarize(mval = mean(exp_val))
 
 
+## Plot
+
+ggplot() + 
+  geom_line(data=pred_vals, 
+              aes(x=unscAge, y=exp_val, group=interaction(level, sex), color=factor(sex)), alpha=0.15) + 
+  geom_line(data=pred_mean, aes(x=unscAge, y=mval, color=sex), size=1) +   
+  scale_color_manual(values=c("#1b7837", "#762a83"), name="Sex") +
+  facet_grid(compound~.) +
+  ylab("Probability of exposure") + xlab("Age (years)") +
+  theme(legend.position=c(0,0),
+        legend.justification=c(0,0),
+        legend.background=element_rect(fill=NA),
+        panel.border=element_rect(color="black", fill=NA, size=0.5),
+        axis.text=element_text(size=11),
+        strip.text=element_text(size=11),
+        axis.title=element_text(size=11),
+        legend.title=element_text(size=11),
+        legend.text=element_text(size=10))
+
+
+ggplot() +geom_line(data=pred_mean, aes(x=unscAge, y=mval, color=sex)) + facet_grid(.~compound)
 
