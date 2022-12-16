@@ -20,8 +20,10 @@ names(ages)[c(1,7,9,11,12)] <- c("HarvestDate", "AgeClass", "AgeRange", "Trapper
 ages$AgeRange[ages$AgeRange==""] <- NA
 ages$TrapperID[ages$TrapperID==""] <- NA
 ages$HarvestDate <- as.Date(ages$HarvestDate, format="%m/%d/%Y")
+ages <- ages %>% as_tibble()
 
 # Separate WMU by region
+ages <- ages %>% mutate(WMU=str_to_upper(WMU))
 ages <- separate(ages, 4, into=c("Region", "x"), sep="[A-Z]", remove=FALSE)
 ages <- ages[,-6]
 
@@ -37,6 +39,7 @@ ages <- ages[ages$Town!="",]
 
 # Remove trailing whitespace
 ages$Town <- str_trim(ages$Town, side="right")
+ages$County <- str_trim(ages$County, side="right")
 
 # Correct spelling errors
 ages$Town[ages$Town=="Dannamora"] <- "Dannemora"
@@ -129,6 +132,8 @@ ages$Town[ages$Town=="Exter"] <- "Exeter"
 ages$Town[ages$Town=="Rennslearville"] <- "Rensselaerville"
 ages$Town[ages$Town=="St. Vincent"] <- "Cape Vincent"
 ages$Town[ages$Town=="Brandalow"] <- "Broadalbin"
+ages$County[ages$County=="St. Lawrsnce" | ages$County=="St.Lawrence" | 
+              ages$County=="St. Lawrence"] <- "St Lawrence"
 
 # Add column to preserve village/hamlet name
 ages$Village <- ages$Town
@@ -232,12 +237,16 @@ ages$Town[ages$Town=="Old Forge"] <- "Webb"
 ages$Town[ages$Town=="Lockwood"] <- "Barton"
 ages$Town[ages$Town=="Lusselville"] <- "Ephratah"
 ages$Town[ages$Town=="Wylden"] <- "Ava"
-ages$Town[ages$Town=="West Lydon" | ages$County=="Oneida"] <- "Western"
+# ages$Town[ages$Town=="West Lydon" & ages$County=="Oneida"] <- "Western"
 ages$Town[ages$Town=="Pittfield"] <- "Pittsfield"
 
+# Other corrections
 ages$TrapperID[ages$Town=="Monettca"] <- "2666-8000-0482"
 ages$Town[ages$Town=="Monettca"] <- "Arietta"
 ages$Town[which(ages$RegionalSampleID=="2018-6389" | ages$RegionalSampleID=="2018-6386")] <- "Fairfield"
+ages$Town[ages$Town=="Clinton" & ages$County=="St. Lawrence" & ages$WMU=="6F"] <- "Clifton"
+ages$County[ages$Town=="Freedom" & ages$County=="Allegany"] <- "Cattaraugus"
+
 
 # Read in town shapefile
 twn <- readOGR("data/spatial", "Cities_Towns")
@@ -305,6 +314,12 @@ ages$longitude[ages$Town=="Lewis"& ages$County=="Essex"] <- 1767925
 ages$latitude[ages$Town=="Lewis" & ages$County=="Essex"] <- 2577509
 ages$longitude[ages$Town=="Middletown"& ages$County=="Delaware"] <- 1739612
 ages$latitude[ages$Town=="Middletown" & ages$County=="Delaware"] <- 2325361
+ages$longitude[ages$Town=="Hornell"] <- 1492045
+ages$latitude[ages$Town=="Hornell"] <- 2292524
+ages$longitude[ages$Town=="Rensselaer"] <- 1798357
+ages$latitude[ages$Town=="Rensselaer"] <- 2394953
+ages$longitude[ages$Town=="Rome"] <- 1644803
+ages$latitude[ages$Town=="Rpme"] <- 2426122
 
 # Add column for string length of Regional Sample ID
 ages$strl <- str_length(ages$RegionalSampleID)
@@ -313,7 +328,13 @@ ages$RegionalSampleID <- ifelse(ages$strl<=5, paste(ages$SubmissionYear, ages$Re
 ages <- ages[,1:18]
 names(ages)[13] <- "RegionalID" 
 
-# Create NYS grid
+## Save cleaned-up file
+ages2 <- ages %>% dplyr::select(RegionalID, TrapperID, HarvestDate, HarvestYear, Sex, Age, AgeClass, Region,
+                         WMU, County, Town, Village) 
+
+write_csv(ages2, "data/analysis-ready/2016-2020_ages_data.csv")
+
+#### Create NYS grid ####
 nys <- readOGR("data/spatial", "NYS_outline_albers")
 nys <- spTransform(nys, CRS="+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=23 +lon_0=-96 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs")
 nys_sf <- st_as_sf(nys)

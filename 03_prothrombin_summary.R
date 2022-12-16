@@ -65,31 +65,51 @@ colormap(colormaps$viridis, nshades=71, format="rgb")
 
 ggplot() +
   geom_tile(data=coag1, aes(x=as.factor(FisherID), y=as.factor(testname), fill=testvalue), colour = "black") +
-  scale_fill_gradient2(midpoint=10.51, low=lowcol, mid=midcol, high=highcol, limits=c(8.3, 52.9)) +
+  scale_fill_gradient2(midpoint=10.51, low=lowcol, mid=midcol, high=highcol, limits=c(8.3, 52.9),
+                       name="Clotting Time (sec)") +
   theme_classic() + xlab("Fisher ID") + ylab("Prothrombin Time") +
-  theme(#legend.position = 'none',
+  theme(legend.position = 'bottom',
         panel.border=element_rect(color="black", fill=NA, size=0.5),
-        axis.text=element_text(size=12), axis.title=element_text(size=14),
+        axis.text.x=element_text(size=12, angle=90, vjust=0.5, hjust=1), 
+        axis.title.x=element_text(size=14),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
         strip.text.x=element_text(size=12, face="bold"),
         plot.title=element_text(size=16, face="bold", hjust=0.5)) +
   facet_grid(.~StudyArea, space="free_x", scales="free") 
   
-  
- +
+# Dilute PT time
+ggplot() +
   geom_tile(data=coag2, aes(x=as.factor(FisherID), y=as.factor(testname), fill=testvalue), colour = "black") +
-  scale_fill_gradient2(midpoint=14, low="#2166ac", mid="white", high="#b2182b",  na.value=mycol) +
-  geom_tile(data=coag3, aes(x=as.factor(FisherID), y=as.factor(testname), fill=testvalue), colour = "black") +
-  scale_fill_gradient2(midpoint=245, low="#2166ac", mid="white", high="#b2182b", na.value=mycol) +
-  theme_classic() + xlab("Test") 
-  
-  
-   # + 
-  theme(legend.position = 'none',
+  scale_fill_gradient2(midpoint=14.5, low=lowcol, mid=midcol, high=highcol, limits=c(13.2, 21.2),
+                       name="Clotting time (sec)") +
+  theme_classic() + xlab("Fisher ID") + ylab("Prothrombin Time") +
+  theme(legend.position = 'bottom',
         panel.border=element_rect(color="black", fill=NA, size=0.5),
-        axis.text=element_text(size=12), axis.title=element_text(size=14),
-        strip.text.y=element_text(size=12, face="bold"),
-        strip.text.x=element_blank(),
+        axis.text.x=element_text(size=12, angle=90, vjust=0.5, hjust=1), 
+        axis.title.x=element_text(size=14),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        strip.text.x=element_text(size=12, face="bold"),
         plot.title=element_text(size=16, face="bold", hjust=0.5)) +
-  facet_grid(.~StudyArea, space="free_x", scales="free",) 
+  facet_grid(.~StudyArea, space="free_x", scales="free") 
 
+# Fibrinogen  
+lowcol <- "red"
+midcol <- "white"
+highcol <- "white"
 
+ggplot() +
+  geom_tile(data=coag3, aes(x=as.factor(FisherID), y=as.factor(testname), fill=testvalue), colour = "black") +
+  scale_fill_gradient2(midpoint=245, low=lowcol, mid=midcol, high=highcol, limits=c(60, 823),
+                       name="fibrinogen") +
+  theme_classic() + xlab("Fisher ID") + 
+  theme(legend.position = 'bottom',
+        panel.border=element_rect(color="black", fill=NA, size=0.5),
+        axis.text.x=element_text(size=12, angle=90, vjust=0.5, hjust=1), 
+        axis.title.x=element_text(size=14),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        strip.text.x=element_text(size=12, face="bold"),
+        plot.title=element_text(size=16, face="bold", hjust=0.5)) +
+  facet_grid(.~StudyArea, space="free_x", scales="free") 

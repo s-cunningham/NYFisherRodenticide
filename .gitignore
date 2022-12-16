@@ -1,8 +1,17 @@
+# Specific files
+10_results_tables.tex
+
 # Ignore data and output for now
 data/
 docs/
 output/
-figs/
+
+# Document types
+.tex
+.log
+.html
+10_results_tables.log
+10_results_tables.html
 
 # History files
 .Rhistory

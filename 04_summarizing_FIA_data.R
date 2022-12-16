@@ -37,7 +37,7 @@ baaSV <- vect(baa)
 
 #### Land cover data and covariates ####
 
-## Beech layer (2000-2009)
+## Beech layer (2000-2009) (for comparison)
 beech <- rast("data/rasters/NY_Fgrandifolia.tif")
 
 ## LANDFIRE layers
@@ -191,7 +191,7 @@ head(tuning_grid[order(tuning_grid$rmse), ])
 baa_rf <- ranger(BAA ~ ., data=training, num.trees=1300, mtry=3, min.node.size = 3, 
                  replace=TRUE, sample.fraction=0.5)
 
-# Predict on trainin data
+# Predict on training data
 rf_pred <- predictions(predict(baa_rf, testing))
 
 # Calculate RMSE of tuned model
@@ -221,12 +221,15 @@ pts_sf$BAA_pred <- rf_rast
 st_write(pts_sf, "output/beech_baa_pred_250.shp")
 
 
-
-
-
-
-
-
+#### standStructure ####
+# ss <- standStruct(db=nydb, grpBy=PLOT, returnSpatial=TRUE, landType='forest', method='LMA', 
+#                   totals=TRUE, variance=TRUE, byPlot=TRUE, nCores=2)
+# 
+# ss <- ss[(ss$YEAR==2017 | ss$YEAR==2018 | ss$YEAR==2019 | ss$YEAR==2020),]
+# 
+# ggplot() +
+#   geom_sf(data=ss, aes(color=STAGE), size=3)
+# 
 
 
 
