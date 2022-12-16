@@ -200,10 +200,9 @@ for (i in 1:10) {
   m_stderr <- rbind(m_stderr, coef(m1s)$cond[,2])
   m_zscore <- rbind(m_zscore, coef(m1s)$cond[,3])
   
-  broom.mixed::tidy(m1_pt)
+  # broom.mixed::tidy(m1_pt)
   
-  var_eff <- data.frame(REvar=unlist(VarCorr(m1_pt)), Rmar=)
-  m_ranef <- rbind(m_ranef, )
+  m_ranef <- rbind(m_ranef, unlist(VarCorr(m1_pt)))
   
   # Save the coefficients for each level of the random effect
   ranefc <- as_tibble(ranef(m1_pt)) 
