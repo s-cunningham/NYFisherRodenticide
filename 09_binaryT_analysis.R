@@ -98,8 +98,8 @@ dat1 <- dat %>% select(RegionalID:bin.exp) %>% distinct() %>%
   left_join(build1, by=c("RegionalID", "pt_name", "pt_index"))
 
 ## Scale and center variables
+write_csv(dat1, "output/binary_model_data_unscaled.csv")
 dat1[,c(8,17:106)] <- scale(dat1[,c(8,17:106)])
-# write_csv(dat1, "output/binary_model_data.csv")
 
 # Subset by compound
 brod <- dat1[dat1$compound=="Brodifacoum",]

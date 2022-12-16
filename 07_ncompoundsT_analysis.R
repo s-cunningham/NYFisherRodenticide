@@ -175,6 +175,7 @@ kappa[,1] <- 1:10
 
 classstats <- data.frame()
 overallstats <- data.frame()
+ranef_coef <- data.frame()
 
 system.time(
 # Loop over each point set
@@ -185,7 +186,7 @@ for (i in 1:10) {
   
   # Run model with deltaAICc < 2
 
-  m1_pt <- glmmTMB(n.compounds.T ~ Sex + Age + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU), data=pt, 
+  m1_pt <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU), data=pt, 
                       family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
 
   m1s <- summary(m1_pt)
@@ -198,7 +199,16 @@ for (i in 1:10) {
   m_est <- rbind(m_est, coef(m1s)$cond[,1])
   m_stderr <- rbind(m_stderr, coef(m1s)$cond[,2])
   m_zscore <- rbind(m_zscore, coef(m1s)$cond[,3])
-  m_ranef <- rbind(m_ranef, unlist(VarCorr(m1_pt)))
+  
+  broom.mixed::tidy(m1_pt)
+  
+  var_eff <- data.frame(REvar=unlist(VarCorr(m1_pt)), Rmar=)
+  m_ranef <- rbind(m_ranef, )
+  
+  # Save the coefficients for each level of the random effect
+  ranefc <- as_tibble(ranef(m1_pt)) 
+  ranefc$iter <- i
+  ranef_coef <- bind_rows(ranef_coef, ranefc)
   
   # 5-fold cross validation
   row_idx <- sample(1:5, nrow(pt), replace=TRUE)
@@ -209,7 +219,7 @@ for (i in 1:10) {
     testSet <- pt[row_idx!=j,] %>% as_tibble()
 
     # Fit model on training set
-    m1_cv <- glmmTMB(n.compounds.T ~ Sex + Age + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU), data=pt,
+    m1_cv <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU), data=pt,
                      family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
     pred <- predict(m1_cv, newdata=testSet, type="response", se.fit=TRUE)
 
@@ -267,6 +277,13 @@ perf2 <- perf %>% as_tibble() %>%
           select(Iter, RMSE, Accuracy)
 mean(perf2$Accuracy)
 range(perf2$Accuracy)
+
+# Save averaged values for each level of random effect
+re <- ranef_coef %>% 
+  group_by(grp) %>% 
+  summarize(REval=mean(condval), REsd=mean(condsd), 
+            RErangeL=range(condval)[1], RErangeH=range(condval)[2]) 
+write_csv(re, "results/ncompounds_random_effects_coefficients.csv")
 
 # Calculate averages for each coefficient
 coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)], na.rm=TRUE)
