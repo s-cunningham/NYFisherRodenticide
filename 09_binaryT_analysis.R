@@ -492,13 +492,6 @@ re <- ranef_coef %>%
   group_by(grp) %>% 
   summarize(REval=mean(condval), REsd=mean(condsd), 
             RErangeL=range(condval)[1], RErangeH=range(condval)[2]) 
-write_csv(re, "results/random_effects_coefficients.csv")
-
-# Save averaged values for each level of random effect
-re <- ranef_coef %>% 
-  group_by(grp) %>% 
-  summarize(REval=mean(condval), REsd=mean(condsd), 
-            RErangeL=range(condval)[1], RErangeH=range(condval)[2]) 
 write_csv(re, "results/diphacinone_random_effects_coefficients.csv")
 
 # Combine and clean up data frame
