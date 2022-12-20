@@ -97,6 +97,7 @@ dat1 <- dat %>% select(RegionalID:n.compounds.T) %>% distinct() %>%
           left_join(lsm1, by=c("RegionalID", "pt_name", "pt_index")) %>%
           left_join(build1, by=c("RegionalID", "pt_name", "pt_index"))
 
+# write_csv(dat1, "output/model_data_notscaled.csv")
 
 ## Scale and center variables
 dat1[,c(8,17:106)] <- scale(dat1[,c(8,17:106)])
