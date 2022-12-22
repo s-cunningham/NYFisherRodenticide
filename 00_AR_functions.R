@@ -3,7 +3,7 @@
 library(tidyverse)
 
 
-logistic_pred <- function(fixed, random, compound, sex, meanWUI, meanPasture, meanMast, ageStart, ageEnd, lo) {
+logistic_pred_age <- function(fixed, random, compound, sex, meanWUI, meanPasture, meanBBA, meanMast, ageStart, ageEnd, lo) {
   
   # crete a sequence of values to estimate for age
   age_iter <- seq(ageStart, ageEnd, length.out=lo)
@@ -20,8 +20,16 @@ logistic_pred <- function(fixed, random, compound, sex, meanWUI, meanPasture, me
     # Loop over values of age
     for (i in 1:length(age_iter)) {
       
-      exp_val[i] <- inv.logit(fixed$intercept[1] + fixed$SexM[1]*sex + fixed$Age[1]*age_iter[i] + fixed$Age2[1]*(age_iter[i]^2) +
-                                fixed$WUI[1]*meanWUI + fixed$pasture[1]*meanPasture + fixed$mast[1]*meanMast + random$REval[j])
+      exp_val[i] <- inv.logit(fixed$intercept[1] + 
+                                fixed$SexM[1]*sex + 
+                                fixed$Age[1]*age_iter[i] + 
+                                fixed$Age2[1]*(age_iter[i]^2) +
+                                fixed$WUI[1]*meanWUI + 
+                                fixed$pasture[1]*meanPasture + 
+                                fixed$BBA[1]*meanBBA +
+                                fixed$mast[1]*meanMast + 
+                                fixed$BBA_mast_intx[1]*meanBBA*meanMast +
+                                random$REval[j])
       
       # Does RE need to be weighted somehow?
       # level_probs <- random %>% group_by(grp) %>% summarize(wmu_prop=n()/nrow(random))
@@ -50,6 +58,10 @@ logistic_pred <- function(fixed, random, compound, sex, meanWUI, meanPasture, me
   return(full_vals)
   
 }
+
+
+
+
 
 poisson_pred_age <- function(fixed, random, sex, meanWUI, meanPasture, meanMast, ageStart, ageEnd, lo) {
   
@@ -102,7 +114,6 @@ poisson_pred_age <- function(fixed, random, sex, meanWUI, meanPasture, meanMast,
   
 }
 
-
 poisson_pred_mast <- function(fixed, random, sex, meanWUI, meanPasture, meanAge, mastStart, mastEnd, lo) {
   
   # create a sequence of values to estimate for age
@@ -120,8 +131,16 @@ poisson_pred_mast <- function(fixed, random, sex, meanWUI, meanPasture, meanAge,
     # Loop over values of age
     for (i in 1:length(mast_iter)) {
       
-      exp_val[i] <- exp(fixed$intercept[1] + fixed$SexM[1]*sex + fixed$Age[1]*meanAge + fixed$Age2[1]*(meanAge^2) +
-                          fixed$WUI[1]*meanWUI + fixed$pasture[1]*meanPasture + fixed$mast[1]*mast_iter[i] + random$REval[j])
+      exp_val[i] <- exp(fixed$intercept[1] + 
+                          fixed$SexM[1]*sex + 
+                          fixed$Age[1]*meanAge + 
+                          fixed$Age2[1]*(meanAge^2) +
+                          fixed$WUI[1]*meanWUI + 
+                          fixed$pasture[1]*meanPasture + 
+                          fixed$bba[1]*meanBBA +
+                          fixed$mast[1]*mast_iter[i] + 
+                          fixed$bba_mast[1]*meanBBA*mast_iter[i] +
+                          random$REval[j])
       
     }
     
