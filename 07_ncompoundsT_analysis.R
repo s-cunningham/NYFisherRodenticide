@@ -14,7 +14,7 @@ set.seed(1)
 nt <- min(parallel::detectCores(),6)
 
 #### Read in data ####
-dat <- read_csv("data/analysis-ready/combined_AR_covars.csv")
+dat <- read_csv("data/analysis-ready/combined_AR_covars_new12-2022.csv")
 
 #### Analysis Set-up ####
 
@@ -32,12 +32,12 @@ pctAG <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, pasture, crops,
                  as.data.frame()
 
 ## Beech basal area
-baa1 <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, BMI, laggedBMI) %>% 
+baa1 <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, BMI, laggedBMI, BBA) %>% 
                 distinct() %>% 
                 group_by(RegionalID) %>% 
-                pivot_wider(names_from=buffsize, values_from=c(BMI, laggedBMI), values_fn=unique) %>% 
+                pivot_wider(names_from=buffsize, values_from=c(BMI, laggedBMI, BBA), values_fn=unique) %>% 
                 as.data.frame()
-
+     
 ## Percent forest
 pctFOR <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, deciduous, evergreen, mixed, totalforest) %>% 
               distinct() %>% 
@@ -87,7 +87,7 @@ lsm1 <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, ai:shape_mn) %>%
   pivot_wider(names_from=buffsize, values_from=c(ai:shape_mn), values_fn=unique) 
 
 #### Set up data to run for each combination of covariates ####
-dat1 <- dat %>% select(RegionalID:n.compounds.T) %>% distinct() %>%
+dat1 <- dat %>% select(RegionalID:Town,n.compounds.T,beechnuts,lag_beechnuts) %>% distinct() %>%
           left_join(pctAG, by=c("RegionalID", "pt_name", "pt_index")) %>%
           left_join(pctFOR, by=c("RegionalID", "pt_name", "pt_index")) %>%
           left_join(baa1, by=c("RegionalID", "pt_name", "pt_index")) %>%
@@ -95,12 +95,13 @@ dat1 <- dat %>% select(RegionalID:n.compounds.T) %>% distinct() %>%
           left_join(interface1, by=c("RegionalID", "pt_name", "pt_index")) %>%
           left_join(wui1, by=c("RegionalID", "pt_name", "pt_index")) %>%
           left_join(lsm1, by=c("RegionalID", "pt_name", "pt_index")) %>%
-          left_join(build1, by=c("RegionalID", "pt_name", "pt_index"))
+          left_join(build1, by=c("RegionalID", "pt_name", "pt_index")) %>%
+          select(RegionalID:ed_60, mesh_15:build_cat_60)
 
 # write_csv(dat1, "output/model_data_notscaled.csv")
 
 ## Scale and center variables
-dat1[,c(8,17:106)] <- scale(dat1[,c(8,17:106)])
+dat1[,c(8,16:107)] <- scale(dat1[,c(8,16:107)])
 
 # correlation coefficient
 cormat <- cor(dat1[,c(17:106)]) |> as.data.frame()
@@ -112,7 +113,7 @@ source("00_model_lists.R")
 #### Run models with glmmTMB ####
 ## Model selection for scale
 ag.models <- lapply(ag_formulae, FUN=glmmTMB, data=dat1, 
-                    family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
+                    family=compois(link = "log"), control=glmmTMBControl(parallel=nt), start=list(beta=c(0.5, 0.5)))
 model.list <- model.sel(ag.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
@@ -187,7 +188,7 @@ for (i in 1:10) {
   
   # Run model with deltaAICc < 2
 
-  m1_pt <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU), data=pt, 
+  m1_pt <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + wui_60_100 + pasture_60 + BBA_60 * lag_beechnuts + (1|WMU), data=pt, 
                       family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
 
   m1s <- summary(m1_pt)
@@ -219,7 +220,7 @@ for (i in 1:10) {
     testSet <- pt[row_idx!=j,] %>% as_tibble()
 
     # Fit model on training set
-    m1_cv <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU), data=pt,
+    m1_cv <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + wui_60_100 + pasture_60 + BBA_60 * lag_beechnuts + (1|WMU), data=pt,
                      family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
     pred <- predict(m1_cv, newdata=testSet, type="response", se.fit=TRUE)
 
