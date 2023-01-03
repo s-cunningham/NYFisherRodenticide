@@ -24,7 +24,7 @@ bba <- dat %>% filter(covariate=="BBA") %>%
 wui <- dat %>% filter(covariate=="totalWUI")
 pasture <- dat %>% filter(covariate=="pasture")
 
-
+# Have the data been scaled?? Crap.
 p1 <- ggplot(bba, aes(x=baa_m2, y=factor(pt_index))) +
   geom_density_ridges(jittered_points = TRUE,
     position = position_points_jitter(width = 0.05, height = 0),
