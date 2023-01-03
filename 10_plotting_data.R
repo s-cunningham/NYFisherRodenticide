@@ -6,27 +6,71 @@ library(sf)
 library(stars)
 library(viridis)
 library(ggspatial)
+library(ggridges)
 library(patchwork)
 
 theme_set(theme_classic())
 
 #### Covariate plots (boxplots, xy plots) ####
 # read data
-dat <- read_csv("data/analysis-ready/combined_AR_covars.csv")
-dat <- as.data.frame(dat)
+dat <- read_csv("data/analysis-ready/combined_AR_covars_new12-2022.csv")
 
-# Categorical number of compounds (collapsing higher numbers)
-dat$catNcompMO <- ifelse(dat$n.compounds.MO>=2, "2+", as.character(dat$n.compounds.MO))
-dat$catNcompT <- ifelse(dat$n.compounds.T>=3, "3+", as.character(dat$n.compounds.T))
+dat <- dat[dat$buffsize==60 & dat$radius==100,]
+dat <- dat %>% select(RegionalID:Town, n.compounds.T, pasture, totalWUI, BBA) %>%
+  pivot_longer(pasture:BBA, names_to="covariate", values_to="value")
 
-dat$catAge[dat$Age>=3.5] <- "adult"
-dat$catAge[dat$Age==2.5] <- "subadult"
-dat$catAge[dat$Ag<2.5] <- "juvenile"
+bba <- dat %>% filter(covariate=="BBA") %>%
+          mutate(baa_m2=value/10.764)
+wui <- dat %>% filter(covariate=="totalWUI")
+pasture <- dat %>% filter(covariate=="pasture")
+
+
+p1 <- ggplot(bba, aes(x=baa_m2, y=factor(pt_index))) +
+  geom_density_ridges(jittered_points = TRUE,
+    position = position_points_jitter(width = 0.05, height = 0),
+    point_shape = '|', point_size = 2, point_alpha = 1, alpha = 0.7) +
+  ylab("Iteration") + 
+  xlab(expression(paste("Total beech basal area (", m^2, ")")))
+
+p2 <- ggplot(wui, aes(x=value, y=factor(pt_index))) +
+  geom_density_ridges(jittered_points = TRUE,
+                      position = position_points_jitter(width = 0.05, height = 0),
+                      point_shape = '|', point_size = 2, point_alpha = 1, alpha = 0.7) +
+  ylab("Iteration") + xlab("Proportion classified as WUI")
+
+p3 <- ggplot(pasture, aes(x=value, y=factor(pt_index))) +
+  geom_density_ridges(jittered_points = TRUE,
+                      position = position_points_jitter(width = 0.05, height = 0),
+                      point_shape = '|', point_size = 2, point_alpha = 1, alpha = 0.7) +
+  ylab("Iteration") + xlab("Proportion classified as pasture")
+
+# p4 <- ggplot(wui, aes(x=Age, color=Sex, fill=Sex)) + geom_density(alpha=0.5) +
+#         scale_color_manual(values=c("#1b7837", "#762a83"), labels=c("Female", "Male")) +
+#         scale_fill_manual(values=c("#1b7837", "#762a83"), labels=c("Female", "Male")) +
+#         ylab("Density") + xlab("Age (years)") +
+#         theme(legend.position=c(1,1),
+#               legend.justification=c(1,1))
+
+p4 <- ggplot(wui, aes(x=Age, y=Sex, color=Sex, fill=Sex)) + 
+  geom_density_ridges(jittered_points = FALSE, alpha = 0.5) +
+  scale_color_manual(values=c("#1b7837", "#762a83"), labels=c("Female", "Male")) +
+  scale_fill_manual(values=c("#1b7837", "#762a83"), labels=c("Female", "Male")) +
+  ylab("Sex") + xlab("Age (years)") +
+  theme(legend.position="none")
+
+
+wrap_plots(p1, p2, p3, p4) + plot_annotation(tag_levels="a")
+
+
+
+
+
+
 
 
 #### Exploratory ####
 # Break down by age and sex
-dat1 <- dat[dat$pt_index==1 & dat$buffsize==60 & dat$radius==100,]
+
 dat1 %>% group_by(Age, Sex) %>% count()
 
 ggplot(dat1, aes(x=rand_x, y=rand_y, color=Age)) + geom_point(size=3)
