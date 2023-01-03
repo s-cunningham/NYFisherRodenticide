@@ -100,7 +100,7 @@ dat1 <- dat %>% select(RegionalID:Town,compound,bin.exp,beechnuts,lag_beechnuts)
   select(RegionalID:ed_60, mesh_15:build_cat_60)
 
 ## Scale and center variables
-# write_csv(dat1, "output/binary_model_data_unscaled.csv")
+write_csv(dat1, "output/binary_model_data_unscaled.csv")
 dat1[,c(8,17:108)] <- scale(dat1[,c(8,17:108)])
 
 dat1 <- dat1 %>% select(RegionalID:bin.exp, lag_beechnuts, pasture_60, BBA_60, ai_60, wui_60_100)
