@@ -132,16 +132,19 @@ age_plot + mast_plot
 
 #### Binary analyses #####
 dat <- read_csv("output/binary_model_data_unscaled.csv") %>%
-            select(RegionalID:bin.exp, pasture_60, laggedBMI_30, wui_60_100)
+            select(RegionalID:bin.exp, pasture_60, BBA_60, lag_beechnuts, wui_60_100) 
 
 # Scale data
 dat <- within(dat, Age.s <- scale(Age))
-dat[,c(8,17:19)] <- scale(dat[,c(8,17:19)])
+dat <- within(dat, mast.s <- scale(lag_beechnuts))
+dat[,c(8,17:20)] <- scale(dat[,c(8,17:20)])
 
 # Caluculate means
 meanWUI <- mean(dat$wui_60_100)
 meanPasture <- mean(dat$pasture_60)
-meanMast <- mean(dat$laggedBMI_30)
+meanMast <- mean(dat$lag_beechnuts)
+meanBBA <- mean(dat$BBA_60)
+meanAge <- mean(dat$Age)
 
 # Subset by compound
 brod <- dat[dat$compound=="Brodifacoum",]
@@ -158,36 +161,43 @@ brod_fe <- read_csv("results/binaryTbrodifacoum_coef-summary.csv") %>% rename(in
                                                                               Age2=I.Age.2.,
                                                                               WUI=wui_60_100,
                                                                               pasture=pasture_60,
-                                                                              mast=laggedBMI_30)
+                                                                              bba=BBA_60,
+                                                                              mast=lag_beechnuts,
+                                                                              bba_mast=BBA_60.lag_beechnuts)
 brom_fe <- read_csv("results/binaryTbromadiolone_coef-summary.csv") %>% rename(intercept=X.Intercept., 
                                                                                Age2=I.Age.2.,
                                                                                WUI=wui_60_100,
                                                                                pasture=pasture_60,
-                                                                               mast=laggedBMI_30)
+                                                                               bba=BBA_60,
+                                                                               mast=lag_beechnuts,
+                                                                               bba_mast=BBA_60.lag_beechnuts)
 diph_fe <- read_csv("results/binaryTdiphacinone_coef-summary.csv") %>% rename(intercept=X.Intercept., 
                                                                               Age2=I.Age.2.,
                                                                               WUI=wui_60_100,
                                                                               pasture=pasture_60,
-                                                                              mast=laggedBMI_30)
-
+                                                                              bba=BBA_60,
+                                                                              mast=lag_beechnuts,
+                                                                              bba_mast=BBA_60.lag_beechnuts)
+ 
 ## Calculate expected values
-brod_m <- logistic_pred(brod_fe, 
-                        brod_re, 
+brod_m <- logistic_pred_age(fixed=brod_fe, 
+                        random=brod_re, 
                         compound="brodifacoum", 
                         sex=1, 
-                        meanWUI, 
-                        meanPasture, 
-                        meanMast, 
+                        meanWUI=meanWUI, 
+                        meanPasture=meanPasture, 
+                        meanBBA=meanBBA,
+                        meanMast=meanMast, 
                         ageStart=min(dat$Age), 
                         ageEnd=max(dat$Age), 
                         lo=100)
-brod_f <- logistic_pred(brod_fe, brod_re, compound="brodifacoum", sex=0, meanWUI, meanPasture, meanMast, ageStart=min(dat$Age), ageEnd=max(dat$Age), lo=100)
+brod_f <- logistic_pred_age(brod_fe, brod_re, compound="brodifacoum", sex=0, meanWUI, meanPasture, meanBBA, meanMast, ageStart=min(dat$Age), ageEnd=max(dat$Age), lo=100)
 
-brom_m <- logistic_pred(brom_fe, brom_re, compound="bromadiolone", sex=1, meanWUI, meanPasture, meanMast, ageStart=min(dat$Age), ageEnd=max(dat$Age), lo=100)
-brom_f <- logistic_pred(brom_fe, brom_re, compound="bromadiolone", sex=0, meanWUI, meanPasture, meanMast, ageStart=min(dat$Age), ageEnd=max(dat$Age), lo=100)
+brom_m <- logistic_pred_age(brom_fe, brom_re, compound="bromadiolone", sex=1, meanWUI, meanPasture, meanBBA,meanMast, ageStart=min(dat$Age), ageEnd=max(dat$Age), lo=100)
+brom_f <- logistic_pred_age(brom_fe, brom_re, compound="bromadiolone", sex=0, meanWUI, meanPasture, meanBBA, meanMast, ageStart=min(dat$Age), ageEnd=max(dat$Age), lo=100)
 
-diph_m <- logistic_pred(diph_fe, diph_re, compound="diphacinone", sex=1, meanWUI, meanPasture, meanMast, ageStart=min(dat$Age), ageEnd=max(dat$Age), lo=100)
-diph_f <- logistic_pred(diph_fe, diph_re, compound="diphacinone", sex=0, meanWUI, meanPasture, meanMast, ageStart=min(dat$Age), ageEnd=max(dat$Age), lo=100)
+diph_m <- logistic_pred_age(diph_fe, diph_re, compound="diphacinone", sex=1, meanWUI, meanPasture, meanBBA, meanMast, ageStart=min(dat$Age), ageEnd=max(dat$Age), lo=100)
+diph_f <- logistic_pred_age(diph_fe, diph_re, compound="diphacinone", sex=0, meanWUI, meanPasture, meanBBA, meanMast, ageStart=min(dat$Age), ageEnd=max(dat$Age), lo=100)
 
 # Combine into single data frame
 pred_vals <- list(brod_m, brod_f, brom_m, brom_f, diph_m, diph_f) %>%
@@ -196,11 +206,16 @@ pred_vals <- list(brod_m, brod_f, brom_m, brom_f, diph_m, diph_f) %>%
                 mutate(unscAge=Age * attr(dat$Age.s, 'scaled:scale') + attr(dat$Age.s, 'scaled:center'))
 pred_vals 
 
-pred_vals %>% group_by(compound, sex, level, Age) %>% count()
+level_freq <- dat %>% select(RegionalID:Town) %>% 
+                 filter(pt_index==1) %>%
+                 distinct() %>%
+                 group_by(WMU) %>%
+                 summarize(n=n()) %>%
+                 mutate(freq = n / sum(n))
 
 # mean line
-pred_mean <- pred_vals %>% group_by(compound, sex, unscAge) %>% summarize(mval = mean(exp_val))
-
+# pred_mean <- pred_vals %>% group_by(compound, sex, unscAge) %>% summarize(mval = mean(exp_val))
+pred_mean <- pred_vals %>% group_by(compound, sex, unscAge) %>% summarize(mval = weighted.mean(exp_val, level_freq$freq))
 
 ## Plot
 
@@ -221,6 +236,96 @@ ggplot() +
         legend.title=element_text(size=11),
         legend.text=element_text(size=10))
 
+# ggplot() +geom_line(data=pred_mean, aes(x=unscAge, y=mval, group=interaction(compound,sex), color=sex)) #+ facet_grid(.~compound)
+brod_m <- logistic_pred_mast(fixed=brod_fe, 
+                             random=brod_re, 
+                             compound="brodifacoum",
+                             sex=1, 
+                             meanWUI, 
+                             meanPasture,
+                             meanBBA,
+                             meanAge, 
+                             mastStart=min(dat$lag_beechnuts), 
+                             mastEnd=max(dat$lag_beechnuts), 
+                             lo=100)
 
-ggplot() +geom_line(data=pred_mean, aes(x=unscAge, y=mval, color=sex)) + facet_grid(.~compound)
+brod_f <- logistic_pred_mast(fixed=brod_fe, 
+                             random=brod_re, 
+                             compound="brodifacoum",
+                             sex=0, 
+                             meanWUI, 
+                             meanPasture,
+                             meanBBA,
+                             meanAge, 
+                             mastStart=min(dat$lag_beechnuts), 
+                             mastEnd=max(dat$lag_beechnuts), 
+                             lo=100)
+
+
+brom_m <- logistic_pred_mast(fixed=brom_fe, 
+                            random=brom_re, 
+                            compound="bromadiolone",
+                            sex=1, 
+                            meanWUI, 
+                            meanPasture,
+                            meanBBA,
+                            meanAge, 
+                            mastStart=min(dat$lag_beechnuts), 
+                            mastEnd=max(dat$lag_beechnuts), 
+                            lo=100)
+
+brom_f <- logistic_pred_mast(fixed=brom_fe, 
+                            random=brom_re, 
+                            compound="bromadiolone",
+                            sex=0, 
+                            meanWUI, 
+                            meanPasture,
+                            meanBBA,
+                            meanAge, 
+                            mastStart=min(dat$lag_beechnuts), 
+                            mastEnd=max(dat$lag_beechnuts), 
+                            lo=100)
+
+diph_m <- logistic_pred_mast(fixed=diph_fe, 
+                             random=diph_re, 
+                             compound="diphacinone",
+                             sex=1, 
+                             meanWUI, 
+                             meanPasture,
+                             meanBBA,
+                             meanAge, 
+                             mastStart=min(dat$lag_beechnuts), 
+                             mastEnd=max(dat$lag_beechnuts), 
+                             lo=100)
+
+diph_f <- logistic_pred_mast(fixed=diph_fe, 
+                             random=diph_re, 
+                             compound="diphacinone",
+                             sex=0, 
+                             meanWUI, 
+                             meanPasture,
+                             meanBBA,
+                             meanAge, 
+                             mastStart=min(dat$lag_beechnuts), 
+                             mastEnd=max(dat$lag_beechnuts), 
+                             lo=100)
+
+
+pred_mast <- list(brod_m, brod_f, brom_m, brom_f, diph_m, diph_f) %>%
+  reduce(full_join) %>%
+  select(compound, level, sex, Mast, exp_val) %>%
+  mutate(unscMast=Mast * attr(dat$mast.s, 'scaled:scale') + attr(dat$mast.s, 'scaled:center'))
+pred_mast 
+
+# mean line
+mast_mean <- pred_mast %>% group_by(sex, compound, unscMast) %>% summarize(mval=mean(exp_val))
+
+ggplot() + 
+  geom_line(data=pred_mast, 
+            aes(x=unscMast, y=exp_val, group=interaction(level, sex), color=factor(sex)), alpha=0.1) +
+  geom_line(data=mast_mean, aes(x=unscMast, y=mval, color=sex), size=1) +
+  scale_color_manual(values=c("#1b7837", "#762a83"), name="Sex") +
+  ylab("Probability of exposure") + xlab("Total beech nuts (previous year)") +
+  facet_grid(compound~.)
+
 
