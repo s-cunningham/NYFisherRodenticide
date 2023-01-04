@@ -112,58 +112,182 @@ source("00_model_lists.R")
 
 #### Run models with glmmTMB ####
 ## Model selection for scale
+# Agriculture
 ag.models <- lapply(ag_formulae, FUN=glmmTMB, data=dat1, 
-                    family=compois(link = "log"), control=glmmTMBControl(parallel=nt), start=list(beta=c(0.5, 0.5)))
+                    family=compois(link = "log"), 
+                    control=glmmTMBControl(parallel=nt, 
+                            profile=TRUE, 
+                            optCtrl=list(iter.max=1e11,eval.max=1e11),
+                            optimizer=optim, 
+                            optArgs=list(method="BFGS")))
 model.list <- model.sel(ag.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
 write_csv(model_tab, "output/model_selection/ag_model_selection_table.csv")
 
+# Beech mast
 beech.models <- lapply(beech_formulae, FUN=glmmTMB, data=dat1, 
-                     family=compois(link = "log"), control=glmmTMBControl(parallel=nt)) 
+                     family=compois(link = "log"), control=glmmTMBControl(parallel=nt,
+                                                                          profile=TRUE, 
+                                                                          optCtrl=list(iter.max=1e11,eval.max=1e11),
+                                                                          optimizer=optim, 
+                                                                          optArgs=list(method="BFGS"))) 
 model.list <- model.sel(beech.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
 write_csv(model_tab, "output/model_selection/beech_model_selection_table.csv")
 
+# Forest metrics
 forest.models <- lapply(forest_formulae, FUN=glmmTMB, data=dat1, 
-                       family=compois(link = "log"), control=glmmTMBControl(parallel=nt)) 
+                       family=compois(link = "log"), control=glmmTMBControl(parallel=nt, 
+                                                                            profile=TRUE, 
+                                                                            optCtrl=list(iter.max=1e11,eval.max=1e11),
+                                                                            optimizer=optim, 
+                                                                            optArgs=list(method="BFGS"))) 
 model.list <- model.sel(forest.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
 model_tab
 write_csv(model_tab, "output/model_selection/forest_model_selection_table.csv")
 
+# Buildings
 build.models <- lapply(build_formulae, FUN=glmmTMB, data=dat1, 
-                     family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
+                     family=compois(link = "log"), control=glmmTMBControl(parallel=nt, 
+                                                                          profile=TRUE, 
+                                                                          optCtrl=list(iter.max=1e11,eval.max=1e11),
+                                                                          optimizer=optim, 
+                                                                          optArgs=list(method="BFGS")))
 model.list <- model.sel(build.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
 model_tab
 write_csv(model_tab, "output/model_selection/building_model_selection_table.csv")
 
+# Landscape metrics
 lsm.models <- lapply(lsm_formulae, FUN=glmmTMB, data=dat1, 
-                     family=compois(link = "log"), control=glmmTMBControl(parallel=nt)) 
+                     family=compois(link = "log"), control=glmmTMBControl(parallel=nt, 
+                                                                          profile=TRUE, 
+                                                                          optCtrl=list(iter.max=1e11,eval.max=1e11),
+                                                                          optimizer=optim, 
+                                                                          optArgs=list(method="BFGS"))) 
 model.list <- model.sel(lsm.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
 write_csv(model_tab, "output/model_selection/lsm_model_selection_table.csv")
 
+# WUI
 wui.models <- lapply(wui_formulae, FUN=glmmTMB, data=dat1, 
-                     family=compois(link = "log"), control=glmmTMBControl(parallel=nt)) 
+                     family=compois(link = "log"), control=glmmTMBControl(parallel=nt,
+                                                                          profile=TRUE, 
+                                                                          optCtrl=list(iter.max=1e11,eval.max=1e11), 
+                                                                          optimizer=optim, 
+                                                                          optArgs=list(method="BFGS"))) 
 model.list <- model.sel(wui.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
 write_csv(model_tab, "output/model_selection/wui_model_selection_table.csv")
 
+# Age and sex
+agesex.models <- lapply(agesex_formulae, FUN=glmmTMB, data=dat1, 
+                     family=compois(link = "log"), control=glmmTMBControl(parallel=nt, 
+                                                                          profile=TRUE, 
+                                                                          optCtrl=list(iter.max=1e11,eval.max=1e11),
+                                                                          optimizer=optim, 
+                                                                          optArgs=list(method="BFGS"))) 
+model.list <- model.sel(lagesex.models)
+model_tab <- as.data.frame(model.list)
+model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
+write_csv(model_tab, "output/model_selection/agesex_model_selection_table.csv")
+
+
 # Check small set of "global models"
 global.models <- lapply(global_formulae, FUN=glmmTMB, data=dat1, 
-                       family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
+                       family=compois(link = "log"), 
+                       control=glmmTMBControl(parallel=nt, 
+                                              profile=TRUE, 
+                                              optCtrl=list(iter.max=1e11,eval.max=1e11), 
+                                              optimizer=optim, 
+                                              optArgs=list(method="BFGS")))
 model.list <- model.sel(global.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
 model_tab
 write_csv(model_tab, "output/model_selection/global_model_selection_table.csv")
+
+
+model.list <- model.sel(m1, m2, m3, m4)
+
+system.time(m1 <- glmmTMB(n.compounds.T ~ Sex + Age + wui_60_100 + pasture_60 + BBA_60 * year + (1|RegionalID), data=dat1,
+        family=compois(link = "log"), 
+        control=glmmTMBControl(parallel=nt, 
+                               profile=TRUE, 
+                               optCtrl=list(iter.max=1e11,eval.max=1e11), 
+                               optimizer=optim, 
+                               optArgs=list(method="BFGS"))))
+m2 <- glmmTMB(n.compounds.T ~ Sex + Age + wui_60_100 + pasture_60 + BBA_60 * lag_beechnuts + (1|RegionalID), data=dat1,
+              family=compois(link = "log"), 
+              control=glmmTMBControl(parallel=nt, 
+                                     profile=TRUE, 
+                                     optCtrl=list(iter.max=1e11,eval.max=1e11), 
+                                     optimizer=optim, 
+                                     optArgs=list(method="BFGS")))
+m3 <- glmmTMB(n.compounds.T ~ Sex + Age + build_cat_60*ai_60 + pasture_60 + BBA_60 * year + (1|RegionalID), data=dat1,
+              family=compois(link = "log"), 
+              control=glmmTMBControl(parallel=nt, 
+                                     profile=TRUE, 
+                                     optCtrl=list(iter.max=1e11,eval.max=1e11), 
+                                     optimizer=optim, 
+                                     optArgs=list(method="BFGS")))
+m4 <- glmmTMB(n.compounds.T ~ Sex + Age + build_cat_60*mixed_30 + pasture_60 + BBA_60 * year + (1|RegionalID), data=dat1,
+              family=compois(link = "log"), 
+              control=glmmTMBControl(parallel=nt, 
+                                     profile=TRUE, 
+                                     optCtrl=list(iter.max=1e11,eval.max=1e11), 
+                                     optimizer=optim, 
+                                     optArgs=list(method="BFGS")))
+m5 <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + build_cat_60*ai_60 + pasture_60 + BBA_60 * year + (1|RegionalID), data=dat1,
+              family=compois(link = "log"), 
+              control=glmmTMBControl(parallel=nt, 
+                                     profile=TRUE, 
+                                     optCtrl=list(iter.max=1e11,eval.max=1e11), 
+                                     optimizer=optim, 
+                                     optArgs=list(method="BFGS")))
+m6 <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + build_cat_60*mixed_30 + pasture_60 + BBA_60 * year + (1|RegionalID), data=dat1,
+              family=compois(link = "log"), 
+              control=glmmTMBControl(parallel=nt, 
+                                     profile=TRUE, 
+                                     optCtrl=list(iter.max=1e11,eval.max=1e11), 
+                                     optimizer=optim, 
+                                     optArgs=list(method="BFGS")))
+m7 <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + wui_60_100 + pasture_60 + BBA_60 * year + ai_60 + (1|RegionalID), data=dat1,
+              family=compois(link = "log"), 
+              control=glmmTMBControl(parallel=nt, 
+                                     profile=TRUE, 
+                                     optCtrl=list(iter.max=1e11,eval.max=1e11), 
+                                     optimizer=optim, 
+                                     optArgs=list(method="BFGS")))
+m8 <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + wui_60_100 + pasture_60 + BBA_60 * lag_beechnuts + ai_60 + (1|RegionalID), data=dat1,
+              family=compois(link = "log"), 
+              control=glmmTMBControl(parallel=nt, 
+                                     profile=TRUE, 
+                                     optCtrl=list(iter.max=1e11,eval.max=1e11), 
+                                     optimizer=optim, 
+                                     optArgs=list(method="BFGS")))
+m9 <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + wui_60_100 + pasture_60 + BBA_60 * lag_beechnuts + (1|RegionalID), data=dat1,
+              family=compois(link = "log"), 
+              control=glmmTMBControl(parallel=nt, 
+                                     profile=TRUE, 
+                                     optCtrl=list(iter.max=1e11,eval.max=1e11), 
+                                     optimizer=optim, 
+                                     optArgs=list(method="BFGS")))
+m10 <- glmmTMB(n.compounds.T ~  Sex + Age + I(Age^2) + wui_60_100 + pasture_60 + BBA_60 * year + (1|RegionalID), data=dat1,
+              family=compois(link = "log"), 
+              control=glmmTMBControl(parallel=nt, 
+                                     profile=TRUE, 
+                                     optCtrl=list(iter.max=1e11,eval.max=1e11), 
+                                     optimizer=optim, 
+                                     optArgs=list(method="BFGS")))
+
 
 #### Running iteration models ####
 
