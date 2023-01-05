@@ -13,20 +13,22 @@ theme_set(theme_classic())
 
 #### Number of compounds ####
 dat <- read_csv("output/model_data_notscaled.csv") %>%
-          select(RegionalID:Town, n.compounds.T, pasture_60, laggedBMI_30, wui_60_100) %>%
+          select(RegionalID:Town, n.compounds.T, pasture_60, BBA_60, lag_beechnuts, wui_60_100) %>%
           rename(WUI=wui_60_100,
-                 pasture=pasture_60, 
-                 mast=laggedBMI_30)
+                 pasture=pasture_60,
+                 basalarea=BBA_60,
+                 mast=lag_beechnuts)
 # scale data
 dat <- within(dat, mast.s <- scale(mast))
 dat <- within(dat, Age.s <- scale(Age))
-dat[,c(8,16:18)] <- scale(dat[,c(8,16:18)])
+dat[,c(8,16:19)] <- scale(dat[,c(8,16:19)])
 
 # Calculate means
 meanWUI <- mean(dat$WUI)
 meanPasture <- mean(dat$pasture)
 meanMast <- mean(dat$mast)
 meanAge <- mean(dat$Age)
+meanBBA <- mean(dat$basalarea)
 
 # read random effects
 ncomp_re <- read_csv("results/ncompounds_random_effects_coefficients.csv")
@@ -35,9 +37,11 @@ ncomp_re <- read_csv("results/ncompounds_random_effects_coefficients.csv")
 ncomp_fe <- read_csv("results/ncompT_coef-summary.csv") %>%
                 rename(WUI=wui_60_100,
                        pasture=pasture_60, 
-                       mast=laggedBMI_30,
                        intercept=Intercept, 
-                       Age2=I.Age.2.)
+                       Age2=I.Age.2.,
+                       mast=lag_beechnuts,
+                       basalarea=BBA_60,
+                       interaction=BBA_60.lag_beechnuts)
 ## effects of age
 age_m <- poisson_pred_age(fixed=ncomp_fe, 
                             random=ncomp_re, 
@@ -45,6 +49,7 @@ age_m <- poisson_pred_age(fixed=ncomp_fe,
                             meanWUI, 
                             meanPasture, 
                             meanMast, 
+                            meanBBA,
                             ageStart=min(dat$Age), 
                             ageEnd=max(dat$Age), 
                             lo=100)
@@ -54,6 +59,7 @@ age_f <- poisson_pred_age(fixed=ncomp_fe,
                           meanWUI, 
                           meanPasture, 
                           meanMast, 
+                          meanBBA,
                           ageStart=min(dat$Age), 
                           ageEnd=max(dat$Age), 
                           lo=100)
@@ -66,23 +72,34 @@ pred_vals <- list(age_m, age_f) %>%
 pred_vals 
 
 # mean line
-pred_mean <- pred_vals %>% group_by(sex, unscAge) %>% summarize(mval = mean(exp_val))
+level_freq <- dat %>% 
+  select(RegionalID:Town) %>% 
+  filter(pt_index==1) %>%
+  distinct() %>%
+  group_by(WMU) %>%
+  summarize(n=n()) %>%
+  mutate(freq = n / sum(n))
+
+# mean line
+pred_mean <- pred_vals %>% group_by(sex, unscAge) %>% summarize(mval = weighted.mean(exp_val, level_freq$freq))
+# pred_mean <- pred_vals %>% group_by(sex, unscAge) %>% summarize(mval = mean(exp_val))
 
 # Plot age
 age_plot <- ggplot() + 
                 geom_line(data=pred_vals, 
-                          aes(x=unscAge, y=exp_val, group=interaction(level, sex), color=factor(sex)), alpha=0.1) +
+                          aes(x=unscAge, y=exp_val, group=interaction(level, sex), color=factor(sex)), alpha=0.2) +
                 geom_line(data=pred_mean, aes(x=unscAge, y=mval, color=sex), size=1) +
                 scale_color_manual(values=c("#1b7837", "#762a83"), name="Sex") +
+                ylim(0, 3.5) +
                 ylab("Expected number of compounds") + xlab("Age (years)") +
                 theme(legend.position=c(0,1),
                       legend.justification=c(0,1),
                       legend.background=element_rect(fill=NA),
-                      panel.border=element_rect(color="black", fill=NA, size=0.5),
-                      axis.text=element_text(size=11),
-                      axis.title=element_text(size=11),
-                      legend.title=element_text(size=11),
-                      legend.text=element_text(size=10))
+                      # panel.border=element_rect(color="black", fill=NA, size=0.5),
+                      axis.text=element_text(size=12),
+                      axis.title=element_text(size=12),
+                      legend.title=element_text(size=12),
+                      legend.text=element_text(size=11))
 
 ## effect of beech mast
 
@@ -92,6 +109,7 @@ mast_m <- poisson_pred_mast(ncomp_fe,
                             meanWUI, 
                             meanPasture, 
                             meanAge, 
+                            meanBBA,
                             mastStart=min(dat$mast), 
                             mastEnd=max(dat$mast), 
                             lo=100)
@@ -102,6 +120,7 @@ mast_f <- poisson_pred_mast(ncomp_fe,
                             meanWUI, 
                             meanPasture, 
                             meanAge, 
+                            meanBBA,
                             mastStart=min(dat$mast), 
                             mastEnd=max(dat$mast), 
                             lo=100)
@@ -113,22 +132,23 @@ pred_mast <- list(mast_m, mast_f) %>%
 pred_mast 
 
 # mean line
-mast_mean <- pred_mast %>% group_by(sex, unscMast) %>% summarize(mval = mean(exp_val))
+mast_mean <- pred_mast %>% group_by(sex, unscMast) %>% summarize(mval = weighted.mean(exp_val, level_freq$freq))
 
 mast_plot <- ggplot() + 
                 geom_line(data=pred_mast, 
-                          aes(x=unscMast, y=exp_val, group=interaction(level, sex), color=factor(sex)), alpha=0.1) +
+                          aes(x=unscMast, y=exp_val, group=interaction(level, sex), color=factor(sex)), alpha=0.15) +
                 geom_line(data=mast_mean, aes(x=unscMast, y=mval, color=sex), size=1) +
                 scale_color_manual(values=c("#1b7837", "#762a83"), name="Sex") +
-                ylab("Expected number of compounds") + xlab("Spatially weighted beech mast index") +
+                ylim(0, 3.5) +
+                ylab("Expected number of compounds") + xlab("Beechnut count") +
                 theme(legend.position="none",
-                      panel.border=element_rect(color="black", fill=NA, size=0.5),
-                      axis.text.x=element_text(size=11),
+                      # panel.border=element_rect(color="black", fill=NA, size=0.5),
+                      axis.text.x=element_text(size=12),
                       axis.text.y=element_blank(),
-                      axis.title.x=element_text(size=11),
+                      axis.title.x=element_text(size=12),
                       axis.title.y=element_blank())
 
-age_plot + mast_plot
+age_plot + mast_plot + plot_annotation(tag_levels="a")
 
 #### Binary analyses #####
 dat <- read_csv("output/binary_model_data_unscaled.csv") %>%
@@ -217,11 +237,16 @@ level_freq <- dat %>% select(RegionalID:Town) %>%
 # pred_mean <- pred_vals %>% group_by(compound, sex, unscAge) %>% summarize(mval = mean(exp_val))
 pred_mean <- pred_vals %>% group_by(compound, sex, unscAge) %>% summarize(mval = weighted.mean(exp_val, level_freq$freq))
 
+pred_mean %>% group_by(compound, sex) %>% summarize(maxprob=max(mval))
+pred_mean %>% group_by(compound, sex) %>% summarize(probrange=range(mval))
+pred_mean %>% group_by(compound, sex) %>% summarize(probsd=sd(mval))
+pred_mean %>% group_by(compound, sex) %>% summarize(meanprob=mean(mval))
+
 ## Plot
 
 ggplot() + 
   geom_line(data=pred_vals, 
-              aes(x=unscAge, y=exp_val, group=interaction(level, sex), color=factor(sex)), alpha=0.15) + 
+              aes(x=unscAge, y=exp_val, group=interaction(level, sex), color=factor(sex)), alpha=0.2) + 
   geom_line(data=pred_mean, aes(x=unscAge, y=mval, color=sex), size=1) +   
   scale_color_manual(values=c("#1b7837", "#762a83"), name="Sex") +
   facet_grid(compound~.) +
@@ -229,7 +254,7 @@ ggplot() +
   theme(legend.position=c(0,0),
         legend.justification=c(0,0),
         legend.background=element_rect(fill=NA),
-        panel.border=element_rect(color="black", fill=NA, size=0.5),
+        # panel.border=element_rect(color="black", fill=NA, size=0.5),
         axis.text=element_text(size=11),
         strip.text=element_text(size=11),
         axis.title=element_text(size=11),
@@ -322,10 +347,11 @@ mast_mean <- pred_mast %>% group_by(sex, compound, unscMast) %>% summarize(mval=
 
 ggplot() + 
   geom_line(data=pred_mast, 
-            aes(x=unscMast, y=exp_val, group=interaction(level, sex), color=factor(sex)), alpha=0.1) +
+            aes(x=unscMast, y=exp_val, group=interaction(level, sex), color=factor(sex)), alpha=0.2) +
   geom_line(data=mast_mean, aes(x=unscMast, y=mval, color=sex), size=1) +
   scale_color_manual(values=c("#1b7837", "#762a83"), name="Sex") +
   ylab("Probability of exposure") + xlab("Total beech nuts (previous year)") +
-  facet_grid(compound~.)
+  facet_grid(compound~.) +
+  theme()
 
 

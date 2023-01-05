@@ -15,6 +15,8 @@ theme_set(theme_classic())
 # read data
 dat <- read_csv("data/analysis-ready/combined_AR_covars_new12-2022.csv")
 
+dat1 <- dat %>% filter(pt_index==1 & buffsize==60 & radius==100) %>% select(RegionalID:n.compounds.T,lag_beechnuts) %>% distinct()
+
 dat <- dat[dat$buffsize==60 & dat$radius==100,]
 dat <- dat %>% select(RegionalID:Town, n.compounds.T, pasture, totalWUI, BBA) %>%
   pivot_longer(pasture:BBA, names_to="covariate", values_to="value")
@@ -24,24 +26,25 @@ bba <- dat %>% filter(covariate=="BBA") %>%
 wui <- dat %>% filter(covariate=="totalWUI")
 pasture <- dat %>% filter(covariate=="pasture")
 
-# Have the data been scaled?? Crap.
+ggplot(wui, aes(x=value)) + geom_density() + facet_wrap(.~pt_index)
+
 p1 <- ggplot(bba, aes(x=baa_m2, y=factor(pt_index))) +
-  geom_density_ridges(jittered_points = TRUE,
-    position = position_points_jitter(width = 0.05, height = 0),
-    point_shape = '|', point_size = 2, point_alpha = 1, alpha = 0.7) +
+  geom_density_ridges(jittered_points = FALSE,alpha = 0.7) +
+    # position = position_points_jitter(width = 0.05, height = 0),
+    # point_shape = '|', point_size = 2, point_alpha = 1, alpha = 0.7) +
   ylab("Iteration") + 
   xlab(expression(paste("Total beech basal area (", m^2, ")")))
 
 p2 <- ggplot(wui, aes(x=value, y=factor(pt_index))) +
-  geom_density_ridges(jittered_points = TRUE,
-                      position = position_points_jitter(width = 0.05, height = 0),
-                      point_shape = '|', point_size = 2, point_alpha = 1, alpha = 0.7) +
+  geom_density_ridges(jittered_points = FALSE, alpha = 0.7) +
+                      # position = position_points_jitter(width = 0.02, height = 0),
+                      # point_shape = '|', point_size = 2, point_alpha = 1) +
   ylab("Iteration") + xlab("Proportion classified as WUI")
 
 p3 <- ggplot(pasture, aes(x=value, y=factor(pt_index))) +
-  geom_density_ridges(jittered_points = TRUE,
-                      position = position_points_jitter(width = 0.05, height = 0),
-                      point_shape = '|', point_size = 2, point_alpha = 1, alpha = 0.7) +
+  geom_density_ridges(jittered_points = FALSE, alpha = 0.7) +
+                      # position = position_points_jitter(width = 0.02, height = 0),
+                      # point_shape = '|', point_size = 2, point_alpha = 1, alpha = 0.7) +
   ylab("Iteration") + xlab("Proportion classified as pasture")
 
 # p4 <- ggplot(wui, aes(x=Age, color=Sex, fill=Sex)) + geom_density(alpha=0.5) +
@@ -61,11 +64,12 @@ p4 <- ggplot(wui, aes(x=Age, y=Sex, color=Sex, fill=Sex)) +
 
 wrap_plots(p1, p2, p3, p4) + plot_annotation(tag_levels="a")
 
+bba %>% group_by(pt_index) %>% summarize(medianBBA=median(baa_m2)) %>% arrange(medianBBA)
+wui %>% group_by(pt_index) %>% summarize(medianWUI=median(value)) %>% arrange(medianWUI)
+pasture %>% group_by(pt_index) %>% summarize(medianpasture=median(value)) %>% arrange(medianpasture)
 
 
-
-
-
+ggplot(dat1, aes(x=n.compounds.T, color=factor(lag_beechnuts), fill=factor(lag_beechnuts))) + geom_density(alpha=0.5) 
 
 
 #### Exploratory ####
