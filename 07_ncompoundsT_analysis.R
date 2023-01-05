@@ -102,6 +102,7 @@ dat1 <- dat %>% select(RegionalID:Town,n.compounds.T,beechnuts,lag_beechnuts) %>
 
 ## Scale and center variables
 dat1[,c(8,16:107)] <- scale(dat1[,c(8,16:107)])
+dat1$mast <- as.factor(ifelse(dat1$year==2018 | dat1$year==2020, "fail", "mast"))
 
 # correlation coefficient
 cormat <- cor(dat1[,c(17:106)]) |> as.data.frame()
@@ -125,7 +126,7 @@ model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
 write_csv(model_tab, "output/model_selection/ag_model_selection_table.csv")
 
-# Beech mast
+# Beech basal area
 beech.models <- lapply(beech_formulae, FUN=glmmTMB, data=dat1, 
                      family=compois(link = "log"), control=glmmTMBControl(parallel=nt,
                                                                           profile=TRUE, 
@@ -194,7 +195,7 @@ agesex.models <- lapply(agesex_formulae, FUN=glmmTMB, data=dat1,
                                                                           optCtrl=list(iter.max=1e11,eval.max=1e11),
                                                                           optimizer=optim, 
                                                                           optArgs=list(method="BFGS"))) 
-model.list <- model.sel(lagesex.models)
+model.list <- model.sel(agesex.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
 write_csv(model_tab, "output/model_selection/agesex_model_selection_table.csv")
