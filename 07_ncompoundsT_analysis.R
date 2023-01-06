@@ -216,78 +216,13 @@ model_tab
 write_csv(model_tab, "output/model_selection/global_model_selection_table.csv")
 
 
-model.list <- model.sel(m1, m2, m3, m4)
-
-system.time(m1 <- glmmTMB(n.compounds.T ~ Sex + Age + wui_60_100 + pasture_60 + BBA_60 * year + (1|RegionalID), data=dat1,
+system.time(m1 <- glmmTMB(n.compounds.T ~  Sex + Age + I(Age^2) + nbuildings_60 * dcad_15 + pasture_60 + BBA_15 * lag_beechnuts + (1 | RegionalID), data=dat1,
         family=compois(link = "log"), 
         control=glmmTMBControl(parallel=nt, 
                                profile=TRUE, 
                                optCtrl=list(iter.max=1e11,eval.max=1e11), 
                                optimizer=optim, 
                                optArgs=list(method="BFGS"))))
-m2 <- glmmTMB(n.compounds.T ~ Sex + Age + wui_60_100 + pasture_60 + BBA_60 * lag_beechnuts + (1|RegionalID), data=dat1,
-              family=compois(link = "log"), 
-              control=glmmTMBControl(parallel=nt, 
-                                     profile=TRUE, 
-                                     optCtrl=list(iter.max=1e11,eval.max=1e11), 
-                                     optimizer=optim, 
-                                     optArgs=list(method="BFGS")))
-m3 <- glmmTMB(n.compounds.T ~ Sex + Age + build_cat_60*ai_60 + pasture_60 + BBA_60 * year + (1|RegionalID), data=dat1,
-              family=compois(link = "log"), 
-              control=glmmTMBControl(parallel=nt, 
-                                     profile=TRUE, 
-                                     optCtrl=list(iter.max=1e11,eval.max=1e11), 
-                                     optimizer=optim, 
-                                     optArgs=list(method="BFGS")))
-m4 <- glmmTMB(n.compounds.T ~ Sex + Age + build_cat_60*mixed_30 + pasture_60 + BBA_60 * year + (1|RegionalID), data=dat1,
-              family=compois(link = "log"), 
-              control=glmmTMBControl(parallel=nt, 
-                                     profile=TRUE, 
-                                     optCtrl=list(iter.max=1e11,eval.max=1e11), 
-                                     optimizer=optim, 
-                                     optArgs=list(method="BFGS")))
-m5 <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + build_cat_60*ai_60 + pasture_60 + BBA_60 * year + (1|RegionalID), data=dat1,
-              family=compois(link = "log"), 
-              control=glmmTMBControl(parallel=nt, 
-                                     profile=TRUE, 
-                                     optCtrl=list(iter.max=1e11,eval.max=1e11), 
-                                     optimizer=optim, 
-                                     optArgs=list(method="BFGS")))
-m6 <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + build_cat_60*mixed_30 + pasture_60 + BBA_60 * year + (1|RegionalID), data=dat1,
-              family=compois(link = "log"), 
-              control=glmmTMBControl(parallel=nt, 
-                                     profile=TRUE, 
-                                     optCtrl=list(iter.max=1e11,eval.max=1e11), 
-                                     optimizer=optim, 
-                                     optArgs=list(method="BFGS")))
-m7 <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + wui_60_100 + pasture_60 + BBA_60 * year + ai_60 + (1|RegionalID), data=dat1,
-              family=compois(link = "log"), 
-              control=glmmTMBControl(parallel=nt, 
-                                     profile=TRUE, 
-                                     optCtrl=list(iter.max=1e11,eval.max=1e11), 
-                                     optimizer=optim, 
-                                     optArgs=list(method="BFGS")))
-m8 <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + wui_60_100 + pasture_60 + BBA_60 * lag_beechnuts + ai_60 + (1|RegionalID), data=dat1,
-              family=compois(link = "log"), 
-              control=glmmTMBControl(parallel=nt, 
-                                     profile=TRUE, 
-                                     optCtrl=list(iter.max=1e11,eval.max=1e11), 
-                                     optimizer=optim, 
-                                     optArgs=list(method="BFGS")))
-m9 <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + wui_60_100 + pasture_60 + BBA_60 * lag_beechnuts + (1|RegionalID), data=dat1,
-              family=compois(link = "log"), 
-              control=glmmTMBControl(parallel=nt, 
-                                     profile=TRUE, 
-                                     optCtrl=list(iter.max=1e11,eval.max=1e11), 
-                                     optimizer=optim, 
-                                     optArgs=list(method="BFGS")))
-m10 <- glmmTMB(n.compounds.T ~  Sex + Age + I(Age^2) + wui_60_100 + pasture_60 + BBA_60 * year + (1|RegionalID), data=dat1,
-              family=compois(link = "log"), 
-              control=glmmTMBControl(parallel=nt, 
-                                     profile=TRUE, 
-                                     optCtrl=list(iter.max=1e11,eval.max=1e11), 
-                                     optimizer=optim, 
-                                     optArgs=list(method="BFGS")))
 
 
 #### Running iteration models ####
@@ -313,8 +248,8 @@ for (i in 1:10) {
   
   # Run model with deltaAICc < 2
 
-  m1_pt <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + wui_60_100 + pasture_60 + BBA_60 * lag_beechnuts + (1|WMU), data=pt, 
-                      family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
+  m1_pt <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + nbuildings_60 * dcad_15 + pasture_60 + BBA_15 * lag_beechnuts + (1|WMU), data=pt, 
+                      family=compois(link = "log"), control=glmmTMBControl(parallel=nt))#
 
   m1s <- summary(m1_pt)
   
@@ -345,7 +280,7 @@ for (i in 1:10) {
     testSet <- pt[row_idx!=j,] %>% as_tibble()
 
     # Fit model on training set
-    m1_cv <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + wui_60_100 + pasture_60 + BBA_60 * lag_beechnuts + (1|WMU), data=pt,
+    m1_cv <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + nbuildings_60 * dcad_15 + pasture_60 + BBA_15 * lag_beechnuts + (1|WMU) + (1|year), data=pt,
                      family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
     pred <- predict(m1_cv, newdata=testSet, type="response", se.fit=TRUE)
 
