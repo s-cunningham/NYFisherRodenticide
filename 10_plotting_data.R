@@ -62,7 +62,7 @@ p4 <- ggplot(wui, aes(x=Age, y=Sex, color=Sex, fill=Sex)) +
   theme(legend.position="none")
 
 
-wrap_plots(p1, p2, p3, p4) + plot_annotation(tag_levels="a")
+wrap_plots(p1, p2, p3, p4) + plot_annotation(tag_levels="a", tag_prefix="(", tag_suffix=")" )
 
 bba %>% group_by(pt_index) %>% summarize(medianBBA=median(baa_m2)) %>% arrange(medianBBA)
 wui %>% group_by(pt_index) %>% summarize(medianWUI=median(value)) %>% arrange(medianWUI)

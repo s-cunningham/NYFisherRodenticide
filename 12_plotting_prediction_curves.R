@@ -148,7 +148,7 @@ mast_plot <- ggplot() +
                       axis.title.x=element_text(size=12),
                       axis.title.y=element_blank())
 
-age_plot + mast_plot + plot_annotation(tag_levels="a")
+age_plot + mast_plot + plot_annotation(tag_levels="a", tag_prefix="(", tag_suffix=")")
 
 #### Binary analyses #####
 dat <- read_csv("output/binary_model_data_unscaled.csv") %>%
