@@ -216,7 +216,19 @@ model_tab
 write_csv(model_tab, "output/model_selection/global_model_selection_table.csv")
 
 
-system.time(m1 <- glmmTMB(n.compounds.T ~  Sex + Age + I(Age^2) + nbuildings_60 * dcad_15 + pasture_60 + BBA_15 * lag_beechnuts + (1 | RegionalID), data=dat1,
+extra.models <- lapply(extra_formulae, FUN=glmmTMB, data=dat1, 
+                        family=compois(link = "log"), 
+                        control=glmmTMBControl(parallel=nt, 
+                                               profile=TRUE, 
+                                               optCtrl=list(iter.max=1e11,eval.max=1e11), 
+                                               optimizer=optim, 
+                                               optArgs=list(method="BFGS")))
+model.list <- model.sel(extra.models)
+model_tab <- as.data.frame(model.list)
+model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
+model_tab
+
+system.time(m1 <- glmmTMB(n.compounds.T ~  Sex + Age + I(Age^2) + nbuildings_60 + ai_15 + pasture_60 + BBA_15 * lag_beechnuts + (1 | RegionalID), data=dat1,
         family=compois(link = "log"), 
         control=glmmTMBControl(parallel=nt, 
                                profile=TRUE, 
@@ -280,7 +292,7 @@ for (i in 1:10) {
     testSet <- pt[row_idx!=j,] %>% as_tibble()
 
     # Fit model on training set
-    m1_cv <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + nbuildings_60 * dcad_15 + pasture_60 + BBA_15 * lag_beechnuts + (1|WMU) + (1|year), data=pt,
+    m1_cv <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + nbuildings_60 * dcad_15 + pasture_60 + BBA_15 * lag_beechnuts + (1|WMU), data=pt,
                      family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
     pred <- predict(m1_cv, newdata=testSet, type="response", se.fit=TRUE)
 
@@ -375,7 +387,7 @@ classstats <- classstats %>% as_tibble %>%
 classstats$group <- rep(0:5, 10*5)
 
 class_accu <- classstats %>% group_by(iteration, group) %>% 
-  summarize(class_acc=mean(Specificity)) %>% 
+  summarize(class_acc=mean(`Balanced Accuracy`)) %>% 
   pivot_wider(names_from=group, values_from=class_acc)
 
 write_csv(classstats, "results/ncompounds_class-stats.csv")

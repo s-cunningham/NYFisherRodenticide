@@ -66,7 +66,8 @@ samples <- st_read("data/spatial", "random_samples_data20221220") %>%
 pts <- st_coordinates(samples)
 pts <- cbind(ids$id_index, pts) |> as.data.frame()
 names(pts) <- c("pt_name", "x", "y")
-write_csv(pts, "output/random_point_locs.csv")
+# write_csv(pts, "output/random_point_locs.csv")
+pts <- read_csv("output/random_point_locs.csv")
 
 # Create buffer for 15km2 area
 buff15 <- st_buffer(samples, 2185.1)
@@ -352,18 +353,15 @@ lsm_tforest_output <- sizes %>%
   map_dfr(~sample_lsm(tforest, 
                       y=samples, 
                       plot_id=samples$name, 
-                      what=c("lsm_c_ed",
-                             "lsm_c_ai",
-                             "lsm_c_contig_mn",
+                      what=c("lsm_c_cai_cv",
+                             "lsm_c_cai_mn",
+                             "lsm_c_cai_sd",
                              "lsm_c_clumpy",
-                             "lsm_c_cohesion",
-                             "lsm_c_cpland",
-                             "lsm_c_dcad",
-                             "lsm_l_frac_mn",
-                             "lsm_c_enn_mn",
-                             "lsm_c_mesh",
-                             "lsm_c_pd",
-                             "lsm_c_shape_mn"), 
+                             "lsm_c_core_cv",
+                             "lsm_c_ai",
+                             "lsm_c_pafrac",
+                             "lsm_c_lsi",
+                             "lsm_c_dcore_cv"), 
                       shape="circle", size=.), .id="buffer")
 
 # Save only metrics for total forest (class = s)
@@ -371,7 +369,7 @@ lsm_tforest_output <- lsm_tforest_output %>%
                         filter(class==2) %>%
                         select(plot_id, buffer, metric, value)
 
-write_csv(lsm_tforest_output, "data/analysis-ready/forest_lsm.csv")
+write_csv(lsm_tforest_output, "data/analysis-ready/forest_lsm_2.csv")
 
 #### Building layer raster ####
 build_cntroid <- rast("data/rasters/NewYork_centroids.tif")

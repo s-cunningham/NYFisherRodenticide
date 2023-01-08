@@ -158,6 +158,11 @@ names(global_formulae) <- as.character(global_formulae)
 
 
 
+
+extra_formulae <- list(n.compounds.T ~ Sex + Age + I(Age^2) + nbuildings_60 + pd_15 + pasture_60 + BBA_15 * lag_beechnuts + (1|RegionalID),
+                       n.compounds.T ~ Sex + Age + I(Age^2) + nbuildings_60 + evergreen_15 + pasture_60 + BBA_15 * lag_beechnuts + (1|RegionalID))
+names(extra_formulae) <- as.character(extra_formulae)
+
 # ag_formulae <- list(n.compounds.T ~ totalag_15 + (1|WMU) + (1|year),
 #                     n.compounds.T ~ totalag_30 + (1|WMU) + (1|year),
 #                     n.compounds.T ~ totalag_60 + (1|WMU) + (1|year),
