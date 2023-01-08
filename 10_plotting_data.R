@@ -15,52 +15,43 @@ theme_set(theme_classic())
 # read data
 dat <- read_csv("data/analysis-ready/combined_AR_covars_new12-2022.csv")
 
-dat1 <- dat %>% filter(pt_index==1 & buffsize==60 & radius==100) %>% select(RegionalID:n.compounds.T,lag_beechnuts) %>% distinct()
+# dat1 <- dat %>% filter(pt_index==1 & buffsize==60 & radius==100) %>% select(RegionalID:n.compounds.T,lag_beechnuts) %>% distinct()
 
-dat <- dat[dat$buffsize==60 & dat$radius==100,]
-dat <- dat %>% select(RegionalID:Town, n.compounds.T, pasture, totalWUI, BBA) %>%
-  pivot_longer(pasture:BBA, names_to="covariate", values_to="value")
+dat15 <- dat[dat$buffsize==15 & dat$radius==100,]
+dat15 <- dat15 %>% select(RegionalID:Town, n.compounds.T, dcad, pd, clumpy, BBA) %>%
+  pivot_longer(dcad:BBA, names_to="covariate", values_to="value")
+dat60 <- dat[dat$buffsize==60 & dat$radius==250,]
+dat60 <- dat60 %>% select(RegionalID:Town, n.compounds.T, pasture, nbuildings) %>%
+  pivot_longer(pasture:nbuildings, names_to="covariate", values_to="value")
 
-bba <- dat %>% filter(covariate=="BBA") %>%
+bba <- dat15 %>% filter(covariate=="BBA") %>%
           mutate(baa_m2=value/10.764)
-wui <- dat %>% filter(covariate=="totalWUI")
-pasture <- dat %>% filter(covariate=="pasture")
+# wui <- dat60 %>% filter(covariate=="totalWUI")
+pasture <- dat60 %>% filter(covariate=="pasture")
+build <- dat60 %>% filter(covariate=="nbuildings")
+build_mdn <- build %>% group_by(pt_index) %>% summarize(mdn=median(value))
+dcad <- dat15 %>% filter(covariate=="dcad")
+pd <- dat15 %>% filter(covariate=="pd")
+clumpy <- dat15 %>% filter(covariate=="clumpy")
 
-ggplot(wui, aes(x=value)) + geom_density() + facet_wrap(.~pt_index)
+ggplot(build, aes(x=value)) + geom_density() + facet_wrap(.~pt_index)
 
 p1 <- ggplot(bba, aes(x=baa_m2, y=factor(pt_index))) +
-  geom_density_ridges(jittered_points = FALSE,alpha = 0.7) +
-    # position = position_points_jitter(width = 0.05, height = 0),
-    # point_shape = '|', point_size = 2, point_alpha = 1, alpha = 0.7) +
-  ylab("Iteration") + 
-  xlab(expression(paste("Total beech basal area (", m^2, ")")))
+        stat_density_ridges(quantile_lines = TRUE, quantiles = 2, alpha=0.7) +
+        ylab("Iteration") + 
+        xlab(expression(paste("Total beech basal area (", m^2, ")")))
 
-p2 <- ggplot(wui, aes(x=value, y=factor(pt_index))) +
-  geom_density_ridges(jittered_points = FALSE, alpha = 0.7) +
-                      # position = position_points_jitter(width = 0.02, height = 0),
-                      # point_shape = '|', point_size = 2, point_alpha = 1) +
-  ylab("Iteration") + xlab("Proportion classified as WUI")
+p2 <- ggplot(dcad, aes(x=value, y=factor(pt_index))) +
+        stat_density_ridges(quantile_lines = TRUE, quantiles = 2, alpha=0.7) +
+        ylab("Iteration") + xlab("Disjunct core area density")
 
 p3 <- ggplot(pasture, aes(x=value, y=factor(pt_index))) +
-  geom_density_ridges(jittered_points = FALSE, alpha = 0.7) +
-                      # position = position_points_jitter(width = 0.02, height = 0),
-                      # point_shape = '|', point_size = 2, point_alpha = 1, alpha = 0.7) +
-  ylab("Iteration") + xlab("Proportion classified as pasture")
+        stat_density_ridges(quantile_lines = TRUE, quantiles = 2, alpha=0.7) +
+        ylab("Iteration") + xlab("Proportion classified as pasture")
 
-# p4 <- ggplot(wui, aes(x=Age, color=Sex, fill=Sex)) + geom_density(alpha=0.5) +
-#         scale_color_manual(values=c("#1b7837", "#762a83"), labels=c("Female", "Male")) +
-#         scale_fill_manual(values=c("#1b7837", "#762a83"), labels=c("Female", "Male")) +
-#         ylab("Density") + xlab("Age (years)") +
-#         theme(legend.position=c(1,1),
-#               legend.justification=c(1,1))
-
-p4 <- ggplot(wui, aes(x=Age, y=Sex, color=Sex, fill=Sex)) + 
-  geom_density_ridges(jittered_points = FALSE, alpha = 0.5) +
-  scale_color_manual(values=c("#1b7837", "#762a83"), labels=c("Female", "Male")) +
-  scale_fill_manual(values=c("#1b7837", "#762a83"), labels=c("Female", "Male")) +
-  ylab("Sex") + xlab("Age (years)") +
-  theme(legend.position="none")
-
+p4 <- ggplot(build, aes(x=value, y=factor(pt_index))) +
+        stat_density_ridges(quantile_lines = TRUE, quantiles = 2, alpha=0.7) +
+        ylab("Iteration") + xlab("Number of buildings")
 
 wrap_plots(p1, p2, p3, p4) + plot_annotation(tag_levels="a", tag_prefix="(", tag_suffix=")" )
 
@@ -70,6 +61,22 @@ pasture %>% group_by(pt_index) %>% summarize(medianpasture=median(value)) %>% ar
 
 
 ggplot(dat1, aes(x=n.compounds.T, color=factor(lag_beechnuts), fill=factor(lag_beechnuts))) + geom_density(alpha=0.5) 
+
+
+
+# p4 <- ggplot(wui, aes(x=Age, color=Sex, fill=Sex)) + geom_density(alpha=0.5) +
+#         scale_color_manual(values=c("#1b7837", "#762a83"), labels=c("Female", "Male")) +
+#         scale_fill_manual(values=c("#1b7837", "#762a83"), labels=c("Female", "Male")) +
+#         ylab("Density") + xlab("Age (years)") +
+#         theme(legend.position=c(1,1),
+#               legend.justification=c(1,1))
+
+ggplot(wui, aes(x=Age, y=Sex, color=Sex, fill=Sex)) + 
+  geom_density_ridges(jittered_points = FALSE, alpha = 0.5) +
+  scale_color_manual(values=c("#1b7837", "#762a83"), labels=c("Female", "Male")) +
+  scale_fill_manual(values=c("#1b7837", "#762a83"), labels=c("Female", "Male")) +
+  ylab("Sex") + xlab("Age (years)") +
+  theme(legend.position="none")
 
 
 #### Exploratory ####
