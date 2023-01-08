@@ -6,27 +6,82 @@ library(sf)
 library(stars)
 library(viridis)
 library(ggspatial)
+library(ggridges)
 library(patchwork)
 
 theme_set(theme_classic())
 
 #### Covariate plots (boxplots, xy plots) ####
 # read data
-dat <- read_csv("data/analysis-ready/combined_AR_covars.csv")
-dat <- as.data.frame(dat)
+dat <- read_csv("data/analysis-ready/combined_AR_covars_new12-2022.csv")
 
-# Categorical number of compounds (collapsing higher numbers)
-dat$catNcompMO <- ifelse(dat$n.compounds.MO>=2, "2+", as.character(dat$n.compounds.MO))
-dat$catNcompT <- ifelse(dat$n.compounds.T>=3, "3+", as.character(dat$n.compounds.T))
+# dat1 <- dat %>% filter(pt_index==1 & buffsize==60 & radius==100) %>% select(RegionalID:n.compounds.T,lag_beechnuts) %>% distinct()
 
-dat$catAge[dat$Age>=3.5] <- "adult"
-dat$catAge[dat$Age==2.5] <- "subadult"
-dat$catAge[dat$Ag<2.5] <- "juvenile"
+dat15 <- dat[dat$buffsize==15 & dat$radius==100,]
+dat15 <- dat15 %>% select(RegionalID:Town, n.compounds.T, dcad, pd, clumpy, BBA) %>%
+  pivot_longer(dcad:BBA, names_to="covariate", values_to="value")
+dat60 <- dat[dat$buffsize==60 & dat$radius==250,]
+dat60 <- dat60 %>% select(RegionalID:Town, n.compounds.T, pasture, nbuildings) %>%
+  pivot_longer(pasture:nbuildings, names_to="covariate", values_to="value")
+
+bba <- dat15 %>% filter(covariate=="BBA") %>%
+          mutate(baa_m2=value/10.764)
+# wui <- dat60 %>% filter(covariate=="totalWUI")
+pasture <- dat60 %>% filter(covariate=="pasture")
+build <- dat60 %>% filter(covariate=="nbuildings")
+build_mdn <- build %>% group_by(pt_index) %>% summarize(mdn=median(value))
+dcad <- dat15 %>% filter(covariate=="dcad")
+pd <- dat15 %>% filter(covariate=="pd")
+clumpy <- dat15 %>% filter(covariate=="clumpy")
+
+ggplot(build, aes(x=value)) + geom_density() + facet_wrap(.~pt_index)
+
+p1 <- ggplot(bba, aes(x=baa_m2, y=factor(pt_index))) +
+        stat_density_ridges(quantile_lines = TRUE, quantiles = 2, alpha=0.7) +
+        ylab("Iteration") + 
+        xlab(expression(paste("Total beech basal area (", m^2, ")")))
+
+p2 <- ggplot(dcad, aes(x=value, y=factor(pt_index))) +
+        stat_density_ridges(quantile_lines = TRUE, quantiles = 2, alpha=0.7) +
+        ylab("Iteration") + xlab("Disjunct core area density")
+
+p3 <- ggplot(pasture, aes(x=value, y=factor(pt_index))) +
+        stat_density_ridges(quantile_lines = TRUE, quantiles = 2, alpha=0.7) +
+        ylab("Iteration") + xlab("Proportion classified as pasture")
+
+p4 <- ggplot(build, aes(x=value, y=factor(pt_index))) +
+        stat_density_ridges(quantile_lines = TRUE, quantiles = 2, alpha=0.7) +
+        ylab("Iteration") + xlab("Number of buildings")
+
+wrap_plots(p1, p2, p3, p4) + plot_annotation(tag_levels="a", tag_prefix="(", tag_suffix=")" )
+
+bba %>% group_by(pt_index) %>% summarize(medianBBA=median(baa_m2)) %>% arrange(medianBBA)
+wui %>% group_by(pt_index) %>% summarize(medianWUI=median(value)) %>% arrange(medianWUI)
+pasture %>% group_by(pt_index) %>% summarize(medianpasture=median(value)) %>% arrange(medianpasture)
+
+
+ggplot(dat1, aes(x=n.compounds.T, color=factor(lag_beechnuts), fill=factor(lag_beechnuts))) + geom_density(alpha=0.5) 
+
+
+
+# p4 <- ggplot(wui, aes(x=Age, color=Sex, fill=Sex)) + geom_density(alpha=0.5) +
+#         scale_color_manual(values=c("#1b7837", "#762a83"), labels=c("Female", "Male")) +
+#         scale_fill_manual(values=c("#1b7837", "#762a83"), labels=c("Female", "Male")) +
+#         ylab("Density") + xlab("Age (years)") +
+#         theme(legend.position=c(1,1),
+#               legend.justification=c(1,1))
+
+ggplot(wui, aes(x=Age, y=Sex, color=Sex, fill=Sex)) + 
+  geom_density_ridges(jittered_points = FALSE, alpha = 0.5) +
+  scale_color_manual(values=c("#1b7837", "#762a83"), labels=c("Female", "Male")) +
+  scale_fill_manual(values=c("#1b7837", "#762a83"), labels=c("Female", "Male")) +
+  ylab("Sex") + xlab("Age (years)") +
+  theme(legend.position="none")
 
 
 #### Exploratory ####
 # Break down by age and sex
-dat1 <- dat[dat$pt_index==1 & dat$buffsize==60 & dat$radius==100,]
+
 dat1 %>% group_by(Age, Sex) %>% count()
 
 ggplot(dat1, aes(x=rand_x, y=rand_y, color=Age)) + geom_point(size=3)

@@ -2,13 +2,14 @@ library(tidyverse)
 library(lme4)
 library(MuMIn)
 library(caret)
+library(broom)
 
 options(scipen=999, digits=3)
 set.seed(1)
 
 #### Read in data ####
 # Landscape covariates
-dat <- read_csv("data/analysis-ready/combined_AR_covars.csv")
+dat <- read_csv("data/analysis-ready/combined_AR_covars_new12-2022.csv")
 
 # Individual compounds
 dat2 <- read_csv("output/summarized_AR_results.csv") %>%
@@ -24,7 +25,7 @@ dat$year <- factor(dat$year)
 dat$RegionalID <- factor(dat$RegionalID)
 
 ## Reorder columns
-dat <- dat %>% select(RegionalID:Town,compound,bin.exp,bin.exp.ntr,buffsize:laggedBMI)
+dat <- dat %>% select(RegionalID:Town,compound,bin.exp,buffsize:lag_beechnuts)
 
 ## Use pooled data to determine scale
 
@@ -35,10 +36,11 @@ pctAG <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, pasture, crops,
   pivot_wider(names_from=buffsize, values_from=c(pasture, crops, totalag))
 
 ## Beech basal area
-baa1 <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, BMI, laggedBMI) %>% 
+baa1 <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, BMI, laggedBMI, BBA) %>% 
   distinct() %>% 
   group_by(RegionalID) %>% 
-  pivot_wider(names_from=buffsize, values_from=c(BMI, laggedBMI), values_fn=unique) 
+  pivot_wider(names_from=buffsize, values_from=c(BMI, laggedBMI, BBA), values_fn=unique) %>% 
+  as.data.frame()
 
 ## Percent forest
 pctFOR <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, deciduous, evergreen, mixed, totalforest) %>% 
@@ -86,7 +88,7 @@ lsm1 <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, ai:shape_mn) %>%
   pivot_wider(names_from=buffsize, values_from=c(ai:shape_mn), values_fn=unique) 
 
 #### Set up data to run for each combination of covariates ####
-dat1 <- dat %>% select(RegionalID:bin.exp) %>% distinct() %>%
+dat1 <- dat %>% select(RegionalID:Town,compound,bin.exp,beechnuts,lag_beechnuts) %>% distinct() %>%
   left_join(pctAG, by=c("RegionalID", "pt_name", "pt_index")) %>%
   left_join(pctFOR, by=c("RegionalID", "pt_name", "pt_index")) %>%
   left_join(baa1, by=c("RegionalID", "pt_name", "pt_index")) %>%
@@ -94,11 +96,15 @@ dat1 <- dat %>% select(RegionalID:bin.exp) %>% distinct() %>%
   left_join(interface1, by=c("RegionalID", "pt_name", "pt_index")) %>%
   left_join(wui1, by=c("RegionalID", "pt_name", "pt_index")) %>%
   left_join(lsm1, by=c("RegionalID", "pt_name", "pt_index")) %>%
-  left_join(build1, by=c("RegionalID", "pt_name", "pt_index"))
+  left_join(build1, by=c("RegionalID", "pt_name", "pt_index")) %>%
+  select(RegionalID:ed_60, mesh_15:build_cat_60)
 
 ## Scale and center variables
-dat1[,c(8,17:106)] <- scale(dat1[,c(8,17:106)])
-# write_csv(dat1, "output/binary_model_data.csv")
+# write_csv(dat1, "output/binary_model_data_unscaled.csv")
+dat1[,c(8,17:108)] <- scale(dat1[,c(8,17:108)])
+
+# dat1 <- dat1 %>% select(RegionalID:bin.exp, lag_beechnuts, pasture_60, BBA_60, ai_60, wui_60_100)
+cor(dat1[,c(17:21)])
 
 # Subset by compound
 brod <- dat1[dat1$compound=="Brodifacoum",]
@@ -112,6 +118,8 @@ diph <- dat1[dat1$compound=="Diphacinone",]
 ## Loop over each set of random points
 m_est <- m_stderr <- m_zscore <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
 
+ranef_coef <- data.frame()
+
 kappa <- matrix(NA, ncol=6, nrow=10)
 kappa[,1] <- 1:10
 
@@ -124,8 +132,28 @@ for (i in 1:10) {
   pt <- brod[brod$pt_index==i,]
   
   # Run model with deltaAICc < 2
-  m1_pt <- lme4::glmer(bin.exp ~ Sex + Age + I(Age^2)  + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU), 
+  m1_pt <- lme4::glmer(bin.exp ~ Sex + Age + I(Age^2) + nbuildings_60 * dcad_15 + pasture_60 + BBA_15 * lag_beechnuts + (1|WMU), 
                  family=binomial(link="logit"), data=pt)
+  
+  m1s <- summary(m1_pt)
+  m1sdf <- m1s$coefficients
+  
+  # save averaged confidence intervals
+  ci <- confint.merMod(m1_pt, method="Wald")
+  ci <- ci[complete.cases(ci),]
+  pct2.5 <- rbind(pct2.5, t(ci)[1,1:nrow(ci)])
+  pct97.5 <- rbind(pct97.5, t(ci)[2,1:nrow(ci)])
+  
+  # Save point set estimates
+  m_est <- rbind(m_est, coef(m1s)[,1])
+  m_stderr <- rbind(m_stderr, coef(m1s)[,2])
+  m_zscore <- rbind(m_zscore, coef(m1s)[,3])
+  m_ranef <- rbind(m_ranef, unlist(VarCorr(m1_pt)))
+  
+  # Save the coefficients for each level of the random effect
+  ranefc <- as_tibble(ranef(m1_pt)) 
+  ranefc$iter <- i
+  ranef_coef <- bind_rows(ranef_coef, ranefc)
   
   # 5-fold cross validation
   row_idx <- sample(1:5, nrow(pt), replace=TRUE)
@@ -136,7 +164,7 @@ for (i in 1:10) {
     testSet <- pt[row_idx!=j,] %>% as_tibble()
     
     # Fit model on training set
-    m1_cv <- glmer(bin.exp ~ Sex + Age + I(Age^2)  + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU), 
+    m1_cv <- glmer(bin.exp ~ Sex + Age + I(Age^2) + nbuildings_60 * dcad_15 + pasture_60 + BBA_15 * lag_beechnuts + (1|WMU), 
                    family=binomial(link="logit"), data=pt)
     pred <- predict(m1_cv, newdata=testSet, type="response", re.form=NA)
     
@@ -170,21 +198,6 @@ for (i in 1:10) {
     cm$fold <- j
     cmpm <- bind_rows(cmpm, cm)
   }
-  
-  m1s <- summary(m1_pt)
-  m1sdf <- m1s$coefficients
-  
-  # save averaged confidence intervals
-  ci <- confint.merMod(m1_pt, method="Wald")
-  ci <- ci[complete.cases(ci),]
-  pct2.5 <- rbind(pct2.5, t(ci)[1,1:nrow(ci)])
-  pct97.5 <- rbind(pct97.5, t(ci)[2,1:nrow(ci)])
-  
-  # Save point set estimates
-  m_est <- rbind(m_est, coef(m1s)[,1])
-  m_stderr <- rbind(m_stderr, coef(m1s)[,2])
-  m_zscore <- rbind(m_zscore, coef(m1s)[,3])
-  m_ranef <- rbind(m_ranef, unlist(VarCorr(m1_pt)))
   
   # Rename (only need to do once)
   if (i==1) {
@@ -214,7 +227,14 @@ pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)], na.rm=TRUE)
 ranef_avg <- as.data.frame(colMeans(m_ranef[sapply(m_ranef, is.numeric)])) %>% rownames_to_column("RE")
 names(ranef_avg)[2] <- "variance"
 
-# Combine and clean up data frame
+# Save averaged values for each level of random effect
+re <- ranef_coef %>% 
+            group_by(grp) %>% 
+            summarize(REval=mean(condval), REsd=mean(condsd), 
+              RErangeL=range(condval)[1], RErangeH=range(condval)[2]) 
+write_csv(re, "results/brodifacoum_random_effects_coefficients.csv")
+
+# Combine and clean up data frame for fixed effects
 coef_summary <- bind_rows(coef_avg, stderr_avg, zscore_avg, pct2.5_avg, pct97.5_avg)
 names(coef_summary) <- row.names(m1sdf)
 coef_summary <- as.data.frame(coef_summary)
@@ -223,7 +243,7 @@ coef_summary <- data.frame(coef=coefs, coef_summary)
 
 # Write to file
 write_csv(coef_summary, "results/binaryTbrodifacoum_coef-summary.csv")
-write_csv(ranef_avg, "results/binaryTbrodifacoum_coef-random-effects.csv")
+write_csv(ranef_avg, "results/binaryTbrodifacoum_random-effect-var.csv")
 
 #### Bromadiolone ####
 ## Running final models ##
@@ -234,6 +254,8 @@ m_est <- m_stderr <- m_zscore <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
 kappa <- matrix(NA, ncol=6, nrow=10)
 kappa[,1] <- 1:10
 
+ranef_coef <- data.frame()
+
 cmpm <- data.frame()
 # Loop over each point set
 for (i in 1:10) {
@@ -242,11 +264,28 @@ for (i in 1:10) {
   pt <- brom[brom$pt_index==i,]
   
   # Run model with deltaAICc < 2
-  m1_pt <- glmer(bin.exp ~ Sex + Age + I(Age^2)  + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU),
+  m1_pt <- glmer(bin.exp ~ Sex + Age + I(Age^2) + nbuildings_60 * dcad_15 + pasture_60 + BBA_15 * lag_beechnuts + (1|WMU),
                  family=binomial(link="logit"),data=pt)
   
   m1s <- summary(m1_pt)
   m1sdf <- m1s$coefficients
+  
+  # Save the coefficients for each level of the random effect
+  ranefc <- as_tibble(ranef(m1_pt)) 
+  ranefc$iter <- i
+  ranef_coef <- bind_rows(ranef_coef, ranefc)
+  
+  # save averaged confidence intervals
+  ci <- confint.merMod(m1_pt, method="Wald")
+  ci <- ci[complete.cases(ci),]
+  pct2.5 <- rbind(pct2.5, t(ci)[1,1:nrow(ci)])
+  pct97.5 <- rbind(pct97.5, t(ci)[2,1:nrow(ci)])
+  
+  # Save point set estimates
+  m_est <- rbind(m_est, coef(m1s)[,1])
+  m_stderr <- rbind(m_stderr, coef(m1s)[,2])
+  m_zscore <- rbind(m_zscore, coef(m1s)[,3])
+  m_ranef <- rbind(m_ranef, unlist(VarCorr(m1_pt)))
   
   # 5-fold cross validation
   row_idx <- sample(1:5, nrow(pt), replace=TRUE)
@@ -257,7 +296,7 @@ for (i in 1:10) {
     testSet <- pt[row_idx!=j,] %>% as_tibble()
     
     # Fit model on training set
-    m1_cv <- glmer(bin.exp ~ Sex + Age + I(Age^2)  + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU), 
+    m1_cv <- glmer(bin.exp ~ Sex + Age + I(Age^2) + nbuildings_60 * dcad_15 + pasture_60 + BBA_15 * lag_beechnuts + (1|WMU), 
                    family=binomial(link="logit"), data=pt)
     pred <- predict(m1_cv, newdata=testSet, type="response", re.form=NA)
     
@@ -291,18 +330,7 @@ for (i in 1:10) {
     cm$fold <- j
     cmpm <- bind_rows(cmpm, cm)
   }
-  
-  # save averaged confidence intervals
-  ci <- confint.merMod(m1_pt, method="Wald")
-  ci <- ci[complete.cases(ci),]
-  pct2.5 <- rbind(pct2.5, t(ci)[1,1:nrow(ci)])
-  pct97.5 <- rbind(pct97.5, t(ci)[2,1:nrow(ci)])
-  
-  # Save point set estimates
-  m_est <- rbind(m_est, coef(m1s)[,1])
-  m_stderr <- rbind(m_stderr, coef(m1s)[,2])
-  m_zscore <- rbind(m_zscore, coef(m1s)[,3])
-  m_ranef <- rbind(m_ranef, unlist(VarCorr(m1_pt)))
+
   
   # Rename (only need to do once)
   if (i==1) {
@@ -331,6 +359,13 @@ pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)], na.rm=TRUE)
 ranef_avg <- as.data.frame(colMeans(m_ranef[sapply(m_ranef, is.numeric)])) %>% rownames_to_column("RE")
 names(ranef_avg)[2] <- "variance"
 
+# Save averaged values for each level of random effect
+re <- ranef_coef %>% 
+  group_by(grp) %>% 
+  summarize(REval=mean(condval), REsd=mean(condsd), 
+            RErangeL=range(condval)[1], RErangeH=range(condval)[2]) 
+write_csv(re, "results/bromadiolone_random_effects_coefficients.csv")
+
 # Combine and clean up data frame
 coef_summary <- bind_rows(coef_avg, stderr_avg, zscore_avg, pct2.5_avg, pct97.5_avg)
 names(coef_summary) <- row.names(m1sdf)
@@ -340,7 +375,7 @@ coef_summary <- data.frame(coef=coefs, coef_summary)
 
 # Write to file
 write_csv(coef_summary, "results/binaryTbromadiolone_coef-summary.csv")
-write_csv(ranef_avg, "results/binaryTbromadiolone_coef-random-effects.csv")
+write_csv(ranef_avg, "results/binaryTbromadiolone_random-effect-var.csv")
 
 #### Diphacinone ####
 
@@ -350,6 +385,7 @@ m_est <- m_stderr <- m_zscore <- pct2.5 <- pct97.5 <- m_ranef <- data.frame()
 kappa <- matrix(NA, ncol=6, nrow=10)
 kappa[,1] <- 1:10
 
+ranef_coef <- data.frame()
 cmpm <- data.frame()
 
 # Loop over each point set
@@ -359,12 +395,29 @@ for (i in 1:10) {
   pt <- diph[diph$pt_index==i,]
   
   # Run model with deltaAICc < 2
-  m1_pt <- glmer(bin.exp ~ Sex + Age + I(Age^2) + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU), 
+  m1_pt <- glmer(bin.exp ~ Sex + Age + I(Age^2) + nbuildings_60 * dcad_15 + pasture_60 + BBA_15 * lag_beechnuts + (1|WMU), 
                family=binomial(link="logit"), data=pt)
   if (!isSingular(m1_pt)) {
     
     m1s <- summary(m1_pt)
     m1sdf <- m1s$coefficients
+    
+    # Save the coefficients for each level of the random effect
+    ranefc <- as_tibble(ranef(m1_pt)) 
+    ranefc$iter <- i
+    ranef_coef <- bind_rows(ranef_coef, ranefc)
+    
+    # save averaged confidence intervals
+    ci <- confint.merMod(m1_pt, method="Wald")
+    ci <- ci[complete.cases(ci),]
+    pct2.5 <- rbind(pct2.5, t(ci)[1,1:nrow(ci)])
+    pct97.5 <- rbind(pct97.5, t(ci)[2,1:nrow(ci)])
+    
+    # Save point set estimates
+    m_est <- rbind(m_est, coef(m1s)[,1])
+    m_stderr <- rbind(m_stderr, coef(m1s)[,2])
+    m_zscore <- rbind(m_zscore, coef(m1s)[,3])
+    m_ranef <- rbind(m_ranef, unlist(VarCorr(m1_pt)))
     
     # 5-fold cross validation
     row_idx <- sample(1:5, nrow(pt), replace=TRUE)
@@ -375,7 +428,7 @@ for (i in 1:10) {
       testSet <- pt[row_idx!=j,] %>% as_tibble()
       
       # Fit model on training set
-      m1_cv <- glmer(bin.exp ~ Sex + Age + I(Age^2)  + wui_60_100 + pasture_60 + laggedBMI_30 + (1|WMU), 
+      m1_cv <- glmer(bin.exp ~ Sex + Age + I(Age^2) + nbuildings_60 * dcad_15 + pasture_60 + BBA_15 * lag_beechnuts + (1|WMU), 
                      family=binomial(link="logit"), data=pt)
       pred <- predict(m1_cv, newdata=testSet, type="response", re.form=NA)
       
@@ -409,19 +462,7 @@ for (i in 1:10) {
       cm$fold <- j
       cmpm <- bind_rows(cmpm, cm)
     }
-    
-    # save averaged confidence intervals
-    ci <- confint.merMod(m1_pt, method="Wald")
-    ci <- ci[complete.cases(ci),]
-    pct2.5 <- rbind(pct2.5, t(ci)[1,1:nrow(ci)])
-    pct97.5 <- rbind(pct97.5, t(ci)[2,1:nrow(ci)])
-    
-    # Save point set estimates
-    m_est <- rbind(m_est, coef(m1s)[,1])
-    m_stderr <- rbind(m_stderr, coef(m1s)[,2])
-    m_zscore <- rbind(m_zscore, coef(m1s)[,3])
-    m_ranef <- rbind(m_ranef, unlist(VarCorr(m1_pt)))
-    
+
     # Rename (only need to do once)
     if (i==1) {
       names(m_est) <- row.names(m1sdf)
@@ -451,6 +492,13 @@ pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)], na.rm=TRUE)
 ranef_avg <- as.data.frame(colMeans(m_ranef[sapply(m_ranef, is.numeric)])) %>% rownames_to_column("RE")
 names(ranef_avg)[2] <- "variance"
 
+# Save averaged values for each level of random effect
+re <- ranef_coef %>% 
+  group_by(grp) %>% 
+  summarize(REval=mean(condval), REsd=mean(condsd), 
+            RErangeL=range(condval)[1], RErangeH=range(condval)[2]) 
+write_csv(re, "results/diphacinone_random_effects_coefficients.csv")
+
 # Combine and clean up data frame
 coef_summary <- bind_rows(coef_avg, stderr_avg, zscore_avg, pct2.5_avg, pct97.5_avg)
 names(coef_summary) <- row.names(m1sdf)
@@ -460,5 +508,5 @@ coef_summary <- data.frame(coef=coefs, coef_summary)
 
 # Write to file
 write_csv(coef_summary, "results/binaryTdiphacinone_coef-summary.csv")
-write_csv(ranef_avg, "results/binaryTdiphacinone_coef-random-effects.csv")
+write_csv(ranef_avg, "results/binaryTdiphacinone_random-effect-var.csv")
 
