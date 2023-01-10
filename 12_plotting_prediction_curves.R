@@ -23,7 +23,7 @@ dat <- read_csv("output/model_data_notscaled.csv") %>%
 # scale data
 dat <- within(dat, mast.s <- scale(mast))
 dat <- within(dat, Age.s <- scale(Age))
-dat <- within(dat, )
+# dat <- within(dat, )
 dat[,c(8,16:19)] <- scale(dat[,c(8,16:19)])
 
 # Calculate means
@@ -32,7 +32,7 @@ meanPasture <- mean(dat$pasture)
 meanMast <- mean(dat$mast)
 meanAge <- mean(dat$Age)
 meanBBA <- mean(dat$basalarea)
-meanBuild <- mean(dat$nbuildlings)
+meanBuild <- mean(dat$nbuildings)
 meanDCAD <- mean(dat$DCAD)
 
 # read random effects
