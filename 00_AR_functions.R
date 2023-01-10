@@ -180,7 +180,7 @@ logistic_pred_intx <- function(fixed, random, compound, sex, meanWUI, meanPastur
 
 
 
-poisson_pred_age <- function(fixed, random, sex, meanWUI, meanPasture, meanMast, meanBBA, ageStart, ageEnd, lo) {
+poisson_pred_age <- function(fixed, random, sex, meanBuild, meanDCAD, meanPasture, meanBBA, meanMast, ageStart, ageEnd, lo) {
   
   # crete a sequence of values to estimate for age
   age_iter <- seq(ageStart, ageEnd, length.out=lo)
@@ -197,10 +197,18 @@ poisson_pred_age <- function(fixed, random, sex, meanWUI, meanPasture, meanMast,
     # Loop over values of age
     for (i in 1:length(age_iter)) {
       
-      exp_val[i] <- exp(fixed$intercept[1] + fixed$SexM[1]*sex + fixed$Age[1]*age_iter[i] + fixed$Age2[1]*(age_iter[i]^2) +
-                          fixed$WUI[1]*meanWUI + fixed$pasture[1]*meanPasture + fixed$basalarea[1]*meanBBA + 
-                          fixed$mast[1]*meanMast + fixed$interaction[1]*meanMast*meanBBA + random$REval[j])
-      
+      exp_val[i] <- exp(fixed$intercept[1] + 
+                        fixed$SexM[1]*sex + 
+                        fixed$Age[1]*age_iter[i] + 
+                        fixed$Age2[1]*(age_iter[i]^2) +
+                        fixed$nbuildings[1]*meanBuild + 
+                        fixed$DCAD[1]*meanDCAD +
+                        fixed$pasture[1]*meanPasture + 
+                        fixed$intx_encroach[1]*meanDCAD*meanBuild +
+                        fixed$basalarea[1]*meanBBA +
+                        fixed$mast[1]*meanMast + 
+                        fixed$intx_beech[1]*meanBBA*meanMast +
+                        random$REval[j])
     }
     
     # Save the expected values to data frame
@@ -232,7 +240,7 @@ poisson_pred_age <- function(fixed, random, sex, meanWUI, meanPasture, meanMast,
   
 }
 
-poisson_pred_mast <- function(fixed, random, sex, meanWUI, meanPasture, meanAge, meanBBA, mastStart, mastEnd, lo) {
+poisson_pred_mast <- function(fixed, random, sex, meanBuild, meanDCAD, meanPasture, meanBBA, meanAge, mastStart, mastEnd, lo) {
   
   # create a sequence of values to estimate for age
   mast_iter <- seq(mastStart, mastEnd, length.out=lo)
@@ -253,11 +261,13 @@ poisson_pred_mast <- function(fixed, random, sex, meanWUI, meanPasture, meanAge,
                           fixed$SexM[1]*sex + 
                           fixed$Age[1]*meanAge + 
                           fixed$Age2[1]*(meanAge^2) +
-                          fixed$WUI[1]*meanWUI + 
+                          fixed$nbuildings[1]*meanBuild + 
+                          fixed$DCAD[1]*meanDCAD +
+                          fixed$intx_encroach[1]*meanDCAD*meanBuild +
                           fixed$pasture[1]*meanPasture + 
                           fixed$basalarea[1]*meanBBA +
                           fixed$mast[1]*mast_iter[i] + 
-                          fixed$interaction[1]*meanBBA*mast_iter[i] +
+                          fixed$intx_beech[1]*meanBBA*mast_iter[i] +
                           random$REval[j])
       
     }

@@ -23,8 +23,8 @@ dat <- read_csv("output/model_data_notscaled.csv") %>%
 # scale data
 dat <- within(dat, mast.s <- scale(mast))
 dat <- within(dat, Age.s <- scale(Age))
-# dat <- within(dat, )
-dat[,c(8,16:19)] <- scale(dat[,c(8,16:19)])
+dat <- within(dat, DCAD.s <- scale(DCAD))
+dat[,c(8,16:21)] <- scale(dat[,c(8,16:21)])
 
 # Calculate means
 meanWUI <- mean(dat$WUI)
@@ -49,24 +49,28 @@ ncomp_fe <- read_csv("results/ncompT_coef-summary.csv") %>%
                        mast=lag_beechnuts,
                        intx_encroach=nbuildings_60.dcad_15,
                        intx_beech=BBA_15.lag_beechnuts)
+
+
 ## effects of age
 age_m <- poisson_pred_age(fixed=ncomp_fe, 
-                            random=ncomp_re, 
-                            sex=1, 
-                            meanWUI, 
-                            meanPasture, 
-                            meanMast, 
-                            meanBBA,
-                            ageStart=min(dat$Age), 
-                            ageEnd=max(dat$Age), 
-                            lo=100)
+                          random=ncomp_re, 
+                          sex=1, 
+                          meanBuild=meanBuild, 
+                          meanDCAD=meanDCAD,
+                          meanPasture=meanPasture, 
+                          meanMast=meanMast, 
+                          meanBBA=meanBBA,
+                          ageStart=min(dat$Age), 
+                          ageEnd=max(dat$Age), 
+                          lo=100)
 age_f <- poisson_pred_age(fixed=ncomp_fe, 
                           random=ncomp_re, 
                           sex=0, 
-                          meanWUI, 
-                          meanPasture, 
-                          meanMast, 
-                          meanBBA,
+                          meanBuild=meanBuild, 
+                          meanDCAD=meanDCAD,
+                          meanPasture=meanPasture, 
+                          meanMast=meanMast, 
+                          meanBBA=meanBBA,
                           ageStart=min(dat$Age), 
                           ageEnd=max(dat$Age), 
                           lo=100)
@@ -97,26 +101,26 @@ age_plot <- ggplot() +
                           aes(x=unscAge, y=exp_val, group=interaction(level, sex), color=factor(sex)), alpha=0.2) +
                 geom_line(data=pred_mean, aes(x=unscAge, y=mval, color=sex), size=1) +
                 scale_color_manual(values=c("#1b7837", "#762a83"), name="Sex") +
-                ylim(0, 3.5) +
+                ylim(0,3.5) +
                 ylab("Expected number of compounds") + xlab("Age (years)") +
                 theme(legend.position=c(0,1),
                       legend.justification=c(0,1),
                       legend.background=element_rect(fill=NA),
-                      # panel.border=element_rect(color="black", fill=NA, size=0.5),
+                      panel.border=element_rect(color="black", fill=NA, size=0.5),
                       axis.text=element_text(size=12),
                       axis.title=element_text(size=12),
                       legend.title=element_text(size=12),
                       legend.text=element_text(size=11))
 
 ## effect of beech mast
-
 mast_m <- poisson_pred_mast(ncomp_fe, 
                             ncomp_re, 
                             sex=1, 
-                            meanWUI, 
-                            meanPasture, 
-                            meanAge, 
-                            meanBBA,
+                            meanBuild=meanBuild, 
+                            meanDCAD=meanDCAD,
+                            meanPasture=meanPasture, 
+                            meanAge=meanAge, 
+                            meanBBA=meanBBA,
                             mastStart=min(dat$mast), 
                             mastEnd=max(dat$mast), 
                             lo=100)
@@ -124,10 +128,11 @@ mast_m <- poisson_pred_mast(ncomp_fe,
 mast_f <- poisson_pred_mast(ncomp_fe, 
                             ncomp_re, 
                             sex=0, 
-                            meanWUI, 
-                            meanPasture, 
-                            meanAge, 
-                            meanBBA,
+                            meanBuild=meanBuild, 
+                            meanDCAD=meanDCAD,
+                            meanPasture=meanPasture, 
+                            meanAge=meanAge, 
+                            meanBBA=meanBBA,
                             mastStart=min(dat$mast), 
                             mastEnd=max(dat$mast), 
                             lo=100)
@@ -149,7 +154,7 @@ mast_plot <- ggplot() +
                 ylim(0, 3.5) +
                 ylab("Expected number of compounds") + xlab("Beechnut count") +
                 theme(legend.position="none",
-                      # panel.border=element_rect(color="black", fill=NA, size=0.5),
+                      panel.border=element_rect(color="black", fill=NA, size=0.5),
                       axis.text.x=element_text(size=12),
                       axis.text.y=element_blank(),
                       axis.title.x=element_text(size=12),
