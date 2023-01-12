@@ -1,5 +1,5 @@
 ## Running models
-## 2022-09-08
+## 2022-09-08, updated 2023-01-11
 
 library(tidyverse)
 library(MuMIn)
@@ -11,10 +11,11 @@ options(scipen=999, digits=3)
 set.seed(1)
 
 #### Parallel processing ####
-nt <- min(parallel::detectCores(),6)
+nt <- min(parallel::detectCores(),4)
 
 #### Read in data ####
-dat <- read_csv("data/analysis-ready/combined_AR_covars_new12-2022.csv")
+# dat <- read_csv("data/analysis-ready/combined_AR_covars_new12-2022.csv")
+dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") %>% rename(BBA=baa)
 
 #### Analysis Set-up ####
 
@@ -32,10 +33,10 @@ pctAG <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, pasture, crops,
                  as.data.frame()
 
 ## Beech basal area
-baa1 <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, BMI, laggedBMI, BBA) %>% 
+baa1 <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, BMI, laggedBMI, BBA, beechnuts, lag_beechnuts) %>% 
                 distinct() %>% 
                 group_by(RegionalID) %>% 
-                pivot_wider(names_from=buffsize, values_from=c(BMI, laggedBMI, BBA), values_fn=unique) %>% 
+                pivot_wider(names_from=buffsize, values_from=c(BMI, laggedBMI, BBA, beechnuts, lag_beechnuts), values_fn=unique) %>% 
                 as.data.frame()
      
 ## Percent forest
@@ -81,10 +82,10 @@ names(wui1)[4:12] <- c("wui_15_100", "wui_30_100", "wui_60_100",
                        "wui_15_500", "wui_30_500", "wui_60_500") 
 
 ## Landscape metrics
-lsm1 <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, ai:shape_mn) %>% 
+lsm1 <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, ai:lsi) %>% 
   distinct() %>% 
   group_by(RegionalID) %>% 
-  pivot_wider(names_from=buffsize, values_from=c(ai:shape_mn), values_fn=unique) 
+  pivot_wider(names_from=buffsize, values_from=c(ai:lsi), values_fn=unique) 
 
 #### Set up data to run for each combination of covariates ####
 dat1 <- dat %>% select(RegionalID:Town,n.compounds.T,beechnuts,lag_beechnuts) %>% distinct() %>%
@@ -95,9 +96,8 @@ dat1 <- dat %>% select(RegionalID:Town,n.compounds.T,beechnuts,lag_beechnuts) %>
           left_join(interface1, by=c("RegionalID", "pt_name", "pt_index")) %>%
           left_join(wui1, by=c("RegionalID", "pt_name", "pt_index")) %>%
           left_join(lsm1, by=c("RegionalID", "pt_name", "pt_index")) %>%
-          left_join(build1, by=c("RegionalID", "pt_name", "pt_index")) %>%
-          select(RegionalID:ed_60, mesh_15:build_cat_60)
-
+          left_join(build1, by=c("RegionalID", "pt_name", "pt_index"))
+dat1$Sex[dat1$RegionalID=="2019-7709" | dat1$RegionalID=="2020-70001"] <- "F"
 # write_csv(dat1, "output/model_data_notscaled.csv")
 
 ## Scale and center variables
@@ -105,7 +105,7 @@ dat1[,c(8,16:107)] <- scale(dat1[,c(8,16:107)])
 dat1$mast <- as.factor(ifelse(dat1$year==2018 | dat1$year==2020, "fail", "mast"))
 
 # correlation coefficient
-cormat <- cor(dat1[,c(17:106)]) |> as.data.frame()
+cormat <- cor(dat1[,c(16:104)]) |> as.data.frame()
 # write_csv(cormat, "output/correlation_matrix.csv")
 
 #### Read in formulas ####
