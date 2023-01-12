@@ -1,5 +1,5 @@
 ## Set up rodenticide covariates
-## 2022-06-27
+## 2022-06-27, updated 2023-01-12
 
 library(tidyverse)
 
@@ -21,10 +21,11 @@ wui500 <- read_csv("data/analysis-ready/wui500_frac.csv") %>%
   filter(value==1 | value==2) %>%
   filter(complete.cases(.))
 ag <- read_csv("data/analysis-ready/nlcd_pct.csv")
-baa <- read_csv("data/analysis-ready/baa_sum.csv")
+bmi <- read_csv("data/analysis-ready/baa_sum.csv")
+baa <- read_csv("data/analysis-ready/baa_sum_single_raster.csv")
 pts <- read_csv("output/random_point_locs.csv")
 wmua <- read_csv("data/analysis-ready/wmuas.csv")
-lsm <- read_csv("data/analysis-ready/forest_lsm.csv")
+lsm <- read_csv("data/analysis-ready/forest_lsm_2.csv")
 build <- read_csv("data/analysis-ready/building-centroid_sum.csv") %>%
             rename(pt_name=name) 
 
@@ -61,8 +62,14 @@ ag$pasture[is.na(ag$pasture)] <- 0
 ag <- mutate(ag, totalag=crops + pasture)
 
 ## reorganize beech
+# beech mast index
+names(bmi)[c(1,3)] <- c("pt_name", "bmi")
+bmi$bmi[is.na(bmi$bmi)] <- 0
+
+# beech basal area
 names(baa)[1] <- "pt_name"
 baa$baa[is.na(baa$baa)] <- 0
+baa <- baa %>% select(pt_name, buffsize, baa)
 
 ## reorganize WUI
 wui100$radius <- 100
@@ -78,13 +85,14 @@ names(wui)[1] <- "pt_name"
 
 # reorganize landscape metrics
 lsm <- lsm %>% 
+        filter(metric!="pafrac") %>%
         mutate(buffer=replace(buffer, buffer==4370.200, 15)) %>%
-  mutate(buffer=replace(buffer, buffer==4370.200, 15)) %>%
-  mutate(buffer=replace(buffer, buffer==6180.38, 30)) %>%
-  mutate(buffer=replace(buffer, buffer==8740.388, 60)) %>%
-  pivot_wider(names_from=metric, values_from=value) %>%
-  rename(buffsize=buffer, pt_name=plot_id)
-
+        mutate(buffer=replace(buffer, buffer==4370.200, 15)) %>%
+        mutate(buffer=replace(buffer, buffer==6180.38, 30)) %>%
+        mutate(buffer=replace(buffer, buffer==8740.388, 60)) %>%
+        pivot_wider(names_from=metric, values_from=value) %>%
+        rename(buffsize=buffer, pt_name=plot_id) 
+        
 # Create categorical variable for buildings
 build <- build %>% mutate(build_cat=case_when(
                              nbuildings<1 ~ "None",
@@ -105,9 +113,10 @@ build <- build %>% mutate(build_cat=case_when(
 # Join location, age & sex details to random points
 dets <- left_join(pts, dets, by="RegionalID")
 dat <- left_join(dets, ncomps, by="RegionalID")
-dat <- separate(dat, 2, into=c("id", "pt_index"), sep="_", remove=FALSE)
+dat <- separate(dat, 2, into=c("id", "pt_index"), sep="_", remove=FALSE) 
 dat <- dat[,-c(3)]
 dat$pt_index <- as.numeric(dat$pt_index)
+dat <- dat %>% distinct()
 
 # Add columns for buffer and radius
 dat <- bind_rows(dat, dat, dat)
@@ -121,16 +130,17 @@ dat <- left_join(dat, ag, by=c("pt_name", "buffsize")) %>%
   left_join(forest, by=c("pt_name", "buffsize")) %>%
   left_join(wui, by=c("pt_name", "buffsize", "radius")) %>%
   left_join(lsm, by=c("pt_name", "buffsize")) %>%
-  left_join(build, by=c("pt_name", "buffsize"))
+  left_join(build, by=c("pt_name", "buffsize")) %>%
+  left_join(baa, by=c("pt_name", "buffsize"))
 
 ## Add beech mast index
-dat <- left_join(dat, baa, by=c("pt_name", "buffsize", "year")) %>%
-          rename(BMI=baa)
+dat <- left_join(dat, bmi, by=c("pt_name", "buffsize", "year")) %>%
+          rename(BMI=bmi)
 
 # add 1 to year to get lagged
-baa$year <- baa$year + 1
-dat <- left_join(dat, baa, by=c("pt_name", "buffsize", "year")) %>%
-  rename(laggedBMI=baa)
+bmi$year <- bmi$year + 1
+dat <- left_join(dat, bmi, by=c("pt_name", "buffsize", "year")) %>%
+  rename(laggedBMI=bmi)
 
 ## Fill in 0 for missing values (WUI)
 dat <- dat %>% mutate(interface = coalesce(interface, 0),
@@ -145,6 +155,16 @@ dat <- left_join(dat, wmua, by="WMU")
 
 # Reorder columns
 dat <- dat %>% select(RegionalID:AgeClass,key,Region,WMUA_code,WMU,Town:laggedBMI)
+
+# Add beechnut counts
+dat <- dat %>% mutate(beechnuts=case_when(
+                          year==2018 ~ 6,
+                          year==2019 ~ 295,
+                          year==2020 ~ 14),
+                      lag_beechnuts=case_when(
+                          year==2018 ~ 145,
+                          year==2019 ~ 6,
+                          year==2020 ~ 295))
 
 ### Save data to file ####
 write_csv(dat, "data/analysis-ready/combined_AR_covars.csv")
@@ -183,7 +203,7 @@ dat100 <- dat[dat$radius==100,]
 dat250 <- dat[dat$radius==250,]
 dat500 <- dat[dat$radius==500,]
 
-ggplot(dat100, aes(x=factor(buffsize), y=baa, fill=factor(Region))) + geom_boxplot() + theme_bw() 
+ggplot(dat100, aes(x=factor(buffsize), y=bmi, fill=factor(Region))) + geom_boxplot() + theme_bw() 
 
 
 ggplot(dat100, aes(x=factor(buffsize), y=pct_ag, fill=factor(Region))) + geom_boxplot() + theme_bw()

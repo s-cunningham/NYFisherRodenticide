@@ -49,7 +49,6 @@ samples <- st_as_sf(samples) %>%
   st_transform(crs=aea)
 # st_write(samples, "data/spatial/random_samples.shp", layer_options="SHPT=POINT")
 
-
 # Add names to points to associate with a liver ID
 N.order <- order(loc$key)
 loc <- loc[N.order,]
@@ -60,14 +59,11 @@ samples$name <- ids$id_index
 samples$RegionalID <- ids$id
 samples <- left_join(samples, loc[,1:2], by="RegionalID")
 # st_write(samples, "data/spatial/df_random_samples.shp", layer_options="SHPT=POINT")
-samples <- st_read("data/spatial", "random_samples_data20221220") %>%
-            rename(id_index=pt_index)
 
 pts <- st_coordinates(samples)
 pts <- cbind(ids$id_index, pts) |> as.data.frame()
 names(pts) <- c("pt_name", "x", "y")
 # write_csv(pts, "output/random_point_locs.csv")
-pts <- read_csv("output/random_point_locs.csv")
 
 # Create buffer for 15km2 area
 buff15 <- st_buffer(samples, 2185.1)
@@ -284,13 +280,13 @@ beech <- beech * 15.444
 
 # Extract sum beech mast
 beech_sum15 <- exact_extract(beech, buff15, 'sum')
-beech_sum15 <- data.frame(name=buff15$pt_name, baa=beech_sum15, buffsize=15)
+beech_sum15 <- data.frame(name=buff15$name, baa=beech_sum15, buffsize=15)
 
 beech_sum30 <- exact_extract(beech, buff30, 'sum')
-beech_sum30 <- data.frame(name=buff30$pt_name, baa=beech_sum30, buffsize=30)
+beech_sum30 <- data.frame(name=buff30$name, baa=beech_sum30, buffsize=30)
 
 beech_sum60 <- exact_extract(beech, buff60, 'sum')
-beech_sum60 <- data.frame(name=buff60$pt_name, baa=beech_sum60, buffsize=60)
+beech_sum60 <- data.frame(name=buff60$name, baa=beech_sum60, buffsize=60)
 
 beech_sum_single <- bind_rows(beech_sum15, beech_sum30, beech_sum60)
 write_csv(beech_sum_single, "data/analysis-ready/baa_sum_single_raster.csv")
@@ -359,7 +355,7 @@ lsm_tforest_output <- sizes %>%
                              "lsm_c_clumpy",
                              "lsm_c_core_cv",
                              "lsm_c_ai",
-                             "lsm_c_pafrac",
+                             # "lsm_c_pafrac",
                              "lsm_c_lsi",
                              "lsm_c_dcore_cv"), 
                       shape="circle", size=.), .id="buffer")
