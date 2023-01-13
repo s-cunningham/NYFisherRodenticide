@@ -28,6 +28,7 @@ wmua <- read_csv("data/analysis-ready/wmuas.csv")
 lsm <- read_csv("data/analysis-ready/forest_lsm_2.csv")
 build <- read_csv("data/analysis-ready/building-centroid_sum.csv") %>%
             rename(pt_name=name) 
+mast <- read_csv("data/analysis-ready/ALTEMP26_beech-data.csv")
 
 #### Combine data ####
 ## Number of compounds detected
@@ -166,8 +167,18 @@ dat <- dat %>% mutate(beechnuts=case_when(
                           year==2019 ~ 6,
                           year==2020 ~ 295))
 
+
+# mast_mean <- mean(mast$Total_Beechnuts)
+# mast_median <- median(mast$Total_Beechnuts)
+# mast_max <- max(mast$Total_Beechnuts)
+# mast$devMean <- mast$Total_Beechnuts - mast_mean
+# mast$devMedian <- mast$Total_Beechnuts - mast_median
+
 ### Save data to file ####
 write_csv(dat, "data/analysis-ready/combined_AR_covars.csv")
+
+
+ggplot(dat, aes(x=rand_x, y=rand_y, color=factor(Region))) + geom_point() + theme_bw()
 
 
 #### Semivariogram ####
