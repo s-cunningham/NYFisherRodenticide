@@ -49,6 +49,7 @@ dat$WMU[dat$Town=="Argyle" & dat$WMU=="5A"] <- "5S"
 dat$WMU[dat$Town=="Freedom" & dat$WMU=="9W"] <- "9N"
 dat$WMU[dat$Town=="Western" & dat$WMU=="5H"] <- "6K"
 dat$HarvestYear[dat$RegionalID=="2020-4018"] <- "2020"
+dat$Sex[dat$RegionalID=="2019-7709" | dat$RegionalID=="2020-70001"] <- "F"
 
 dat <- dat %>% mutate_at(c(10:20), as.numeric) %>% 
   unite("key", c(WMU,Town), sep="-", remove=FALSE) %>%

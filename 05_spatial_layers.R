@@ -9,6 +9,35 @@ library(landscapemetrics)
 
 set.seed(1)
 
+# Fundction
+add_sub_key <- function(df) {
+  df$key_sub <- 1
+  key <- unique(df$key)
+  for (i in 1:length(key)) {
+    x <- df[df$key==key[i],]
+    nrowx <- nrow(x)
+    if (nrowx>10) {
+      nsets <- nrowx/10
+      df$key_sub[df$key==key[i]] <- rep(1:nsets, each=10)
+    }
+  }
+  return(df)
+}
+
+add_sub_key2 <- function(df) {
+  df$key_sub <- 1
+  key <- unique(df$key)
+  for (i in 1:length(key)) {
+    x <- df[df$key==key[i],]
+    nrowx <- nrow(x)
+    if (nrowx>1) {
+      nsets <- nrowx
+      df$key_sub[df$key==key[i]] <- rep(1:nsets)
+    }
+  }
+  return(df)
+}
+
 #### Read point locations ####
 ## Read data frame with town-WMU key
 loc <- read_csv("output/ncompounds_trace.csv")
@@ -47,27 +76,28 @@ samples_per_polygon <- 10*keycount$n
 samples <- st_sample(twmu, samples_per_polygon)
 samples <- st_as_sf(samples) %>% 
   st_transform(crs=aea)
-# st_write(samples, "data/spatial/random_samples.shp", layer_options="SHPT=POINT")
-
+samples$key <- map2(keycount$key, keycount$n*10, rep) %>% unlist()
+st_write(samples, "data/spatial/random_samples.shp", layer_options="SHPT=POINT", append=FALSE)
 
 # Add names to points to associate with a liver ID
-N.order <- order(loc$key)
-loc <- loc[N.order,]
-ids <- data.frame(id=rep(loc$RegionalID, each=10), buffno=rep(1:10, length(unique(loc$RegionalID))))
-ids <- unite(ids, "id_index", 1:2, sep="_", remove=FALSE)
+sdf <- st_coordinates(samples)
+sdf <- bind_cols(sdf, map2(keycount$key, keycount$n*10, rep) %>% unlist()) %>%
+        rename(key=`...3`, x=X, y=Y) %>%
+        select(key, x, y)
+sdf$pt_index <- rep(1:10, 338)
+sdf <- add_sub_key(sdf)
+write_csv(sdf, "output/random_point_locs.csv")
 
-samples$name <- ids$id_index
-samples$RegionalID <- ids$id
-samples <- left_join(samples, loc[,1:2], by="RegionalID")
-# st_write(samples, "data/spatial/df_random_samples.shp", layer_options="SHPT=POINT")
-samples <- st_read("data/spatial", "random_samples_data20221220") %>%
-            rename(id_index=pt_index)
+loc <- add_sub_key2(loc)
+loc <- left_join(loc, sdf, by=c("key", "key_sub"))
 
-pts <- st_coordinates(samples)
-pts <- cbind(ids$id_index, pts) |> as.data.frame()
-names(pts) <- c("pt_name", "x", "y")
-# write_csv(pts, "output/random_point_locs.csv")
-pts <- read_csv("output/random_point_locs.csv")
+ggplot(loc, aes(x=x, y=y, color=factor(Region))) +geom_point()
+
+# convert back to sf
+loc <- loc %>% unite("name", c(1,12), sep="_", remove=FALSE) %>%
+          select(RegionalID, name, pt_index, key, key_sub, year, Region, x, y)
+samples <- st_as_sf(loc, coords=c("x","y"), crs=aea)
+st_write(samples, "data/spatial/df_random_samples.shp", layer_options="SHPT=POINT", append=FALSE)
 
 # Create buffer for 15km2 area
 buff15 <- st_buffer(samples, 2185.1)
@@ -284,24 +314,19 @@ beech <- beech * 15.444
 
 # Extract sum beech mast
 beech_sum15 <- exact_extract(beech, buff15, 'sum')
-beech_sum15 <- data.frame(name=buff15$pt_name, baa=beech_sum15, buffsize=15)
+beech_sum15 <- data.frame(name=buff15$name, baa=beech_sum15, buffsize=15)
 
 beech_sum30 <- exact_extract(beech, buff30, 'sum')
-beech_sum30 <- data.frame(name=buff30$pt_name, baa=beech_sum30, buffsize=30)
+beech_sum30 <- data.frame(name=buff30$name, baa=beech_sum30, buffsize=30)
 
 beech_sum60 <- exact_extract(beech, buff60, 'sum')
-beech_sum60 <- data.frame(name=buff60$pt_name, baa=beech_sum60, buffsize=60)
+beech_sum60 <- data.frame(name=buff60$name, baa=beech_sum60, buffsize=60)
 
 beech_sum_single <- bind_rows(beech_sum15, beech_sum30, beech_sum60)
 write_csv(beech_sum_single, "data/analysis-ready/baa_sum_single_raster.csv")
 
 # annual beech mast index
 mast <- read_csv("data/analysis-ready/ALTEMP26_beech-data.csv")
-# mast_mean <- mean(mast$Total_Beechnuts)
-# mast_median <- median(mast$Total_Beechnuts)
-# mast_max <- max(mast$Total_Beechnuts)
-# mast$devMean <- mast$Total_Beechnuts - mast_mean
-# mast$devMedian <- mast$Total_Beechnuts - mast_median
 mast <- mast[mast$year>2016 & mast$year<=2020,]
 
 # for each year, create a spatially-weighted beech layer
@@ -329,6 +354,24 @@ for (i in 1:4) {
 }
 
 write_csv(beech_sum, "data/analysis-ready/baa_sum.csv")
+
+#### Building layer raster ####
+build_cntroid <- rast("data/rasters/NewYork_centroids.tif")
+build_cntroid <- project(build_cntroid, nlcd) # Match projection to nlcd
+
+build_sum15 <- exact_extract(build_cntroid, buff15, 'sum')
+build_sum15 <- data.frame(name=buff15$name, nbuildings=build_sum15, buffsize=15)
+
+build_sum30 <- exact_extract(build_cntroid, buff30, 'sum')
+build_sum30 <- data.frame(name=buff30$name, nbuildings=build_sum30, buffsize=30)
+
+build_sum60 <- exact_extract(build_cntroid, buff60, 'sum')
+build_sum60 <- data.frame(name=buff60$name, nbuildings=build_sum60, buffsize=60)
+
+build_sum <- bind_rows(build_sum15, build_sum30, build_sum60)
+write_csv(build_sum, "data/analysis-ready/building-centroid_sum.csv")
+
+ggplot(build_sum, aes(x=nbuildings)) + geom_histogram() + facet_wrap(buffsize~.)
 
 #### Landscape metrics for forest cover ####
 
@@ -359,32 +402,14 @@ lsm_tforest_output <- sizes %>%
                              "lsm_c_clumpy",
                              "lsm_c_core_cv",
                              "lsm_c_ai",
-                             "lsm_c_pafrac",
+                             # "lsm_c_pafrac",
                              "lsm_c_lsi",
                              "lsm_c_dcore_cv"), 
                       shape="circle", size=.), .id="buffer")
 
 # Save only metrics for total forest (class = s)
 lsm_tforest_output <- lsm_tforest_output %>%
-                        filter(class==2) %>%
-                        select(plot_id, buffer, metric, value)
+  filter(class==2) %>%
+  select(plot_id, buffer, metric, value)
 
 write_csv(lsm_tforest_output, "data/analysis-ready/forest_lsm_2.csv")
-
-#### Building layer raster ####
-build_cntroid <- rast("data/rasters/NewYork_centroids.tif")
-build_cntroid <- project(build_cntroid, nlcd) # Match projection to nlcd
-
-build_sum15 <- exact_extract(build_cntroid, buff15, 'sum')
-build_sum15 <- data.frame(name=buff15$name, nbuildings=build_sum15, buffsize=15)
-
-build_sum30 <- exact_extract(build_cntroid, buff30, 'sum')
-build_sum30 <- data.frame(name=buff30$name, nbuildings=build_sum30, buffsize=30)
-
-build_sum60 <- exact_extract(build_cntroid, buff60, 'sum')
-build_sum60 <- data.frame(name=buff60$name, nbuildings=build_sum60, buffsize=60)
-
-build_sum <- bind_rows(build_sum15, build_sum30, build_sum60)
-write_csv(build_sum, "data/analysis-ready/building-centroid_sum.csv")
-
-ggplot(build_sum, aes(x=nbuildings)) + geom_histogram() + facet_wrap(buffsize~.)

@@ -191,6 +191,9 @@ head(tuning_grid[order(tuning_grid$rmse), ])
 baa_rf <- ranger(BAA ~ ., data=training, num.trees=1300, mtry=3, min.node.size = 3, 
                  replace=TRUE, sample.fraction=0.5)
 
+# k-fold cross validation
+cv_results <- k_fold_cv(plt_dat, k=5, num.trees=1300, mtry=3, min.node.size=3, replace=TRUE, sample.fraction=0.5)
+
 # Predict on training data
 rf_pred <- predictions(predict(baa_rf, testing))
 
