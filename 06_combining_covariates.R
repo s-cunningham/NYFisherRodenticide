@@ -25,7 +25,7 @@ bmi <- read_csv("data/analysis-ready/baa_sum.csv")
 baa <- read_csv("data/analysis-ready/baa_sum_single_raster.csv")
 pts <- read_csv("output/random_point_locs.csv")
 wmua <- read_csv("data/analysis-ready/wmuas.csv")
-lsm <- read_csv("data/analysis-ready/forest_lsm_2.csv")
+lsm <- read_csv("data/analysis-ready/forest_lsm.csv")
 build <- read_csv("data/analysis-ready/building-centroid_sum.csv") %>%
             rename(pt_name=name) 
 mast <- read_csv("data/analysis-ready/ALTEMP26_beech-data.csv")

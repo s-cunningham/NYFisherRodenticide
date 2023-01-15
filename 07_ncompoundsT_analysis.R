@@ -95,13 +95,14 @@ dat1 <- dat %>% select(RegionalID:Town,n.compounds.T,beechnuts,lag_beechnuts) %>
           left_join(intermix1, by=c("RegionalID", "pt_name", "pt_index")) %>%
           left_join(interface1, by=c("RegionalID", "pt_name", "pt_index")) %>%
           left_join(wui1, by=c("RegionalID", "pt_name", "pt_index")) %>%
-          left_join(lsm1, by=c("RegionalID", "pt_name", "pt_index")) %>%
+          # left_join(lsm1, by=c("RegionalID", "pt_name", "pt_index")) %>%
           left_join(build1, by=c("RegionalID", "pt_name", "pt_index"))
 dat1$Sex[dat1$RegionalID=="2019-7709" | dat1$RegionalID=="2020-70001"] <- "F"
 # write_csv(dat1, "output/model_data_notscaled.csv")
 
 ## Scale and center variables
-dat1[,c(8,16:107)] <- scale(dat1[,c(8,16:107)])
+# dat1[,c(8,16:107)] <- scale(dat1[,c(8,16:107)])
+dat1[,c(8,16:83)] <- scale(dat1[,c(8,16:83)])
 dat1$mast <- as.factor(ifelse(dat1$year==2018 | dat1$year==2020, "fail", "mast"))
 
 # correlation coefficient

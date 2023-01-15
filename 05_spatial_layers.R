@@ -86,7 +86,7 @@ sdf <- bind_cols(sdf, map2(keycount$key, keycount$n*10, rep) %>% unlist()) %>%
         select(key, x, y)
 sdf$pt_index <- rep(1:10, 338)
 sdf <- add_sub_key(sdf)
-write_csv(sdf, "output/random_point_locs.csv")
+# write_csv(sdf, "output/random_point_locs.csv")
 
 loc <- add_sub_key2(loc)
 loc <- left_join(loc, sdf, by=c("key", "key_sub"))
@@ -97,7 +97,7 @@ ggplot(loc, aes(x=x, y=y, color=factor(Region))) +geom_point()
 loc <- loc %>% unite("name", c(1,12), sep="_", remove=FALSE) %>%
           select(RegionalID, name, pt_index, key, key_sub, year, Region, x, y)
 samples <- st_as_sf(loc, coords=c("x","y"), crs=aea)
-st_write(samples, "data/spatial/df_random_samples.shp", layer_options="SHPT=POINT", append=FALSE)
+# st_write(samples, "data/spatial/df_random_samples.shp", layer_options="SHPT=POINT", append=FALSE)
 
 # Create buffer for 15km2 area
 buff15 <- st_buffer(samples, 2185.1)
