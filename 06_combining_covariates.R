@@ -25,7 +25,7 @@ bmi <- read_csv("data/analysis-ready/baa_sum.csv")
 baa <- read_csv("data/analysis-ready/baa_sum_single_raster.csv")
 pts <- read_csv("output/random_point_locs.csv")
 wmua <- read_csv("data/analysis-ready/wmuas.csv")
-lsm <- read_csv("data/analysis-ready/forest_lsm_2.csv")
+# lsm <- read_csv("data/analysis-ready/forest_lsm_2.csv")
 build <- read_csv("data/analysis-ready/building-centroid_sum.csv") %>%
             rename(pt_name=name) 
 mast <- read_csv("data/analysis-ready/ALTEMP26_beech-data.csv")
@@ -38,9 +38,8 @@ ncomps <- left_join(trace_n, trace_y, by="RegionalID")
 dets <- dat %>% select(RegionalID:WMU,Town) %>% distinct()
 
 ## Add a column to points with just sample ID
-pts <- separate(pts, 1, into=c("RegionalID", "throw"), sep="_", remove=FALSE) %>%
-          select(RegionalID,pt_name,x,y) %>%
-          rename(rand_x=x, rand_y=y)
+pts <- pts %>% select(RegionalID,name,x,y) %>%
+          rename(rand_x=x, rand_y=y, pt_name=name)
 
 ## Subset forest and add together
 forest <- ag %>% filter(value==41 | value==42 | value==43)   
@@ -130,7 +129,7 @@ dat <- dat %>% select(RegionalID:n.compounds.MO, n.compounds.T,buffsize,radius)
 dat <- left_join(dat, ag, by=c("pt_name", "buffsize")) %>%
   left_join(forest, by=c("pt_name", "buffsize")) %>%
   left_join(wui, by=c("pt_name", "buffsize", "radius")) %>%
-  left_join(lsm, by=c("pt_name", "buffsize")) %>%
+  # left_join(lsm, by=c("pt_name", "buffsize")) %>%
   left_join(build, by=c("pt_name", "buffsize")) %>%
   left_join(baa, by=c("pt_name", "buffsize"))
 
@@ -182,16 +181,15 @@ ggplot(dat, aes(x=rand_x, y=rand_y, color=factor(Region))) + geom_point() + them
 
 
 #### Semivariogram ####
-dat1 <- dat1[,-c(2:4)]
+dat1 <- dat %>% select(RegionalID,rand_x,rand_y, Region, n.compounds.T)
 dat1 <- unique(dat1)
-sp::coordinates(dat1) <- ~x_coord+y_coord
-vario <- gstat::variogram(n.compounds.MO~1, data=dat1)
+sp::coordinates(dat1) <- ~rand_x+rand_y
+vario <- gstat::variogram(n.compounds.T~1, data=dat1)
 plot(vario)
 
 ## Moran's I
-midat <- dat[dat$pt_index==1,c(1,4:10,14:15)]
+midat <- dat[dat$pt_index==1,c(1,4:10,16)]
 midat$binary.T <- ifelse(midat$n.compounds.T==0, 0, 1)
-midat$binary.MO <- ifelse(midat$n.compounds.MO==0, 0, 1)
 midat <- distinct(midat)
 
 # Create distance matrix
