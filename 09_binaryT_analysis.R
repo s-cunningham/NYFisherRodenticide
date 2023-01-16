@@ -470,7 +470,7 @@ for (i in 1:10) {
       names(m_zscore) <- row.names(m1sdf)
       names(pct2.5) <- row.names(m1sdf)
       names(pct97.5) <- row.names(m1sdf)
-      names(m_ranef) <- c("RE_year")
+      names(m_ranef) <- c("RE_WMU")
     }
     
   }

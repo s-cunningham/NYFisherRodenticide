@@ -77,7 +77,7 @@ samples <- st_sample(twmu, samples_per_polygon)
 samples <- st_as_sf(samples) %>% 
   st_transform(crs=aea)
 samples$key <- map2(keycount$key, keycount$n*10, rep) %>% unlist()
-# st_write(samples, "data/spatial/random_samples.shp", layer_options="SHPT=POINT", append=FALSE)
+st_write(samples, "data/spatial/random_samples.shp", layer_options="SHPT=POINT", append=FALSE)
 
 # Add names to points to associate with a liver ID
 sdf <- st_coordinates(samples)
@@ -86,6 +86,7 @@ sdf <- bind_cols(sdf, map2(keycount$key, keycount$n*10, rep) %>% unlist()) %>%
         select(key, x, y)
 sdf$pt_index <- rep(1:10, 338)
 sdf <- add_sub_key(sdf)
+# write_csv(sdf, "output/random_point_locs.csv")
 
 loc <- add_sub_key2(loc)
 loc <- left_join(loc, sdf, by=c("key", "key_sub"))
@@ -95,7 +96,6 @@ ggplot(loc, aes(x=x, y=y, color=factor(Region))) +geom_point()
 # convert back to sf
 loc <- loc %>% unite("name", c(1,12), sep="_", remove=FALSE) %>%
           select(RegionalID, name, pt_index, key, key_sub, year, Region, x, y)
-write_csv(loc, "output/random_point_locs.csv")
 samples <- st_as_sf(loc, coords=c("x","y"), crs=aea)
 # st_write(samples, "data/spatial/df_random_samples.shp", layer_options="SHPT=POINT", append=FALSE)
 
