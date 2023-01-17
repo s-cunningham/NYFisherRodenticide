@@ -9,7 +9,7 @@ set.seed(1)
 
 #### Read in data ####
 # Landscape covariates
-dat <- read_csv("data/analysis-ready/combined_AR_covars_new12-2022.csv")
+dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") %>% rename(BBA=baa)
 
 # Individual compounds
 dat2 <- read_csv("output/summarized_AR_results.csv") %>%
@@ -81,12 +81,6 @@ names(wui1)[4:12] <- c("wui_15_100", "wui_30_100", "wui_60_100",
                        "wui_15_250", "wui_30_250", "wui_60_250",
                        "wui_15_500", "wui_30_500", "wui_60_500") 
 
-## Landscape metrics
-lsm1 <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, ai:shape_mn) %>% 
-  distinct() %>% 
-  group_by(RegionalID) %>% 
-  pivot_wider(names_from=buffsize, values_from=c(ai:shape_mn), values_fn=unique) 
-
 #### Set up data to run for each combination of covariates ####
 dat1 <- dat %>% select(RegionalID:Town,compound,bin.exp,beechnuts,lag_beechnuts) %>% distinct() %>%
   left_join(pctAG, by=c("RegionalID", "pt_name", "pt_index")) %>%
@@ -95,13 +89,11 @@ dat1 <- dat %>% select(RegionalID:Town,compound,bin.exp,beechnuts,lag_beechnuts)
   left_join(intermix1, by=c("RegionalID", "pt_name", "pt_index")) %>%
   left_join(interface1, by=c("RegionalID", "pt_name", "pt_index")) %>%
   left_join(wui1, by=c("RegionalID", "pt_name", "pt_index")) %>%
-  left_join(lsm1, by=c("RegionalID", "pt_name", "pt_index")) %>%
-  left_join(build1, by=c("RegionalID", "pt_name", "pt_index")) %>%
-  select(RegionalID:ed_60, mesh_15:build_cat_60)
+  left_join(build1, by=c("RegionalID", "pt_name", "pt_index")) 
 
 ## Scale and center variables
-# write_csv(dat1, "output/binary_model_data_unscaled.csv")
-dat1[,c(8,17:108)] <- scale(dat1[,c(8,17:108)])
+write_csv(dat1, "output/binary_model_data_unscaled.csv")
+dat1[,c(8,17:78)] <- scale(dat1[,c(8,17:78)])
 
 # dat1 <- dat1 %>% select(RegionalID:bin.exp, lag_beechnuts, pasture_60, BBA_60, ai_60, wui_60_100)
 cor(dat1[,c(17:21)])
@@ -132,7 +124,7 @@ for (i in 1:10) {
   pt <- brod[brod$pt_index==i,]
   
   # Run model with deltaAICc < 2
-  m1_pt <- lme4::glmer(bin.exp ~ Sex + Age + I(Age^2) + nbuildings_60 * dcad_15 + pasture_60 + BBA_15 * lag_beechnuts + (1|WMU), 
+  m1_pt <- lme4::glmer(bin.exp ~ Sex + Age + I(Age^2) + mix_60_250 + pasture_30 + BBA_15 * lag_beechnuts + (1|WMU), 
                  family=binomial(link="logit"), data=pt)
   
   m1s <- summary(m1_pt)
@@ -164,7 +156,7 @@ for (i in 1:10) {
     testSet <- pt[row_idx!=j,] %>% as_tibble()
     
     # Fit model on training set
-    m1_cv <- glmer(bin.exp ~ Sex + Age + I(Age^2) + nbuildings_60 * dcad_15 + pasture_60 + BBA_15 * lag_beechnuts + (1|WMU), 
+    m1_cv <- glmer(bin.exp ~ Sex + Age + I(Age^2) + mix_60_250 + pasture_30 + BBA_15 * lag_beechnuts + (1|WMU), 
                    family=binomial(link="logit"), data=pt)
     pred <- predict(m1_cv, newdata=testSet, type="response", re.form=NA)
     
@@ -264,7 +256,7 @@ for (i in 1:10) {
   pt <- brom[brom$pt_index==i,]
   
   # Run model with deltaAICc < 2
-  m1_pt <- glmer(bin.exp ~ Sex + Age + I(Age^2) + nbuildings_60 * dcad_15 + pasture_60 + BBA_15 * lag_beechnuts + (1|WMU),
+  m1_pt <- glmer(bin.exp ~ Sex + Age + I(Age^2) + mix_60_250 + pasture_30 + BBA_15 * lag_beechnuts + (1|WMU),
                  family=binomial(link="logit"),data=pt)
   
   m1s <- summary(m1_pt)
@@ -296,7 +288,7 @@ for (i in 1:10) {
     testSet <- pt[row_idx!=j,] %>% as_tibble()
     
     # Fit model on training set
-    m1_cv <- glmer(bin.exp ~ Sex + Age + I(Age^2) + nbuildings_60 * dcad_15 + pasture_60 + BBA_15 * lag_beechnuts + (1|WMU), 
+    m1_cv <- glmer(bin.exp ~ Sex + Age + I(Age^2) + mix_60_250 + pasture_30 + BBA_15 * lag_beechnuts + (1|WMU), 
                    family=binomial(link="logit"), data=pt)
     pred <- predict(m1_cv, newdata=testSet, type="response", re.form=NA)
     
@@ -395,7 +387,7 @@ for (i in 1:10) {
   pt <- diph[diph$pt_index==i,]
   
   # Run model with deltaAICc < 2
-  m1_pt <- glmer(bin.exp ~ Sex + Age + I(Age^2) + nbuildings_60 * dcad_15 + pasture_60 + BBA_15 * lag_beechnuts + (1|WMU), 
+  m1_pt <- glmer(bin.exp ~ Sex + Age + I(Age^2) + mix_60_250 + pasture_30 + BBA_15 * lag_beechnuts + (1|WMU), 
                family=binomial(link="logit"), data=pt)
   if (!isSingular(m1_pt)) {
     
@@ -428,7 +420,7 @@ for (i in 1:10) {
       testSet <- pt[row_idx!=j,] %>% as_tibble()
       
       # Fit model on training set
-      m1_cv <- glmer(bin.exp ~ Sex + Age + I(Age^2) + nbuildings_60 * dcad_15 + pasture_60 + BBA_15 * lag_beechnuts + (1|WMU), 
+      m1_cv <- glmer(bin.exp ~ Sex + Age + I(Age^2) + mix_60_250 + pasture_30 + BBA_15 * lag_beechnuts + (1|WMU), 
                      family=binomial(link="logit"), data=pt)
       pred <- predict(m1_cv, newdata=testSet, type="response", re.form=NA)
       

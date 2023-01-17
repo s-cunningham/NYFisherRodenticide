@@ -14,7 +14,6 @@ set.seed(1)
 nt <- min(parallel::detectCores(),4)
 
 #### Read in data ####
-# dat <- read_csv("data/analysis-ready/combined_AR_covars_new12-2022.csv")
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") %>% rename(BBA=baa)
 
 #### Analysis Set-up ####
@@ -95,14 +94,13 @@ dat1 <- dat %>% select(RegionalID:Town,n.compounds.T,beechnuts,lag_beechnuts) %>
           left_join(intermix1, by=c("RegionalID", "pt_name", "pt_index")) %>%
           left_join(interface1, by=c("RegionalID", "pt_name", "pt_index")) %>%
           left_join(wui1, by=c("RegionalID", "pt_name", "pt_index")) %>%
-          # left_join(lsm1, by=c("RegionalID", "pt_name", "pt_index")) %>%
+          left_join(lsm1, by=c("RegionalID", "pt_name", "pt_index")) %>%
           left_join(build1, by=c("RegionalID", "pt_name", "pt_index"))
 dat1$Sex[dat1$RegionalID=="2019-7709" | dat1$RegionalID=="2020-70001"] <- "F"
 # write_csv(dat1, "output/model_data_notscaled.csv")
 
 ## Scale and center variables
-# dat1[,c(8,16:107)] <- scale(dat1[,c(8,16:107)])
-dat1[,c(8,16:83)] <- scale(dat1[,c(8,16:83)])
+dat1[,c(8,16:107)] <- scale(dat1[,c(8,16:107)])
 dat1$mast <- as.factor(ifelse(dat1$year==2018 | dat1$year==2020, "fail", "mast"))
 
 # correlation coefficient
@@ -125,6 +123,7 @@ ag.models <- lapply(ag_formulae, FUN=glmmTMB, data=dat1,
 model.list <- model.sel(ag.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
+model_tab
 write_csv(model_tab, "output/model_selection/ag_model_selection_table.csv")
 
 # Beech basal area
@@ -137,6 +136,7 @@ beech.models <- lapply(beech_formulae, FUN=glmmTMB, data=dat1,
 model.list <- model.sel(beech.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
+model_tab
 write_csv(model_tab, "output/model_selection/beech_model_selection_table.csv")
 
 # Forest metrics
@@ -175,6 +175,7 @@ lsm.models <- lapply(lsm_formulae, FUN=glmmTMB, data=dat1,
 model.list <- model.sel(lsm.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
+model_tab 
 write_csv(model_tab, "output/model_selection/lsm_model_selection_table.csv")
 
 # WUI
@@ -217,26 +218,13 @@ model_tab
 write_csv(model_tab, "output/model_selection/global_model_selection_table.csv")
 
 
-extra.models <- lapply(extra_formulae, FUN=glmmTMB, data=dat1, 
-                        family=compois(link = "log"), 
-                        control=glmmTMBControl(parallel=nt, 
-                                               profile=TRUE, 
-                                               optCtrl=list(iter.max=1e11,eval.max=1e11), 
-                                               optimizer=optim, 
-                                               optArgs=list(method="BFGS")))
-model.list <- model.sel(extra.models)
-model_tab <- as.data.frame(model.list)
-model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
-model_tab
-
-system.time(m1 <- glmmTMB(n.compounds.T ~  Sex + Age + I(Age^2) + nbuildings_60 + ai_15 + pasture_60 + BBA_15 * lag_beechnuts + (1 | RegionalID), data=dat1,
+system.time(m1 <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + mix_60_250 + pasture_30 + BBA_15 * lag_beechnuts + (1|RegionalID), data=dat1,
         family=compois(link = "log"), 
         control=glmmTMBControl(parallel=nt, 
                                profile=TRUE, 
                                optCtrl=list(iter.max=1e11,eval.max=1e11), 
                                optimizer=optim, 
                                optArgs=list(method="BFGS"))))
-
 
 #### Running iteration models ####
 
@@ -261,7 +249,7 @@ for (i in 1:10) {
   
   # Run model with deltaAICc < 2
 
-  m1_pt <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + nbuildings_60 * dcad_15 + pasture_60 + BBA_15 * lag_beechnuts + (1|WMU), data=pt, 
+  m1_pt <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + mix_60_250 + pasture_30 + BBA_15 * lag_beechnuts + (1|WMU), data=pt, 
                       family=compois(link = "log"), control=glmmTMBControl(parallel=nt))#
 
   m1s <- summary(m1_pt)
@@ -293,7 +281,7 @@ for (i in 1:10) {
     testSet <- pt[row_idx!=j,] %>% as_tibble()
 
     # Fit model on training set
-    m1_cv <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + nbuildings_60 * dcad_15 + pasture_60 + BBA_15 * lag_beechnuts + (1|WMU), data=pt,
+    m1_cv <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + mix_60_250 + pasture_30 + BBA_15 * lag_beechnuts + (1|WMU), data=pt,
                      family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
     pred <- predict(m1_cv, newdata=testSet, type="response", se.fit=TRUE)
 
