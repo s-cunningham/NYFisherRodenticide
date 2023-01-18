@@ -13,18 +13,16 @@ theme_set(theme_classic())
 
 #### Number of compounds ####
 dat <- read_csv("output/model_data_notscaled.csv") %>%
-          select(RegionalID:Town, n.compounds.T, pasture_60, dcad_15, BBA_15, nbuildings_60, lag_beechnuts, mix_60_250) %>%
+          select(RegionalID:Town, n.compounds.T, pasture_30, BBA_15, lag_beechnuts, mix_60_250) %>%
           rename(WUI=mix_60_250,
-                 DCAD=dcad_15,
-                 nbuildings=nbuildings_60,
-                 pasture=pasture_60,
+                 pasture=pasture_30,
                  basalarea=BBA_15,
                  mast=lag_beechnuts)
 # scale data
 dat <- within(dat, mast.s <- scale(mast))
 dat <- within(dat, Age.s <- scale(Age))
-dat <- within(dat, DCAD.s <- scale(DCAD))
-dat[,c(8,16:21)] <- scale(dat[,c(8,16:21)])
+dat <- within(dat, intermix.s <- scale(WUI))
+dat[,c(8,16:19)] <- scale(dat[,c(8,16:19)])
 
 # Calculate means
 meanWUI <- mean(dat$WUI)
@@ -32,8 +30,6 @@ meanPasture <- mean(dat$pasture)
 meanMast <- mean(dat$mast)
 meanAge <- mean(dat$Age)
 meanBBA <- mean(dat$basalarea)
-meanBuild <- mean(dat$nbuildings)
-meanDCAD <- mean(dat$DCAD)
 
 # read random effects
 ncomp_re <- read_csv("results/ncompounds_random_effects_coefficients.csv")
@@ -42,21 +38,17 @@ ncomp_re <- read_csv("results/ncompounds_random_effects_coefficients.csv")
 ncomp_fe <- read_csv("results/ncompT_coef-summary.csv") %>%
                 rename(intercept=Intercept, 
                        Age2=I.Age.2.,
-                       nbuildings=nbuildings_60,
-                       DCAD=dcad_15,
-                       pasture=pasture_60, 
+                       WUI=mix_60_250,
+                       pasture=pasture_30, 
                        basalarea=BBA_15,
                        mast=lag_beechnuts,
-                       intx_encroach=nbuildings_60.dcad_15,
                        intx_beech=BBA_15.lag_beechnuts)
-
 
 ## effects of age
 age_m <- poisson_pred_age(fixed=ncomp_fe, 
                           random=ncomp_re, 
                           sex=1, 
-                          meanBuild=meanBuild, 
-                          meanDCAD=meanDCAD,
+                          meanWUI=meanWUI,
                           meanPasture=meanPasture, 
                           meanMast=meanMast, 
                           meanBBA=meanBBA,
@@ -66,8 +58,7 @@ age_m <- poisson_pred_age(fixed=ncomp_fe,
 age_f <- poisson_pred_age(fixed=ncomp_fe, 
                           random=ncomp_re, 
                           sex=0, 
-                          meanBuild=meanBuild, 
-                          meanDCAD=meanDCAD,
+                          meanWUI=meanWUI,
                           meanPasture=meanPasture, 
                           meanMast=meanMast, 
                           meanBBA=meanBBA,
@@ -95,6 +86,9 @@ level_freq <- dat %>%
 pred_mean <- pred_vals %>% group_by(sex, unscAge) %>% summarize(mval = weighted.mean(exp_val, level_freq$freq))
 # pred_mean <- pred_vals %>% group_by(sex, unscAge) %>% summarize(mval = mean(exp_val))
 
+pred_mean %>% group_by(sex) %>% summarize(max(mval))
+pred_mean %>% filter(mval>=2.72 & sex=="Male")
+
 # Plot age
 age_plot <- ggplot() + 
                 geom_line(data=pred_vals, 
@@ -116,8 +110,7 @@ age_plot <- ggplot() +
 mast_m <- poisson_pred_mast(ncomp_fe, 
                             ncomp_re, 
                             sex=1, 
-                            meanBuild=meanBuild, 
-                            meanDCAD=meanDCAD,
+                            meanWUI=meanWUI, 
                             meanPasture=meanPasture, 
                             meanAge=meanAge, 
                             meanBBA=meanBBA,
@@ -128,8 +121,7 @@ mast_m <- poisson_pred_mast(ncomp_fe,
 mast_f <- poisson_pred_mast(ncomp_fe, 
                             ncomp_re, 
                             sex=0, 
-                            meanBuild=meanBuild, 
-                            meanDCAD=meanDCAD,
+                            meanWUI=meanWUI, 
                             meanPasture=meanPasture, 
                             meanAge=meanAge, 
                             meanBBA=meanBBA,
@@ -164,20 +156,17 @@ age_plot + mast_plot + plot_annotation(tag_levels="a", tag_prefix="(", tag_suffi
 
 #### Binary analyses #####
 dat <- read_csv("output/binary_model_data_unscaled.csv") %>%
-            select(RegionalID:bin.exp, pasture_60, dcad_15, BBA_15, nbuildings_60, lag_beechnuts, mix_60_250) %>%
+            select(RegionalID:bin.exp, pasture_30, BBA_15, lag_beechnuts, mix_60_250) %>%
                   rename(WUI=mix_60_250,
-                         DCAD=dcad_15,
-                         nbuildings=nbuildings_60,
-                         pasture=pasture_60,
+                         pasture=pasture_30,
                          basalarea=BBA_15,
                          mast=lag_beechnuts)
 
 # Scale data
 dat <- within(dat, Age.s <- scale(Age))
 dat <- within(dat, mast.s <- scale(mast))
-dat <- within(dat, dcad.s <- scale(DCAD))
-
-dat[,c(8,17:22)] <- scale(dat[,c(8,17:22)])
+dat <- within(dat, wui.s <- scale(WUI))
+dat[,c(8,17:20)] <- scale(dat[,c(8,17:20)])
 
 # Caluculate means
 meanWUI <- mean(dat$WUI)
@@ -185,8 +174,6 @@ meanPasture <- mean(dat$pasture)
 meanMast <- mean(dat$mast)
 meanAge <- mean(dat$Age)
 meanBBA <- mean(dat$basalarea)
-meanBuild <- mean(dat$nbuildings)
-meanDCAD <- mean(dat$DCAD)
 
 # Subset by compound
 brod <- dat[dat$compound=="Brodifacoum",]
@@ -201,30 +188,24 @@ diph_re <- read_csv("results/diphacinone_random_effects_coefficients.csv")
 # Read fixed effects coefficients
 brod_fe <- read_csv("results/binaryTbrodifacoum_coef-summary.csv") %>% rename(intercept=X.Intercept., 
                                                                               Age2=I.Age.2.,
-                                                                              nbuildings=nbuildings_60,
-                                                                              DCAD=dcad_15,
-                                                                              pasture=pasture_60, 
+                                                                              WUI=mix_60_250,    
+                                                                              pasture=pasture_30, 
                                                                               basalarea=BBA_15,
                                                                               mast=lag_beechnuts,
-                                                                              intx_encroach=nbuildings_60.dcad_15,
                                                                               intx_beech=BBA_15.lag_beechnuts)
 brom_fe <- read_csv("results/binaryTbromadiolone_coef-summary.csv") %>% rename(intercept=X.Intercept., 
                                                                                 Age2=I.Age.2.,
-                                                                                nbuildings=nbuildings_60,
-                                                                                DCAD=dcad_15,
-                                                                                pasture=pasture_60, 
+                                                                                WUI=mix_60_250, 
+                                                                                pasture=pasture_30, 
                                                                                 basalarea=BBA_15,
                                                                                 mast=lag_beechnuts,
-                                                                                intx_encroach=nbuildings_60.dcad_15,
                                                                                 intx_beech=BBA_15.lag_beechnuts)
 diph_fe <- read_csv("results/binaryTdiphacinone_coef-summary.csv") %>% rename(intercept=X.Intercept., 
                                                                               Age2=I.Age.2.,
-                                                                              nbuildings=nbuildings_60,
-                                                                              DCAD=dcad_15,
-                                                                              pasture=pasture_60, 
+                                                                              WUI=mix_60_250, 
+                                                                              pasture=pasture_30, 
                                                                               basalarea=BBA_15,
                                                                               mast=lag_beechnuts,
-                                                                              intx_encroach=nbuildings_60.dcad_15,
                                                                               intx_beech=BBA_15.lag_beechnuts)
  
 ## Calculate expected values
@@ -232,21 +213,53 @@ brod_m <- logistic_pred_age(fixed=brod_fe,
                         random=brod_re, 
                         compound="brodifacoum", 
                         sex=1, 
-                        meanBuild=meanBuild,
-                        meanDCAD=meanDCAD, 
+                        meanWUI=meanWUI, 
                         meanPasture=meanPasture, 
-                        meanBBA=meanBBA,
-                        meanMast=meanMast, 
+                        meanBBA=meanBBA, 
+                        meanMast=meanMast,
                         ageStart=min(dat$Age), 
                         ageEnd=max(dat$Age), 
                         lo=100)
-brod_f <- logistic_pred_age(brod_fe, brod_re, compound="brodifacoum", sex=0, meanBuild=meanBuild,meanDCAD=meanDCAD, meanPasture, meanBBA, meanMast, ageStart=min(dat$Age), ageEnd=max(dat$Age), lo=100)
+brod_f <- logistic_pred_age(brod_fe, brod_re, 
+                            compound="brodifacoum", sex=0,                         
+                            meanWUI=meanWUI, 
+                            meanPasture=meanPasture, 
+                            meanBBA=meanBBA, 
+                            meanMast=meanMast, 
+                            ageStart=min(dat$Age), ageEnd=max(dat$Age), lo=100)
 
-brom_m <- logistic_pred_age(brom_fe, brom_re, compound="bromadiolone", sex=1, meanBuild=meanBuild,meanDCAD=meanDCAD,  meanPasture, meanBBA,meanMast, ageStart=min(dat$Age), ageEnd=max(dat$Age), lo=100)
-brom_f <- logistic_pred_age(brom_fe, brom_re, compound="bromadiolone", sex=0, meanBuild=meanBuild,meanDCAD=meanDCAD,  meanPasture, meanBBA, meanMast, ageStart=min(dat$Age), ageEnd=max(dat$Age), lo=100)
+brom_m <- logistic_pred_age(brom_fe, 
+                            brom_re, 
+                            compound="bromadiolone", sex=1,                        
+                            meanWUI=meanWUI, 
+                            meanPasture=meanPasture, 
+                            meanBBA=meanBBA, 
+                            meanMast=meanMast,
+                            ageStart=min(dat$Age), ageEnd=max(dat$Age), lo=100)
+brom_f <- logistic_pred_age(brom_fe, brom_re,
+                            compound="bromadiolone", sex=0,                         
+                            meanWUI=meanWUI, 
+                            meanPasture=meanPasture, 
+                            meanBBA=meanBBA, 
+                            meanMast=meanMast, ageStart=min(dat$Age), ageEnd=max(dat$Age), lo=100)
 
-diph_m <- logistic_pred_age(diph_fe, diph_re, compound="diphacinone", sex=1, meanBuild=meanBuild,meanDCAD=meanDCAD,  meanPasture, meanBBA, meanMast, ageStart=min(dat$Age), ageEnd=max(dat$Age), lo=100)
-diph_f <- logistic_pred_age(diph_fe, diph_re, compound="diphacinone", sex=0, meanBuild=meanBuild,meanDCAD=meanDCAD,  meanPasture, meanBBA, meanMast, ageStart=min(dat$Age), ageEnd=max(dat$Age), lo=100)
+diph_m <- logistic_pred_age(diph_fe,
+                            diph_re, 
+                            compound="diphacinone", sex=1,                         
+                            meanWUI=meanWUI, 
+                            meanPasture=meanPasture, 
+                            meanBBA=meanBBA, 
+                            meanMast=meanMast, 
+                            ageStart=min(dat$Age), 
+                            ageEnd=max(dat$Age), lo=100)
+diph_f <- logistic_pred_age(diph_fe,
+                            diph_re, 
+                            compound="diphacinone", sex=0,                        
+                            meanWUI=meanWUI, 
+                            meanPasture=meanPasture, 
+                            meanBBA=meanBBA, 
+                            meanMast=meanMast, 
+                            ageStart=min(dat$Age), ageEnd=max(dat$Age), lo=100)
 
 # Combine into single data frame
 pred_vals <- list(brod_m, brod_f, brom_m, brom_f, diph_m, diph_f) %>%
