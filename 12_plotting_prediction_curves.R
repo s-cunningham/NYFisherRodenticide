@@ -293,12 +293,12 @@ ggplot() +
               aes(x=unscAge, y=exp_val, group=interaction(level, sex), color=factor(sex)), alpha=0.1) + 
   geom_line(data=pred_mean, aes(x=unscAge, y=mval, color=sex), size=1) +   
   scale_color_manual(values=c("#1b7837", "#762a83"), name="Sex") +
-  facet_grid(compound~.) +
+  facet_grid(.~compound) +
   ylim(0,1) +
   ylab("Probability of exposure") + xlab("Age (years)") +
-  theme(legend.position="bottom",
-        # legend.position=c(0,0),
-        # legend.justification=c(0,0),
+  theme(legend.position=c(1,0),
+        legend.justification=c(1,0),
+        # legend.position="bottom",
         legend.background=element_rect(fill=NA),
         panel.border=element_rect(color="black", fill=NA, size=0.5),
         axis.text=element_text(size=12),
@@ -308,7 +308,7 @@ ggplot() +
         legend.text=element_text(size=12))
 
 # ggplot() +geom_line(data=pred_mean, aes(x=unscAge, y=mval, group=interaction(compound,sex), color=sex)) #+ facet_grid(.~compound)
-brod_m <- logistic_pred_dcad(fixed=brod_fe, 
+brod_m <- logistic_pred_mast(fixed=brod_fe, 
                              random=brod_re, 
                              compound="brodifacoum",
                              sex=1, 
@@ -316,16 +316,15 @@ brod_m <- logistic_pred_dcad(fixed=brod_fe,
                              meanPasture,
                              meanBBA,
                              meanAge, 
-                             mastStart=min(dat$lag_beechnuts), 
-                             mastEnd=max(dat$lag_beechnuts), 
+                             mastStart=min(dat$mast), 
+                             mastEnd=max(dat$mast), 
                              lo=100)
 
-brod_f <- logistic_pred_dcad(fixed=brod_fe, 
+brod_f <- logistic_pred_mast(fixed=brod_fe, 
                              random=brod_re, 
                              compound="brodifacoum",
                              sex=0, 
-                             meanBuild=meanBuild,
-                             meanDCAD=meanDCAD, 
+                             meanWUI=meanWUI,
                              meanPasture=meanPasture, 
                              meanBBA=meanBBA,
                              meanAge=meanAge, 
@@ -338,8 +337,7 @@ brom_m <- logistic_pred_mast(fixed=brom_fe,
                             random=brom_re, 
                             compound="bromadiolone",
                             sex=1, 
-                            meanBuild=meanBuild,
-                            meanDCAD=meanDCAD, 
+                            meanWUI=meanWUI,
                             meanPasture=meanPasture, 
                             meanBBA=meanBBA,
                             meanAge=meanAge, 
@@ -351,8 +349,7 @@ brom_f <- logistic_pred_mast(fixed=brom_fe,
                              random=brom_re, 
                              compound="bromadiolone",
                              sex=0, 
-                             meanBuild=meanBuild,
-                             meanDCAD=meanDCAD, 
+                             meanWUI=meanWUI,
                              meanPasture=meanPasture, 
                              meanBBA=meanBBA,
                              meanAge=meanAge, 
@@ -368,8 +365,8 @@ diph_m <- logistic_pred_mast(fixed=diph_fe,
                              meanPasture,
                              meanBBA,
                              meanAge, 
-                             mastStart=min(dat$lag_beechnuts), 
-                             mastEnd=max(dat$lag_beechnuts), 
+                             mastStart=min(dat$mast), 
+                             mastEnd=max(dat$mast), 
                              lo=100)
 
 diph_f <- logistic_pred_mast(fixed=diph_fe, 
@@ -380,8 +377,8 @@ diph_f <- logistic_pred_mast(fixed=diph_fe,
                              meanPasture,
                              meanBBA,
                              meanAge, 
-                             mastStart=min(dat$lag_beechnuts), 
-                             mastEnd=max(dat$lag_beechnuts), 
+                             mastStart=min(dat$mast), 
+                             mastEnd=max(dat$mast), 
                              lo=100)
 
 
@@ -394,13 +391,118 @@ pred_mast
 # mean line
 mast_mean <- pred_mast %>% group_by(sex, compound, unscMast) %>% summarize(mval=mean(exp_val))
 
+mast <- read_csv("data/analysis-ready/ALTEMP26_beech-data.csv")
+
 ggplot() + 
+  geom_vline(data=mast, aes(xintercept=Total_Beechnuts), color="gray80") +
   geom_line(data=pred_mast, 
             aes(x=unscMast, y=exp_val, group=interaction(level, sex), color=factor(sex)), alpha=0.2) +
   geom_line(data=mast_mean, aes(x=unscMast, y=mval, color=sex), size=1) +
   scale_color_manual(values=c("#1b7837", "#762a83"), name="Sex") +
-  ylab("Probability of exposure") + xlab("Total beech nuts (previous year)") +
-  facet_grid(compound~.) +
+  ylab("Probability of exposure") + xlab("Beech nut count (previous year)") +
+  facet_grid(.~compound) +
   theme()
+
+ggplot() +
+  geom_line(data=mast, aes(x=year, y=Total_Beechnuts))
+
+#### Binary WUI intermix ####
+brod_m <- logistic_pred_wui(fixed=brod_fe, 
+                            random=brod_re, 
+                            compound="brodifacoum",
+                            sex=1, 
+                            meanAg=meanAge, 
+                            meanPasture=meanPasture,
+                            meanBBA=meanBBA,
+                            meanMast=meanMast, 
+                            wuiStart=min(dat$WUI), 
+                            wuiEnd=max(dat$WUI), 
+                            lo=100)
+
+brod_f <- logistic_pred_wui(fixed=brod_fe, 
+                             random=brod_re, 
+                             compound="brodifacoum",
+                             sex=0, 
+                             meanAg=meanAge, 
+                             meanPasture=meanPasture,
+                             meanBBA=meanBBA,
+                             meanMast=meanMast, 
+                             wuiStart=min(dat$WUI), 
+                             wuiEnd=max(dat$WUI), 
+                             lo=100)
+
+
+brom_m <- logistic_pred_wui(fixed=brom_fe, 
+                             random=brom_re, 
+                             compound="bromadiolone",
+                             sex=1, 
+                             meanAg=meanAge, 
+                             meanPasture=meanPasture,
+                             meanBBA=meanBBA,
+                             meanMast=meanMast, 
+                             wuiStart=min(dat$WUI), 
+                             wuiEnd=max(dat$WUI), 
+                             lo=100)
+
+brom_f <- logistic_pred_wui(fixed=brom_fe, 
+                             random=brom_re, 
+                             compound="bromadiolone",
+                             sex=0, 
+                             meanAg=meanAge, 
+                             meanPasture=meanPasture,
+                             meanBBA=meanBBA,
+                             meanMast=meanMast, 
+                             wuiStart=min(dat$WUI), 
+                             wuiEnd=max(dat$WUI), 
+                             lo=100)
+
+diph_m <- logistic_pred_wui(fixed=diph_fe, 
+                             random=diph_re, 
+                             compound="diphacinone",
+                             sex=1, 
+                             meanAg=meanAge, 
+                             meanPasture=meanPasture,
+                             meanBBA=meanBBA,
+                             meanMast=meanMast, 
+                             wuiStart=min(dat$WUI), 
+                             wuiEnd=max(dat$WUI), 
+                             lo=100)
+
+diph_f <- logistic_pred_wui(fixed=diph_fe, 
+                             random=diph_re, 
+                             compound="diphacinone",
+                             sex=0, 
+                             meanAg=meanAge, 
+                             meanPasture=meanPasture,
+                             meanBBA=meanBBA,
+                             meanMast=meanMast,  
+                             wuiStart=min(dat$WUI), 
+                             wuiEnd=max(dat$WUI), 
+                             lo=100)
+
+
+pred_wui<- list(brod_m, brod_f, brom_m, brom_f, diph_m, diph_f) %>%
+  reduce(full_join) %>%
+  select(compound, level, sex, WUI, exp_val) %>%
+  mutate(unscWUI=WUI * attr(dat$wui.s, 'scaled:scale') + attr(dat$wui.s, 'scaled:center'))
+pred_wui 
+
+# mean line
+wui_mean <- pred_wui %>% group_by(sex, compound, unscWUI) %>% summarize(mval=mean(exp_val))
+
+ggplot() + 
+    geom_line(data=pred_wui, 
+              aes(x=unscWUI, y=exp_val, group=interaction(level, sex), 
+                  color=factor(sex)), alpha=0.2) +
+    geom_line(data=wui_mean, aes(x=unscWUI, y=mval, color=sex), size=1) +
+    scale_color_manual(values=c("#1b7837", "#762a83"), name="Sex") +
+    ylab("Probability of exposure") + xlab(expression(paste("Percent intermix in 60 k", m^2, " buffer"))) +
+    facet_grid(.~compound) + ylim(0,1) +
+    theme(legend.position=c(1,0),
+          legend.justification=c(1,0),
+          legend.background=element_rect(fill=NA),
+          panel.border=element_rect(color="black", fill=NA, size=0.5),)
+
+
 
 
