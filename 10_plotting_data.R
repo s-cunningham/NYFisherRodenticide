@@ -13,26 +13,30 @@ theme_set(theme_classic())
 
 #### Covariate plots (boxplots, xy plots) ####
 # read data
-dat <- read_csv("data/analysis-ready/combined_AR_covars_new12-2022.csv")
+dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") %>% rename(BBA=baa)
 
 # dat1 <- dat %>% filter(pt_index==1 & buffsize==60 & radius==100) %>% select(RegionalID:n.compounds.T,lag_beechnuts) %>% distinct()
 
 dat15 <- dat[dat$buffsize==15 & dat$radius==100,]
-dat15 <- dat15 %>% select(RegionalID:Town, n.compounds.T, dcad, pd, clumpy, BBA) %>%
-  pivot_longer(dcad:BBA, names_to="covariate", values_to="value")
+dat15 <- dat15 %>% select(RegionalID:Town, n.compounds.T, totalag, BBA, nbuildings) %>%
+  pivot_longer(totalag:nbuildings, names_to="covariate", values_to="value")
+
+dat30 <- dat[dat$buffsize==30 & dat$radius==100,]
+dat30 <- dat %>% select(RegionalID:Town, n.compounds.T, pasture, totalforest) %>%
+  pivot_longer(pasture:totalforest, names_to="covariate", values_to="value")
+
 dat60 <- dat[dat$buffsize==60 & dat$radius==250,]
-dat60 <- dat60 %>% select(RegionalID:Town, n.compounds.T, pasture, nbuildings) %>%
-  pivot_longer(pasture:nbuildings, names_to="covariate", values_to="value")
+dat60 <- dat60 %>% select(RegionalID:Town, n.compounds.T, intermix) %>%
+  pivot_longer(intermix, names_to="covariate", values_to="value")
 
 bba <- dat15 %>% filter(covariate=="BBA") %>%
           mutate(baa_m2=value/10.764)
-# wui <- dat60 %>% filter(covariate=="totalWUI")
-pasture <- dat60 %>% filter(covariate=="pasture")
-build <- dat60 %>% filter(covariate=="nbuildings")
-build_mdn <- build %>% group_by(pt_index) %>% summarize(mdn=median(value))
-dcad <- dat15 %>% filter(covariate=="dcad")
-pd <- dat15 %>% filter(covariate=="pd")
-clumpy <- dat15 %>% filter(covariate=="clumpy")
+wui <- dat60 %>% filter(covariate=="intermix")
+pasture <- dat30 %>% filter(covariate=="pasture")
+build <- dat15 %>% filter(covariate=="nbuildings")
+ag <- dat15 %>% filter(covariate=="totalag")
+forest <- dat30 %>% filter(covariate=="totalforest")
+
 
 ggplot(build, aes(x=value)) + geom_density() + facet_wrap(.~pt_index)
 
@@ -41,9 +45,9 @@ p1 <- ggplot(bba, aes(x=baa_m2, y=factor(pt_index))) +
         ylab("Iteration") + 
         xlab(expression(paste("Total beech basal area (", m^2, ")")))
 
-p2 <- ggplot(dcad, aes(x=value, y=factor(pt_index))) +
+p2 <- ggplot(ag, aes(x=value, y=factor(pt_index))) +
         stat_density_ridges(quantile_lines = TRUE, quantiles = 2, alpha=0.7) +
-        ylab("Iteration") + xlab("Disjunct core area density")
+        ylab("Iteration") + xlab("Proportion of total agriculture")
 
 p3 <- ggplot(pasture, aes(x=value, y=factor(pt_index))) +
         stat_density_ridges(quantile_lines = TRUE, quantiles = 2, alpha=0.7) +
@@ -53,7 +57,51 @@ p4 <- ggplot(build, aes(x=value, y=factor(pt_index))) +
         stat_density_ridges(quantile_lines = TRUE, quantiles = 2, alpha=0.7) +
         ylab("Iteration") + xlab("Number of buildings")
 
-wrap_plots(p1, p2, p3, p4) + plot_annotation(tag_levels="a", tag_prefix="(", tag_suffix=")" )
+p5 <- ggplot(wui, aes(x=value, y=factor(pt_index))) +
+  stat_density_ridges(quantile_lines = TRUE, quantiles = 2, alpha=0.7) +
+  ylab("Iteration") + xlab("Proportion classified as intermix")
+
+p6 <- ggplot(forest, aes(x=value, y=factor(pt_index))) +
+  stat_density_ridges(quantile_lines = TRUE, quantiles = 2, alpha=0.7) +
+  ylab("Iteration") + xlab("Proportion of forest")
+
+p1 + p2 + p3 + p4 + p5 + p6 + plot_layout(ncol=2) + plot_annotation(tag_levels="a", tag_prefix="(", tag_suffix=")" )
+
+
+p1 <- ggplot(bba, aes(x=baa_m2, y=factor(pt_index))) +
+  stat_density_ridges(quantile_lines = FALSE, alpha=0.7) +
+  ylab("Iteration") + 
+  xlab(expression(paste("Total beech basal area (", m^2, ")")))
+
+p2 <- ggplot(ag, aes(x=value, y=factor(pt_index))) +
+  stat_density_ridges(quantile_lines = FALSE, alpha=0.7) +
+  ylab("Iteration") + xlab("Proportion of total agriculture")
+
+p3 <- ggplot(pasture, aes(x=value, y=factor(pt_index))) +
+  stat_density_ridges(quantile_lines = FALSE, alpha=0.7) +
+  ylab("Iteration") + xlab("Proportion classified as pasture")
+
+p4 <- ggplot(build, aes(x=value, y=factor(pt_index))) +
+  stat_density_ridges(quantile_lines = FALSE, alpha=0.7) +
+  xlim(-100,1000) +
+  ylab("Iteration") + xlab("Number of buildings")
+
+p5 <- ggplot(wui, aes(x=value, y=factor(pt_index))) +
+  stat_density_ridges(quantile_lines = FALSE, alpha=0.7) +
+  ylab("Iteration") + xlab("Proportion classified as intermix")
+
+p6 <- ggplot(forest, aes(x=value, y=factor(pt_index))) +
+  stat_density_ridges(quantile_lines = FALSE, alpha=0.7) +
+  ylab("Iteration") + xlab("Proportion of forest")
+
+p1 + p2 + p3 + p4 + p5 + p6 + plot_layout(ncol=2) + plot_annotation(tag_levels="a", tag_prefix="(", tag_suffix=")" )
+
+
+
+
+
+
+
 
 bba %>% group_by(pt_index) %>% summarize(medianBBA=median(baa_m2)) %>% arrange(medianBBA)
 wui %>% group_by(pt_index) %>% summarize(medianWUI=median(value)) %>% arrange(medianWUI)

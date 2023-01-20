@@ -284,7 +284,7 @@ pred_mean %>% group_by(compound, sex) %>% summarize(probrange=range(mval))
 pred_mean %>% group_by(compound, sex) %>% summarize(probsd=sd(mval))
 pred_mean %>% group_by(compound, sex) %>% summarize(meanprob=mean(mval))
 
-pred_mean %>% filter(compound=="brodifacoum" & sex=="Female" & mval>=0.840)
+pred_mean %>% filter(compound=="diphacinone" & sex=="Male" & mval>=0.933)
 
 ## Plot
 
