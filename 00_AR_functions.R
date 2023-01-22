@@ -59,10 +59,10 @@ logistic_pred_age <- function(fixed, random, compound, sex, meanWUI, meanPasture
   
 }
 
-logistic_pred_wui <- function(fixed, random, compound, sex, meanAge, meanPasture, meanBBA, meanMast, wuiStart, wuiEnd, lo) {
+poisson_pred_age <- function(fixed, random, sex, meanWUI, meanPasture, meanBBA, meanMast, ageStart, ageEnd, lo) {
   
   # crete a sequence of values to estimate for age
-  wui_iter <- seq(wuiStart, wuiEnd, length.out=lo)
+  age_iter <- seq(ageStart, ageEnd, length.out=lo)
   
   # create empty data frame to store
   full_vals <- data.frame()
@@ -74,22 +74,18 @@ logistic_pred_wui <- function(fixed, random, compound, sex, meanAge, meanPasture
     exp_val <- c()
     
     # Loop over values of age
-    for (i in 1:length(wui_iter)) {
+    for (i in 1:length(age_iter)) {
       
-      exp_val[i] <- inv.logit(fixed$intercept[1] + 
-                                fixed$SexM[1]*sex + 
-                                fixed$Age[1]*meanAge + 
-                                fixed$Age2[1]*(meanAge^2) +
-                                fixed$WUI[1]*wui_iter[i] + 
-                                fixed$pasture[1]*meanPasture + 
-                                fixed$basalarea[1]*meanBBA +
-                                fixed$mast[1]*meanMast + 
-                                fixed$intx_beech[1]*meanBBA*meanMast +
-                                random$REval[j])
-      
-      # Does RE need to be weighted somehow?
-      # level_probs <- random %>% group_by(grp) %>% summarize(wmu_prop=n()/nrow(random))
-      
+      exp_val[i] <- exp(fixed$intercept[1] + 
+                          fixed$SexM[1]*sex + 
+                          fixed$Age[1]*age_iter[i] + 
+                          fixed$Age2[1]*(age_iter[i]^2) +
+                          fixed$WUI[1]*meanWUI + 
+                          fixed$pasture[1]*meanPasture + 
+                          fixed$basalarea[1]*meanBBA +
+                          fixed$mast[1]*meanMast + 
+                          fixed$intx_beech[1]*meanBBA*meanMast +
+                          random$REval[j])
     }
     
     # Save the expected values to data frame
@@ -97,24 +93,29 @@ logistic_pred_wui <- function(fixed, random, compound, sex, meanAge, meanPasture
     
   }
   
+  # Does RE need to be weighted somehow? maybe in calculating the mean?
+  # level_probs <- random %>% 
+  #                   group_by(grp) %>% 
+  #                   summarize(wmu_prop=n()/nrow(random)) %>%
+  #                   rename(level=grp)
+  
   names(full_vals) <- 1:lo
   full_vals$level <- random$grp
   
   full_vals <- pivot_longer(full_vals, 1:100, names_to="index", values_to="exp_val") %>%
     mutate_at(c('index', 'exp_val'), as.numeric)
   
-  full_vals$WUI <- rep(wui_iter, 55)
+  full_vals$Age <- rep(age_iter, 55)
   
   # add column for sex
-  full_vals$compound <- compound
   full_vals$sex <- ifelse(sex==1, "Male", "Female")
   
-  full_vals <- full_vals %>% select(compound, sex, level, WUI, index, exp_val)
+  full_vals <- full_vals %>% select(sex, level, Age, index, exp_val)
+  # full_vals <- left_join(full_vals, level_probs, by="level")
   
   return(full_vals)
   
 }
-
 
 # Predict beech mast count
 logistic_pred_mast <- function(fixed, random, compound, sex, meanWUI, meanPasture, meanBBA, meanAge, mastStart, mastEnd, lo) {
@@ -173,64 +174,6 @@ logistic_pred_mast <- function(fixed, random, compound, sex, meanWUI, meanPastur
   
 }
 
-poisson_pred_age <- function(fixed, random, sex, meanWUI, meanPasture, meanBBA, meanMast, ageStart, ageEnd, lo) {
-  
-  # crete a sequence of values to estimate for age
-  age_iter <- seq(ageStart, ageEnd, length.out=lo)
-  
-  # create empty data frame to store
-  full_vals <- data.frame()
-  
-  # Loop over each level of random effect
-  for (j in 1:nrow(random)) {
-    
-    # Empty vector for each level of random effect
-    exp_val <- c()
-    
-    # Loop over values of age
-    for (i in 1:length(age_iter)) {
-      
-      exp_val[i] <- exp(fixed$intercept[1] + 
-                        fixed$SexM[1]*sex + 
-                        fixed$Age[1]*age_iter[i] + 
-                        fixed$Age2[1]*(age_iter[i]^2) +
-                        fixed$WUI[1]*meanWUI + 
-                        fixed$pasture[1]*meanPasture + 
-                        fixed$basalarea[1]*meanBBA +
-                        fixed$mast[1]*meanMast + 
-                        fixed$intx_beech[1]*meanBBA*meanMast +
-                        random$REval[j])
-    }
-    
-    # Save the expected values to data frame
-    full_vals <- bind_rows(full_vals, as.data.frame(t(exp_val)))
-    
-  }
-  
-  # Does RE need to be weighted somehow? maybe in calculating the mean?
-  # level_probs <- random %>% 
-  #                   group_by(grp) %>% 
-  #                   summarize(wmu_prop=n()/nrow(random)) %>%
-  #                   rename(level=grp)
-                  
-  names(full_vals) <- 1:lo
-  full_vals$level <- random$grp
-  
-  full_vals <- pivot_longer(full_vals, 1:100, names_to="index", values_to="exp_val") %>%
-    mutate_at(c('index', 'exp_val'), as.numeric)
-  
-  full_vals$Age <- rep(age_iter, 55)
-  
-  # add column for sex
-  full_vals$sex <- ifelse(sex==1, "Male", "Female")
-  
-  full_vals <- full_vals %>% select(sex, level, Age, index, exp_val)
-  # full_vals <- left_join(full_vals, level_probs, by="level")
-  
-  return(full_vals)
-  
-}
-
 poisson_pred_mast <- function(fixed, random, sex, meanWUI, meanPasture, meanBBA, meanAge, mastStart, mastEnd, lo) {
   
   # create a sequence of values to estimate for age
@@ -266,12 +209,6 @@ poisson_pred_mast <- function(fixed, random, sex, meanWUI, meanPasture, meanBBA,
     
   }
   
-  # Does RE need to be weighted somehow? maybe in calculating the mean?
-  # level_probs <- random %>% 
-  #                   group_by(grp) %>% 
-  #                   summarize(wmu_prop=n()/nrow(random)) %>%
-  #                   rename(level=grp)
-  
   names(full_vals) <- 1:lo
   full_vals$level <- random$grp
   
@@ -290,8 +227,169 @@ poisson_pred_mast <- function(fixed, random, sex, meanWUI, meanPasture, meanBBA,
   
 }
 
+# Predict proportion interface
+logistic_pred_wui <- function(fixed, random, compound, sex, meanAge, meanPasture, meanBBA, meanMast, wuiStart, wuiEnd, lo) {
+  
+  # crete a sequence of values to estimate for age
+  wui_iter <- seq(wuiStart, wuiEnd, length.out=lo)
+  
+  # create empty data frame to store
+  full_vals <- data.frame()
+  
+  # Loop over each level of random effect
+  for (j in 1:nrow(random)) {
+    
+    # Empty vector for each level of random effect
+    exp_val <- c()
+    
+    # Loop over values of age
+    for (i in 1:length(wui_iter)) {
+      
+      exp_val[i] <- inv.logit(fixed$intercept[1] + 
+                                fixed$SexM[1]*sex + 
+                                fixed$Age[1]*meanAge + 
+                                fixed$Age2[1]*(meanAge^2) +
+                                fixed$WUI[1]*wui_iter[i] + 
+                                fixed$pasture[1]*meanPasture + 
+                                fixed$basalarea[1]*meanBBA +
+                                fixed$mast[1]*meanMast + 
+                                fixed$intx_beech[1]*meanBBA*meanMast +
+                                random$REval[j])
+      
+      # Does RE need to be weighted somehow?
+      # level_probs <- random %>% group_by(grp) %>% summarize(wmu_prop=n()/nrow(random))
+      
+    }
+    
+    # Save the expected values to data frame
+    full_vals <- bind_rows(full_vals, as.data.frame(t(exp_val)))
+    
+  }
+  
+  names(full_vals) <- 1:lo
+  full_vals$level <- random$grp
+  
+  full_vals <- pivot_longer(full_vals, 1:100, names_to="index", values_to="exp_val") %>%
+    mutate_at(c('index', 'exp_val'), as.numeric)
+  
+  full_vals$WUI <- rep(wui_iter, 55)
+  
+  # add column for sex
+  full_vals$compound <- compound
+  full_vals$sex <- ifelse(sex==1, "Male", "Female")
+  
+  full_vals <- full_vals %>% select(compound, sex, level, WUI, index, exp_val)
+  
+  return(full_vals)
+  
+}
 
+poisson_pred_wui <- function(fixed, random, sex, meanAge, meanPasture, meanBBA, meanMast, wuiStart, wuiEnd, lo) {
+  
+  # create a sequence of values to estimate for age
+  wui_iter <- seq(wuiStart, wuiEnd, length.out=lo)
+  
+  # create empty data frame to store
+  full_vals <- data.frame()
+  
+  # Loop over each level of random effect
+  for (j in 1:nrow(random)) {
+    
+    # Empty vector for each level of random effect
+    exp_val <- c()
+    
+    # Loop over values of age
+    for (i in 1:length(wui_iter)) {
+      
+      exp_val[i] <- exp(fixed$intercept[1] + 
+                          fixed$SexM[1]*sex + 
+                          fixed$Age[1]*meanAge + 
+                          fixed$Age2[1]*(meanAge^2) +
+                          fixed$WUI[1]*wui_iter[i] +
+                          fixed$pasture[1]*meanPasture + 
+                          fixed$basalarea[1]*meanBBA +
+                          fixed$mast[1]*meanMast + 
+                          fixed$intx_beech[1]*meanBBA*meanMast +
+                          random$REval[j])
+      
+    }
+    
+    # Save the expected values to data frame
+    full_vals <- bind_rows(full_vals, as.data.frame(t(exp_val)))
+    
+  }
+  
+  names(full_vals) <- 1:lo
+  full_vals$level <- random$grp
+  
+  full_vals <- pivot_longer(full_vals, 1:100, names_to="index", values_to="exp_val") %>%
+    mutate_at(c('index', 'exp_val'), as.numeric)
+  
+  full_vals$WUI <- rep(wui_iter, 55)
+  
+  # add column for sex
+  full_vals$sex <- ifelse(sex==1, "Male", "Female")
+  
+  full_vals <- full_vals %>% select(sex, level, WUI, index, exp_val)
+  # full_vals <- left_join(full_vals, level_probs, by="level")
+  
+  return(full_vals)
+  
+}
 
+# Predict proportion pasture
+logistic_pred_wui <- function(fixed, random, compound, sex, meanAge, meanWUI, meanBBA, meanMast, agStart, agEnd, lo) {
+  
+  # crete a sequence of values to estimate for age
+  ag_iter <- seq(agStart, agEnd, length.out=lo)
+  
+  # create empty data frame to store
+  full_vals <- data.frame()
+  
+  # Loop over each level of random effect
+  for (j in 1:nrow(random)) {
+    
+    # Empty vector for each level of random effect
+    exp_val <- c()
+    
+    # Loop over values of age
+    for (i in 1:length(ag_iter)) {
+      
+      exp_val[i] <- inv.logit(fixed$intercept[1] + 
+                                fixed$SexM[1]*sex + 
+                                fixed$Age[1]*meanAge + 
+                                fixed$Age2[1]*(meanAge^2) +
+                                fixed$WUI[1]*meanWUI + 
+                                fixed$pasture[1]*ag_iter[i] + 
+                                fixed$basalarea[1]*meanBBA +
+                                fixed$mast[1]*meanMast + 
+                                fixed$intx_beech[1]*meanBBA*meanMast +
+                                random$REval[j])
+    
+    }
+    
+    # Save the expected values to data frame
+    full_vals <- bind_rows(full_vals, as.data.frame(t(exp_val)))
+    
+  }
+  
+  names(full_vals) <- 1:lo
+  full_vals$level <- random$grp
+  
+  full_vals <- pivot_longer(full_vals, 1:100, names_to="index", values_to="exp_val") %>%
+    mutate_at(c('index', 'exp_val'), as.numeric)
+  
+  full_vals$pasture <- rep(ag_iter, 55)
+  
+  # add column for sex
+  full_vals$compound <- compound
+  full_vals$sex <- ifelse(sex==1, "Male", "Female")
+  
+  full_vals <- full_vals %>% select(compound, sex, level, pasture, index, exp_val)
+  
+  return(full_vals)
+  
+}
 
 
 
