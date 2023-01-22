@@ -344,3 +344,35 @@ ggplot() + geom_sf(data=nys, fill="gray80", color="gray20") +
 
 
 
+
+
+
+#### Plotting concentration ###
+
+ar <- read_csv("output/AR_results_wide.csv") %>%
+        pivot_longer(11:21, names_to='compound', values_to='ppm') %>%
+        filter(compound=="Brodifacoum" | compound=="Bromadiolone" | compound=="Difethialone" | compound=="Dicoumarol" | compound=="Diphacinone")
+ar$ppm[ar$ppm==0.000001] <- NA
+ar$group <- ifelse(ar$compound=="Dicoumarol" | ar$compound=="Diphacinone", "FGAR", "SGAR")
+ar <- ar %>% mutate(mloq = case_when(
+                            compound=='Dicoumarol' ~ 0.1,
+                            compound=='Brodifacoum' ~ 0.01,
+                            compound=='Bromadiolone' ~ 0.025,
+                            compound=='Difethialone' | compound=='Diphacinone' ~ 0.05))
+
+ggplot(ar, aes(x=compound, y=ppm, fill=group)) + 
+  geom_boxplot() +
+  # geom_hline(yintercept=c(0.01, 0.05, 0.1, 0.025)) +
+  # geom_jitter(color="gray70", alpha=0.8, size=0.8) +
+  # geom_segment(data=ar, aes(x=compound, xend=compound, y=mloq, yend=mloq), color="red") +
+  scale_fill_manual("Compound Type", values=c("#af8dc3", "#7fbf7b")) +
+  xlab("Compound") + ylab("Measured concentrations (ppm)") +
+  theme(legend.position=c(0,1),
+        legend.justification=c(0,1),
+        panel.border=element_rect(color="black", fill=NA, size=0.5),
+        legend.background=element_rect(fill=NA),
+        axis.text=element_text(size=12),
+        axis.title=element_text(size=12),
+        legend.title=element_text(size=11),
+        legend.text=element_text(size=11))
+
