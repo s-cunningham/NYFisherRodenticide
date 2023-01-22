@@ -95,7 +95,7 @@ age_plot <- ggplot() +
                           aes(x=unscAge, y=exp_val, group=interaction(level, sex), color=factor(sex)), alpha=0.2) +
                 geom_line(data=pred_mean, aes(x=unscAge, y=mval, color=sex), size=1) +
                 scale_color_manual(values=c("#1b7837", "#762a83"), name="Sex") +
-                ylim(0,3.5) +
+                ylim(0,4.5) +
                 ylab("Expected number of compounds") + xlab("Age (years)") +
                 theme(legend.position=c(0,1),
                       legend.justification=c(0,1),
@@ -143,7 +143,7 @@ mast_plot <- ggplot() +
                           aes(x=unscMast, y=exp_val, group=interaction(level, sex), color=factor(sex)), alpha=0.15) +
                 geom_line(data=mast_mean, aes(x=unscMast, y=mval, color=sex), size=1) +
                 scale_color_manual(values=c("#1b7837", "#762a83"), name="Sex") +
-                ylim(0, 3.5) +
+                ylim(0,4.5) +
                 ylab("Expected number of compounds") + xlab("Beechnut count") +
                 theme(legend.position="none",
                       panel.border=element_rect(color="black", fill=NA, size=0.5),
@@ -152,7 +152,54 @@ mast_plot <- ggplot() +
                       axis.title.x=element_text(size=12),
                       axis.title.y=element_blank())
 
-age_plot + mast_plot + plot_annotation(tag_levels="a", tag_prefix="(", tag_suffix=")")
+## effect of intermix WUI
+wui_m <- poisson_pred_wui(ncomp_fe, 
+                            ncomp_re, 
+                            sex=1, 
+                            meanAge=meanAge, 
+                            meanPasture=meanPasture, 
+                            meanMast=meanMast, 
+                            meanBBA=meanBBA,
+                            wuiStart=min(dat$WUI), 
+                            wuiEnd=max(dat$WUI), 
+                            lo=100)
+
+wui_f <- poisson_pred_wui(ncomp_fe, 
+                            ncomp_re, 
+                            sex=0, 
+                            meanAge=meanAge, 
+                            meanPasture=meanPasture, 
+                            meanMast=meanMast, 
+                            meanBBA=meanBBA,
+                            wuiStart=min(dat$WUI), 
+                            wuiEnd=max(dat$WUI), 
+                            lo=100)
+
+pred_wui <- list(wui_m, wui_f) %>%
+  reduce(full_join) %>%
+  select(level, sex, WUI, exp_val) %>%
+  mutate(unscWUI=WUI * attr(dat$intermix.s, 'scaled:scale') + attr(dat$intermix.s, 'scaled:center'))
+pred_wui 
+
+# mean line
+wui_mean <- pred_wui %>% group_by(sex, unscWUI) %>% summarize(mval = weighted.mean(exp_val, level_freq$freq))
+
+wui_plot <- ggplot() + 
+  geom_line(data=pred_wui, 
+            aes(x=unscWUI, y=exp_val, group=interaction(level, sex), color=factor(sex)), alpha=0.15) +
+  geom_line(data=wui_mean, aes(x=unscWUI, y=mval, color=sex), size=1) +
+  scale_color_manual(values=c("#1b7837", "#762a83"), name="Sex") +
+  ylim(0,4.5) +
+  ylab("Expected number of compounds") + xlab("Proportion intermix")  +
+  theme(legend.position="none",
+        panel.border=element_rect(color="black", fill=NA, size=0.5),
+        axis.text.x=element_text(size=12),
+        axis.text.y=element_blank(),
+        axis.title.x=element_text(size=12),
+        axis.title.y=element_blank())
+
+
+age_plot + mast_plot + wui_plot + plot_annotation(tag_levels="a", tag_prefix="(", tag_suffix=")")
 
 #### Binary analyses #####
 dat <- read_csv("output/binary_model_data_unscaled.csv") %>%
@@ -279,12 +326,12 @@ level_freq <- dat %>% select(RegionalID:Town) %>%
 # pred_mean <- pred_vals %>% group_by(compound, sex, unscAge) %>% summarize(mval = mean(exp_val))
 pred_mean <- pred_vals %>% group_by(compound, sex, unscAge) %>% summarize(mval = weighted.mean(exp_val, level_freq$freq))
 
-pred_mean %>% group_by(compound, sex) %>% summarize(maxprob=max(mval))
-pred_mean %>% group_by(compound, sex) %>% summarize(probrange=range(mval))
-pred_mean %>% group_by(compound, sex) %>% summarize(probsd=sd(mval))
-pred_mean %>% group_by(compound, sex) %>% summarize(meanprob=mean(mval))
-
-pred_mean %>% filter(compound=="brodifacoum" & sex=="Female" & mval>=0.840)
+# pred_mean %>% group_by(compound, sex) %>% summarize(maxprob=max(mval))
+# pred_mean %>% group_by(compound, sex) %>% summarize(probrange=range(mval))
+# pred_mean %>% group_by(compound, sex) %>% summarize(probsd=sd(mval))
+# pred_mean %>% group_by(compound, sex) %>% summarize(meanprob=mean(mval))
+# 
+# pred_mean %>% filter(compound=="brodifacoum" & sex=="Female" & mval>=0.840)
 
 ## Plot
 
@@ -307,7 +354,7 @@ ggplot() +
         legend.title=element_text(size=12),
         legend.text=element_text(size=12))
 
-# ggplot() +geom_line(data=pred_mean, aes(x=unscAge, y=mval, group=interaction(compound,sex), color=sex)) #+ facet_grid(.~compound)
+## Mast plots
 brod_m <- logistic_pred_mast(fixed=brod_fe, 
                              random=brod_re, 
                              compound="brodifacoum",
@@ -331,7 +378,6 @@ brod_f <- logistic_pred_mast(fixed=brod_fe,
                              mastStart=min(dat$mast), 
                              mastEnd=max(dat$mast), 
                              lo=100)
-
 
 brom_m <- logistic_pred_mast(fixed=brom_fe, 
                             random=brom_re, 
@@ -391,10 +437,10 @@ pred_mast
 # mean line
 mast_mean <- pred_mast %>% group_by(sex, compound, unscMast) %>% summarize(mval=mean(exp_val))
 
-mast <- read_csv("data/analysis-ready/ALTEMP26_beech-data.csv")
+# mast <- read_csv("data/analysis-ready/ALTEMP26_beech-data.csv")
 
 ggplot() + 
-  geom_vline(data=mast, aes(xintercept=Total_Beechnuts), color="gray80") +
+  # geom_vline(data=mast, aes(xintercept=Total_Beechnuts), color="gray80") +
   geom_line(data=pred_mast, 
             aes(x=unscMast, y=exp_val, group=interaction(level, sex), color=factor(sex)), alpha=0.2) +
   geom_line(data=mast_mean, aes(x=unscMast, y=mval, color=sex), size=1) +
@@ -403,10 +449,10 @@ ggplot() +
   facet_grid(.~compound) +
   theme()
 
-ggplot() +
-  geom_line(data=mast, aes(x=year, y=Total_Beechnuts))
+# ggplot() +
+#   geom_line(data=mast, aes(x=year, y=Total_Beechnuts))
 
-#### Binary WUI intermix ####
+## Binary WUI intermix 
 brod_m <- logistic_pred_wui(fixed=brod_fe, 
                             random=brod_re, 
                             compound="brodifacoum",
@@ -430,7 +476,6 @@ brod_f <- logistic_pred_wui(fixed=brod_fe,
                              wuiStart=min(dat$WUI), 
                              wuiEnd=max(dat$WUI), 
                              lo=100)
-
 
 brom_m <- logistic_pred_wui(fixed=brom_fe, 
                              random=brom_re, 
@@ -501,7 +546,7 @@ ggplot() +
     theme(legend.position=c(1,0),
           legend.justification=c(1,0),
           legend.background=element_rect(fill=NA),
-          panel.border=element_rect(color="black", fill=NA, size=0.5),)
+          panel.border=element_rect(color="black", fill=NA, size=0.5))
 
 
 
