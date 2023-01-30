@@ -388,7 +388,7 @@ levels(tforest) <- list(data.frame(ID=nlcd_values, landcov=nlcd_class))
 samples <- samples %>% st_transform(crs=crs(tforest))
 
 ## Landscape metrics...use points and have LSM create buffer
-sizes <- c(4370.2, 6180.38, 8740.388)
+sizes <- c(6180.38)
 
 # total forest
 lsm_tforest_output <- sizes %>%
@@ -402,9 +402,8 @@ lsm_tforest_output <- sizes %>%
                              "lsm_c_clumpy",
                              "lsm_c_core_cv",
                              "lsm_c_ai",
-                             # "lsm_c_pafrac",
                              "lsm_c_lsi",
-                             "lsm_c_dcore_cv"), 
+                             "lsm_c_dcore_cv"),
                       shape="circle", size=.), .id="buffer")
 
 # Save only metrics for total forest (class = s)
@@ -412,4 +411,6 @@ lsm_tforest_output <- lsm_tforest_output %>%
   filter(class==2) %>%
   select(plot_id, buffer, metric, value)
 
-write_csv(lsm_tforest_output, "data/analysis-ready/forest_lsm_2.csv")
+lsm_tforest_output <- 
+
+write_csv(lsm_tforest_output, "data/analysis-ready/forest_lsm_30km2.csv")
