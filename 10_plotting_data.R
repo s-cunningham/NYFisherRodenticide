@@ -15,7 +15,9 @@ theme_set(theme_classic())
 # read data
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") %>% rename(BBA=baa)
 
-# dat1 <- dat %>% filter(pt_index==1 & buffsize==60 & radius==100) %>% select(RegionalID:n.compounds.T,lag_beechnuts) %>% distinct()
+dat1 <- dat %>% filter(pt_index==1 & buffsize==60 & radius==250) %>% distinct()
+
+ggplot(dat1) + geom_boxplot(aes(y=n.compounds.T, x=mixed))
 
 dat15 <- dat[dat$buffsize==15 & dat$radius==100,]
 dat15 <- dat15 %>% select(RegionalID:Town, n.compounds.T, totalag, BBA, nbuildings) %>%
