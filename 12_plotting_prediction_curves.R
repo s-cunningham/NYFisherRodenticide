@@ -215,7 +215,7 @@ dat <- within(dat, mast.s <- scale(mast))
 dat <- within(dat, wui.s <- scale(WUI))
 dat[,c(8,17:20)] <- scale(dat[,c(8,17:20)])
 
-# Calculate means
+# Caluculate means
 meanWUI <- mean(dat$WUI)
 meanPasture <- mean(dat$pasture)
 meanMast <- mean(dat$mast)
@@ -326,12 +326,12 @@ level_freq <- dat %>% select(RegionalID:Town) %>%
 # pred_mean <- pred_vals %>% group_by(compound, sex, unscAge) %>% summarize(mval = mean(exp_val))
 pred_mean <- pred_vals %>% group_by(compound, sex, unscAge) %>% summarize(mval = weighted.mean(exp_val, level_freq$freq))
 
-pred_mean %>% group_by(compound, sex) %>% summarize(maxprob=max(mval))
-pred_mean %>% group_by(compound, sex) %>% summarize(probrange=range(mval))
-pred_mean %>% group_by(compound, sex) %>% summarize(probsd=sd(mval))
-pred_mean %>% group_by(compound, sex) %>% summarize(meanprob=mean(mval))
-
-pred_mean %>% filter(compound=="diphacinone" & sex=="Male" & mval>=0.933)
+# pred_mean %>% group_by(compound, sex) %>% summarize(maxprob=max(mval))
+# pred_mean %>% group_by(compound, sex) %>% summarize(probrange=range(mval))
+# pred_mean %>% group_by(compound, sex) %>% summarize(probsd=sd(mval))
+# pred_mean %>% group_by(compound, sex) %>% summarize(meanprob=mean(mval))
+# 
+# pred_mean %>% filter(compound=="brodifacoum" & sex=="Female" & mval>=0.840)
 
 ## Plot
 
@@ -439,22 +439,15 @@ mast_mean <- pred_mast %>% group_by(sex, compound, unscMast) %>% summarize(mval=
 
 # mast <- read_csv("data/analysis-ready/ALTEMP26_beech-data.csv")
 
-lrmast <- ggplot() + 
+ggplot() + 
+  # geom_vline(data=mast, aes(xintercept=Total_Beechnuts), color="gray80") +
   geom_line(data=pred_mast, 
             aes(x=unscMast, y=exp_val, group=interaction(level, sex), color=factor(sex)), alpha=0.2) +
   geom_line(data=mast_mean, aes(x=unscMast, y=mval, color=sex), size=1) +
   scale_color_manual(values=c("#1b7837", "#762a83"), name="Sex") +
-  ylim(0,1) +
   ylab("Probability of exposure") + xlab("Beech nut count (previous year)") +
   facet_grid(.~compound) +
-  theme(legend.position="none",
-        legend.background=element_rect(fill=NA),
-        panel.border=element_rect(color="black", fill=NA, size=0.5),
-        axis.text=element_text(size=12),
-        strip.text=element_blank(),
-        axis.title=element_text(size=12),
-        legend.title=element_text(size=12),
-        legend.text=element_text(size=12))
+  theme()
 
 # ggplot() +
 #   geom_line(data=mast, aes(x=year, y=Total_Beechnuts))
@@ -542,25 +535,19 @@ pred_wui
 # mean line
 wui_mean <- pred_wui %>% group_by(sex, compound, unscWUI) %>% summarize(mval=mean(exp_val))
 
-lrintermix <- ggplot() + 
+ggplot() + 
     geom_line(data=pred_wui, 
               aes(x=unscWUI, y=exp_val, group=interaction(level, sex), 
                   color=factor(sex)), alpha=0.2) +
     geom_line(data=wui_mean, aes(x=unscWUI, y=mval, color=sex), size=1) +
     scale_color_manual(values=c("#1b7837", "#762a83"), name="Sex") +
-    ylab("Probability of exposure") + xlab(expression(paste("Proportion intermix in 60 k", m^2, " buffer"))) +
+    ylab("Probability of exposure") + xlab(expression(paste("Percent intermix in 60 k", m^2, " buffer"))) +
     facet_grid(.~compound) + ylim(0,1) +
-    theme(legend.position=c(0,0),
-          legend.justification=c(0,0),
+    theme(legend.position=c(1,0),
+          legend.justification=c(1,0),
           legend.background=element_rect(fill=NA),
-          panel.border=element_rect(color="black", fill=NA, size=0.5),
-          axis.text=element_text(size=12),
-          strip.text=element_text(size=12),
-          axis.title=element_text(size=12),
-          legend.title=element_text(size=12),
-          legend.text=element_text(size=12))
+          panel.border=element_rect(color="black", fill=NA, size=0.5))
 
 
 
 
-lrintermix / lrmast + plot_annotation(tag_levels="a", tag_prefix="(", tag_suffix=")")
