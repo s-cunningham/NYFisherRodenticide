@@ -1,6 +1,7 @@
 library(tidyverse)
 library(glmmTMB)
 library(MuMIn)
+library(ggeffects)
 
 nt <- min(parallel::detectCores(),4)
 
@@ -88,8 +89,20 @@ new.dat <- data.frame(diameter= d$diameter,
                       plot= d$plot) 
 
 plot(ggpredict(m4))
+     
+     
+ggplot(m4pred, aes(x=x, y=predicted)) + 
+      
+     theme(axis.text=element_text(size=14)) 
+
+
+
+
 
 plot(ggpredict(m1))
+
+
+
 
 
 new.dat$prediction <- predict(glmm.model, new.data = new.dat, 
