@@ -319,7 +319,7 @@ ages$latitude[ages$Town=="Hornell"] <- 2292524
 ages$longitude[ages$Town=="Rensselaer"] <- 1798357
 ages$latitude[ages$Town=="Rensselaer"] <- 2394953
 ages$longitude[ages$Town=="Rome"] <- 1644803
-ages$latitude[ages$Town=="Rpme"] <- 2426122
+ages$latitude[ages$Town=="Rome"] <- 2426122
 
 # Add column for string length of Regional Sample ID
 ages$strl <- str_length(ages$RegionalSampleID)

@@ -8,7 +8,7 @@ library(DHARMa)
 library(caret)
 
 options(scipen=999, digits=3)
-set.seed(1)
+set.seed(123)
 
 #### Parallel processing ####
 nt <- min(parallel::detectCores(),4)
@@ -156,7 +156,7 @@ write_csv(model_tab, "output/model_selection/forest_model_selection_table.csv")
 build.models <- lapply(build_formulae, FUN=glmmTMB, data=dat1, 
                      family=compois(link = "log"), control=glmmTMBControl(parallel=nt, 
                                                                           profile=TRUE, 
-                                                                          optCtrl=list(iter.max=1e11,eval.max=1e11),
+                                                                          optCtrl=list(iter.max=1e19,eval.max=1e19),
                                                                           optimizer=optim, 
                                                                           optArgs=list(method="BFGS")))
 model.list <- model.sel(build.models)
@@ -218,13 +218,11 @@ model_tab
 write_csv(model_tab, "output/model_selection/global_model_selection_table.csv")
 
 
-system.time(m1 <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + mix_60_250 + pasture_30 + BBA_15 * lag_beechnuts + (1|RegionalID), data=dat1,
+system.time(m1 <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + mix_60_250 + (1|RegionalID), data=dat1,
         family=compois(link = "log"), 
         control=glmmTMBControl(parallel=nt, 
                                profile=TRUE, 
-                               optCtrl=list(iter.max=1e11,eval.max=1e11), 
-                               optimizer=optim, 
-                               optArgs=list(method="BFGS"))))
+                               optCtrl=list(iter.max=1e19,eval.max=1e19))))
 
 #### Running iteration models ####
 
@@ -249,7 +247,7 @@ for (i in 1:10) {
   
   # Run model with deltaAICc < 2
 
-  m1_pt <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + mix_60_250 + pasture_30 + BBA_15 * lag_beechnuts + (1|WMU), data=pt, 
+  m1_pt <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + mix_30_250 + pasture_30 + BBA_15 * lag_beechnuts + (1|WMU), data=pt, 
                       family=compois(link = "log"), control=glmmTMBControl(parallel=nt))#
 
   m1s <- summary(m1_pt)
