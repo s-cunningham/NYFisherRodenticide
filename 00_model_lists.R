@@ -2,34 +2,20 @@
 ## Model lists for selecting scale
 ag_formulae <- list(n.compounds.T ~ totalag_15 + (1|RegionalID),
                     n.compounds.T ~ totalag_30 + (1|RegionalID),
-                    n.compounds.T ~ totalag_60 + (1|RegionalID),
-                    n.compounds.T ~ crops_15 + (1|RegionalID),
-                    n.compounds.T ~ crops_30 + (1|RegionalID),
-                    n.compounds.T ~ crops_60 + (1|RegionalID),
-                    n.compounds.T ~ pasture_15 + (1|RegionalID),
-                    n.compounds.T ~ pasture_30 + (1|RegionalID),
-                    n.compounds.T ~ pasture_60 + (1|RegionalID))
+                    n.compounds.T ~ totalag_60 + (1|RegionalID))
 names(ag_formulae) <- as.character(ag_formulae)
 
-wui_formulae <- list(n.compounds.T ~ mix_15_100 + (1|RegionalID),
-                     n.compounds.T ~ mix_30_100 + (1|RegionalID),
-                     n.compounds.T ~ mix_60_100 + (1|RegionalID),
-                     n.compounds.T ~ mix_15_250 + (1|RegionalID),
-                     n.compounds.T ~ mix_30_250 + (1|RegionalID),
-                     n.compounds.T ~ mix_60_250 + (1|RegionalID),
-                     n.compounds.T ~ mix_15_500 + (1|RegionalID),
-                     n.compounds.T ~ mix_30_500 + (1|RegionalID),
-                     n.compounds.T ~ mix_60_500 + (1|RegionalID),
-                     n.compounds.T ~ face_15_100 + (1|RegionalID),
-                     n.compounds.T ~ face_30_100 + (1|RegionalID),
-                     n.compounds.T ~ face_60_100 + (1|RegionalID),
-                     n.compounds.T ~ face_15_250 + (1|RegionalID),
-                     n.compounds.T ~ face_30_250 + (1|RegionalID),
-                     n.compounds.T ~ face_60_250 + (1|RegionalID),
-                     n.compounds.T ~ face_15_500 + (1|RegionalID),
-                     n.compounds.T ~ face_30_500 + (1|RegionalID),
-                     n.compounds.T ~ face_60_500 + (1|RegionalID),
-                     n.compounds.T ~ wui_15_100 + (1|RegionalID),
+crops_formulae <- list(n.compounds.T ~ crops_15 + (1|RegionalID),
+                       n.compounds.T ~ crops_30 + (1|RegionalID),
+                       n.compounds.T ~ crops_60 + (1|RegionalID))
+names(crops_formulae) <- as.character(crops_formulae)
+
+pasture_form <- list(n.compounds.T ~ pasture_15 + (1|RegionalID),
+                     n.compounds.T ~ pasture_30 + (1|RegionalID),
+                     n.compounds.T ~ pasture_60 + (1|RegionalID))
+names(pasture_form) <- as.character(pasture_form)
+
+wui_formulae <- list(n.compounds.T ~ wui_15_100 + (1|RegionalID),
                      n.compounds.T ~ wui_30_100 + (1|RegionalID),
                      n.compounds.T ~ wui_60_100 + (1|RegionalID),
                      n.compounds.T ~ wui_15_250 + (1|RegionalID),
@@ -39,6 +25,28 @@ wui_formulae <- list(n.compounds.T ~ mix_15_100 + (1|RegionalID),
                      n.compounds.T ~ wui_30_500 + (1|RegionalID),
                      n.compounds.T ~ wui_60_500 + (1|RegionalID))
 names(wui_formulae) <- as.character(wui_formulae)
+
+intermix_formulae <- list(n.compounds.T ~ mix_15_100 + (1|RegionalID),
+                          n.compounds.T ~ mix_30_100 + (1|RegionalID),
+                          n.compounds.T ~ mix_60_100 + (1|RegionalID),
+                          n.compounds.T ~ mix_15_250 + (1|RegionalID),
+                          n.compounds.T ~ mix_30_250 + (1|RegionalID),
+                          n.compounds.T ~ mix_60_250 + (1|RegionalID),
+                          n.compounds.T ~ mix_15_500 + (1|RegionalID),
+                          n.compounds.T ~ mix_30_500 + (1|RegionalID),
+                          n.compounds.T ~ mix_60_500 + (1|RegionalID))
+names(intermix_formulae) <- as.character(intermix_formulae)
+
+interface_formulae <- list(n.compounds.T ~ face_15_100 + (1|RegionalID),
+                           n.compounds.T ~ face_30_100 + (1|RegionalID),
+                           n.compounds.T ~ face_60_100 + (1|RegionalID),
+                           n.compounds.T ~ face_15_250 + (1|RegionalID),
+                           n.compounds.T ~ face_30_250 + (1|RegionalID),
+                           n.compounds.T ~ face_60_250 + (1|RegionalID),
+                           n.compounds.T ~ face_15_500 + (1|RegionalID),
+                           n.compounds.T ~ face_30_500 + (1|RegionalID),
+                           n.compounds.T ~ face_60_500 + (1|RegionalID))
+names(interface_formulae) <- as.character(interface_formulae)
 
 beech_formulae <- list(n.compounds.T ~ mast + (1|RegionalID),
                        n.compounds.T ~ beechnuts + (1|RegionalID),
@@ -104,6 +112,8 @@ names(build_formulae) <- as.character(build_formulae)
 
 agesex_formulae <- list(n.compounds.T ~ Age + Sex + (1|RegionalID),
                         n.compounds.T ~ Age * Sex + (1|RegionalID),
+                        n.compounds.T ~ Sex + (1|RegionalID),
+                        n.compounds.T ~ Age + (1|RegionalID),
                         n.compounds.T ~ Sex + Age + I(Age^2) + (1|RegionalID),
                         n.compounds.T ~ Sex + Age + Sex:Age + I(Age^2) + Sex:I(Age^2) + (1|RegionalID))
 names(agesex_formulae) <- as.character(agesex_formulae)

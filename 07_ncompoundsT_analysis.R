@@ -6,6 +6,7 @@ library(MuMIn)
 library(glmmTMB)
 library(DHARMa)
 library(caret)
+library(performance)
 
 options(scipen=999, digits=3)
 set.seed(123)
@@ -124,7 +125,33 @@ model.list <- model.sel(ag.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
 model_tab
-write_csv(model_tab, "output/model_selection/ag_model_selection_table.csv")
+write_csv(model_tab, "output/model_selection/totalag_selection_table.csv")
+
+crop.models <- lapply(crops_formulae, FUN=glmmTMB, data=dat1, 
+                    family=compois(link = "log"), 
+                    control=glmmTMBControl(parallel=nt, 
+                                           profile=TRUE, 
+                                           optCtrl=list(iter.max=1e11,eval.max=1e11),
+                                           optimizer=optim, 
+                                           optArgs=list(method="BFGS")))
+model.list <- model.sel(crop.models)
+model_tab <- as.data.frame(model.list)
+model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
+model_tab
+write_csv(model_tab, "output/model_selection/crops_selection_table.csv")
+
+pasture.models <- lapply(pasture_form, FUN=glmmTMB, data=dat1, 
+                      family=compois(link = "log"), 
+                      control=glmmTMBControl(parallel=nt, 
+                                             profile=TRUE, 
+                                             optCtrl=list(iter.max=1e11,eval.max=1e11),
+                                             optimizer=optim, 
+                                             optArgs=list(method="BFGS")))
+model.list <- model.sel(pasture.models)
+model_tab <- as.data.frame(model.list)
+model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
+model_tab
+write_csv(model_tab, "output/model_selection/pasture_selection_table.csv")
 
 # Beech basal area
 beech.models <- lapply(beech_formulae, FUN=glmmTMB, data=dat1, 
@@ -143,7 +170,7 @@ write_csv(model_tab, "output/model_selection/beech_model_selection_table.csv")
 forest.models <- lapply(forest_formulae, FUN=glmmTMB, data=dat1, 
                        family=compois(link = "log"), control=glmmTMBControl(parallel=nt, 
                                                                             profile=TRUE, 
-                                                                            optCtrl=list(iter.max=1e11,eval.max=1e11),
+                                                                            optCtrl=list(iter.max=1e20,eval.max=1e20),
                                                                             optimizer=optim, 
                                                                             optArgs=list(method="BFGS"))) 
 model.list <- model.sel(forest.models)
@@ -165,20 +192,7 @@ model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model")
 model_tab
 write_csv(model_tab, "output/model_selection/building_model_selection_table.csv")
 
-# Landscape metrics
-lsm.models <- lapply(lsm_formulae, FUN=glmmTMB, data=dat1, 
-                     family=compois(link = "log"), control=glmmTMBControl(parallel=nt, 
-                                                                          profile=TRUE, 
-                                                                          optCtrl=list(iter.max=1e11,eval.max=1e11),
-                                                                          optimizer=optim, 
-                                                                          optArgs=list(method="BFGS"))) 
-model.list <- model.sel(lsm.models)
-model_tab <- as.data.frame(model.list)
-model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
-model_tab 
-write_csv(model_tab, "output/model_selection/lsm_model_selection_table.csv")
-
-# WUI
+## WUI
 wui.models <- lapply(wui_formulae, FUN=glmmTMB, data=dat1, 
                      family=compois(link = "log"), control=glmmTMBControl(parallel=nt,
                                                                           profile=TRUE, 
@@ -189,6 +203,32 @@ model.list <- model.sel(wui.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
 write_csv(model_tab, "output/model_selection/wui_model_selection_table.csv")
+
+
+# intermix
+intermix.models <- lapply(intermix_formulae, FUN=glmmTMB, data=dat1, 
+                     family=compois(link = "log"), control=glmmTMBControl(parallel=nt,
+                                                                          profile=TRUE, 
+                                                                          optCtrl=list(iter.max=1e20,eval.max=1e20), 
+                                                                          optimizer=optim, 
+                                                                          optArgs=list(method="BFGS"))) 
+model.list <- model.sel(intermix.models)
+model_tab <- as.data.frame(model.list)
+model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
+write_csv(model_tab, "output/model_selection/intermix_model_selection_table.csv")
+
+# interface
+intermix.models <- lapply(interface_formulae, FUN=glmmTMB, data=dat1, 
+                          family=compois(link = "log"), control=glmmTMBControl(parallel=nt,
+                                                                               profile=TRUE, 
+                                                                               optCtrl=list(iter.max=1e20,eval.max=1e20), 
+                                                                               optimizer=optim, 
+                                                                               optArgs=list(method="BFGS"))) 
+model.list <- model.sel(interface.models)
+model_tab <- as.data.frame(model.list)
+model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
+write_csv(model_tab, "output/model_selection/interface_model_selection_table.csv")
+
 
 # Age and sex
 agesex.models <- lapply(agesex_formulae, FUN=glmmTMB, data=dat1, 
@@ -207,10 +247,7 @@ write_csv(model_tab, "output/model_selection/agesex_model_selection_table.csv")
 global.models <- lapply(global_formulae, FUN=glmmTMB, data=dat1, 
                        family=compois(link = "log"), 
                        control=glmmTMBControl(parallel=nt, 
-                                              profile=TRUE, 
-                                              optCtrl=list(iter.max=1e11,eval.max=1e11), 
-                                              optimizer=optim, 
-                                              optArgs=list(method="BFGS")))
+                                              profile=TRUE))
 model.list <- model.sel(global.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
@@ -237,6 +274,7 @@ kappa[,1] <- 1:10
 classstats <- data.frame()
 overallstats <- data.frame()
 ranef_coef <- data.frame()
+vif <- list()
 
 system.time(
 # Loop over each point set
@@ -248,8 +286,9 @@ for (i in 1:10) {
   # Run model with deltaAICc < 2
 
   m1_pt <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + mix_30_250 + pasture_30 + BBA_15 * lag_beechnuts + (1|WMU), data=pt, 
-                      family=compois(link = "log"), control=glmmTMBControl(parallel=nt))#
-
+                      family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
+  
+  vif[[i]] <- check_collinearity(m1_pt, "count")
   m1s <- summary(m1_pt)
   
   # save averaged confidence intervals
