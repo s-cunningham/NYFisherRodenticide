@@ -204,7 +204,6 @@ model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
 write_csv(model_tab, "output/model_selection/wui_model_selection_table.csv")
 
-
 # intermix
 intermix.models <- lapply(intermix_formulae, FUN=glmmTMB, data=dat1, 
                      family=compois(link = "log"), control=glmmTMBControl(parallel=nt,
@@ -218,7 +217,7 @@ model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model")
 write_csv(model_tab, "output/model_selection/intermix_model_selection_table.csv")
 
 # interface
-intermix.models <- lapply(interface_formulae, FUN=glmmTMB, data=dat1, 
+interface.models <- lapply(interface_formulae, FUN=glmmTMB, data=dat1, 
                           family=compois(link = "log"), control=glmmTMBControl(parallel=nt,
                                                                                profile=TRUE, 
                                                                                optCtrl=list(iter.max=1e20,eval.max=1e20), 
@@ -234,7 +233,7 @@ write_csv(model_tab, "output/model_selection/interface_model_selection_table.csv
 agesex.models <- lapply(agesex_formulae, FUN=glmmTMB, data=dat1, 
                      family=compois(link = "log"), control=glmmTMBControl(parallel=nt, 
                                                                           profile=TRUE, 
-                                                                          optCtrl=list(iter.max=1e11,eval.max=1e11),
+                                                                          optCtrl=list(iter.max=1e20,eval.max=1e20),
                                                                           optimizer=optim, 
                                                                           optArgs=list(method="BFGS"))) 
 model.list <- model.sel(agesex.models)
