@@ -113,53 +113,42 @@ source("00_model_lists.R")
 
 #### Run models with glmmTMB ####
 ## Model selection for scale
-# Agriculture
-ag.models <- lapply(ag_formulae, FUN=glmmTMB, data=dat1, 
-                    family=compois(link = "log"), 
-                    control=glmmTMBControl(parallel=nt, 
-                            profile=TRUE, 
-                            optCtrl=list(iter.max=1e11,eval.max=1e11),
-                            optimizer=optim, 
-                            optArgs=list(method="BFGS")))
-model.list <- model.sel(ag.models)
+# Age and sex
+agesex.models <- lapply(agesex_formulae, FUN=glmmTMB, data=dat1, 
+                        family=compois(link = "log"), control=glmmTMBControl(parallel=nt, 
+                                                                             profile=TRUE, 
+                                                                             optCtrl=list(iter.max=1e20,eval.max=1e20),
+                                                                             optimizer=optim, 
+                                                                             optArgs=list(method="BFGS"))) 
+model.list <- model.sel(agesex.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
-model_tab
-write_csv(model_tab, "output/model_selection/totalag_selection_table.csv")
+write_csv(model_tab, "output/model_selection/agesex_model_selection_table.csv")
 
-crop.models <- lapply(crops_formulae, FUN=glmmTMB, data=dat1, 
+
+all_ag <- c(ag_formulae, crops_formulae, pasture_form)
+
+# Agriculture
+ag.models <- lapply(all_ag, FUN=glmmTMB, data=dat1, 
                     family=compois(link = "log"), 
                     control=glmmTMBControl(parallel=nt, 
                                            profile=TRUE, 
                                            optCtrl=list(iter.max=1e11,eval.max=1e11),
                                            optimizer=optim, 
                                            optArgs=list(method="BFGS")))
-model.list <- model.sel(crop.models)
+model.list <- model.sel(ag.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
 model_tab
-write_csv(model_tab, "output/model_selection/crops_selection_table.csv")
-
-pasture.models <- lapply(pasture_form, FUN=glmmTMB, data=dat1, 
-                      family=compois(link = "log"), 
-                      control=glmmTMBControl(parallel=nt, 
-                                             profile=TRUE, 
-                                             optCtrl=list(iter.max=1e11,eval.max=1e11),
-                                             optimizer=optim, 
-                                             optArgs=list(method="BFGS")))
-model.list <- model.sel(pasture.models)
-model_tab <- as.data.frame(model.list)
-model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
-model_tab
-write_csv(model_tab, "output/model_selection/pasture_selection_table.csv")
+write_csv(model_tab, "output/model_selection/totalag_selection_table.csv")
 
 # Beech basal area
 beech.models <- lapply(beech_formulae, FUN=glmmTMB, data=dat1, 
-                     family=compois(link = "log"), control=glmmTMBControl(parallel=nt,
-                                                                          profile=TRUE, 
-                                                                          optCtrl=list(iter.max=1e11,eval.max=1e11),
-                                                                          optimizer=optim, 
-                                                                          optArgs=list(method="BFGS"))) 
+                       family=compois(link = "log"), control=glmmTMBControl(parallel=nt,
+                                                                            profile=TRUE, 
+                                                                            optCtrl=list(iter.max=1e11,eval.max=1e11),
+                                                                            optimizer=optim, 
+                                                                            optArgs=list(method="BFGS"))) 
 model.list <- model.sel(beech.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
@@ -168,11 +157,11 @@ write_csv(model_tab, "output/model_selection/beech_model_selection_table.csv")
 
 # Forest metrics
 forest.models <- lapply(forest_formulae, FUN=glmmTMB, data=dat1, 
-                       family=compois(link = "log"), control=glmmTMBControl(parallel=nt, 
-                                                                            profile=TRUE, 
-                                                                            optCtrl=list(iter.max=1e20,eval.max=1e20),
-                                                                            optimizer=optim, 
-                                                                            optArgs=list(method="BFGS"))) 
+                        family=compois(link = "log"), control=glmmTMBControl(parallel=nt, 
+                                                                             profile=TRUE, 
+                                                                             optCtrl=list(iter.max=1e20,eval.max=1e20),
+                                                                             optimizer=optim, 
+                                                                             optArgs=list(method="BFGS"))) 
 model.list <- model.sel(forest.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
@@ -181,22 +170,24 @@ write_csv(model_tab, "output/model_selection/forest_model_selection_table.csv")
 
 # Buildings
 build.models <- lapply(build_formulae, FUN=glmmTMB, data=dat1, 
-                     family=compois(link = "log"), control=glmmTMBControl(parallel=nt, 
-                                                                          profile=TRUE, 
-                                                                          optCtrl=list(iter.max=1e19,eval.max=1e19),
-                                                                          optimizer=optim, 
-                                                                          optArgs=list(method="BFGS")))
+                       family=compois(link = "log"), control=glmmTMBControl(parallel=nt, 
+                                                                            profile=TRUE, 
+                                                                            optCtrl=list(iter.max=1e19,eval.max=1e19),
+                                                                            optimizer=optim, 
+                                                                            optArgs=list(method="BFGS")))
 model.list <- model.sel(build.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
 model_tab
 write_csv(model_tab, "output/model_selection/building_model_selection_table.csv")
 
+
+all_wui <- c(interface_formulae, intermix_formulae, wui_formulae)
 ## WUI
-wui.models <- lapply(wui_formulae, FUN=glmmTMB, data=dat1, 
+wui.models <- lapply(all_wui, FUN=glmmTMB, data=dat1, 
                      family=compois(link = "log"), control=glmmTMBControl(parallel=nt,
                                                                           profile=TRUE, 
-                                                                          optCtrl=list(iter.max=1e11,eval.max=1e11), 
+                                                                          optCtrl=list(iter.max=1e20,eval.max=1e20), 
                                                                           optimizer=optim, 
                                                                           optArgs=list(method="BFGS"))) 
 model.list <- model.sel(wui.models)
@@ -204,49 +195,15 @@ model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
 write_csv(model_tab, "output/model_selection/wui_model_selection_table.csv")
 
-# intermix
-intermix.models <- lapply(intermix_formulae, FUN=glmmTMB, data=dat1, 
-                     family=compois(link = "log"), control=glmmTMBControl(parallel=nt,
-                                                                          profile=TRUE, 
-                                                                          optCtrl=list(iter.max=1e20,eval.max=1e20), 
-                                                                          optimizer=optim, 
-                                                                          optArgs=list(method="BFGS"))) 
-model.list <- model.sel(intermix.models)
-model_tab <- as.data.frame(model.list)
-model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
-write_csv(model_tab, "output/model_selection/intermix_model_selection_table.csv")
-
-# interface
-interface.models <- lapply(interface_formulae, FUN=glmmTMB, data=dat1, 
-                          family=compois(link = "log"), control=glmmTMBControl(parallel=nt,
-                                                                               profile=TRUE, 
-                                                                               optCtrl=list(iter.max=1e20,eval.max=1e20), 
-                                                                               optimizer=optim, 
-                                                                               optArgs=list(method="BFGS"))) 
-model.list <- model.sel(interface.models)
-model_tab <- as.data.frame(model.list)
-model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
-write_csv(model_tab, "output/model_selection/interface_model_selection_table.csv")
-
-
-# Age and sex
-agesex.models <- lapply(agesex_formulae, FUN=glmmTMB, data=dat1, 
-                     family=compois(link = "log"), control=glmmTMBControl(parallel=nt, 
-                                                                          profile=TRUE, 
-                                                                          optCtrl=list(iter.max=1e20,eval.max=1e20),
-                                                                          optimizer=optim, 
-                                                                          optArgs=list(method="BFGS"))) 
-model.list <- model.sel(agesex.models)
-model_tab <- as.data.frame(model.list)
-model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
-write_csv(model_tab, "output/model_selection/agesex_model_selection_table.csv")
-
 
 # Check small set of "global models"
 global.models <- lapply(global_formulae, FUN=glmmTMB, data=dat1, 
                        family=compois(link = "log"), 
                        control=glmmTMBControl(parallel=nt, 
-                                              profile=TRUE))
+                                              profile=TRUE,
+                                              optCtrl=list(iter.max=1e11,eval.max=1e11),
+                                              optimizer=optim, 
+                                              optArgs=list(method="BFGS")))
 model.list <- model.sel(global.models)
 model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
@@ -254,7 +211,7 @@ model_tab
 write_csv(model_tab, "output/model_selection/global_model_selection_table.csv")
 
 
-system.time(m1 <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + mix_60_250 + (1|RegionalID), data=dat1,
+system.time(m1 <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + face_15_100 + (1|RegionalID), data=dat1,
         family=compois(link = "log"), 
         control=glmmTMBControl(parallel=nt, 
                                profile=TRUE, 
