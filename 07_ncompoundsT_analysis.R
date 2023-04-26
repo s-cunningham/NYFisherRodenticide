@@ -146,7 +146,7 @@ write_csv(model_tab, "output/model_selection/totalag_selection_table.csv")
 beech.models <- lapply(beech_formulae, FUN=glmmTMB, data=dat1, 
                        family=compois(link = "log"), control=glmmTMBControl(parallel=nt,
                                                                             profile=TRUE, 
-                                                                            optCtrl=list(iter.max=1e11,eval.max=1e11),
+                                                                            optCtrl=list(iter.max=1e20,eval.max=1e20),
                                                                             optimizer=optim, 
                                                                             optArgs=list(method="BFGS"))) 
 model.list <- model.sel(beech.models)
