@@ -83,22 +83,30 @@ agesex_formulae <- list(n.compounds.T ~ Age + Sex + (1|RegionalID),
                         n.compounds.T ~ Sex + Age + Sex:Age + I(Age^2) + Sex:I(Age^2) + (1|RegionalID))
 names(agesex_formulae) <- as.character(agesex_formulae)
 
-global_formulae <- list(n.compounds.T ~ Sex + Age + I(Age^2) + wui_15_250 + totalag_15 + BBA_15 * lag_beechnuts + (1|RegionalID),
-                        n.compounds.T ~ Sex + Age + I(Age^2) + wui_15_250 + totalag_15 + BBA_15 * mast + (1|RegionalID),
-                        n.compounds.T ~ Sex + Age + I(Age^2) + wui_15_250 + totalag_15 + BBA_15 * beechnuts + (1|RegionalID),
-                        n.compounds.T ~ Sex + Age + I(Age^2) + wui_30_500 + totalag_15 + BBA_30 * lag_beechnuts + (1|RegionalID),
-                        n.compounds.T ~ Sex + Age + I(Age^2) + wui_30_500 + totalag_15 + BBA_30 * mast + (1|RegionalID),
-                        n.compounds.T ~ Sex + Age + I(Age^2) + wui_30_500 + totalag_15 + BBA_30 * beechnuts + (1|RegionalID),
-                        n.compounds.T ~ Sex + Age + I(Age^2) + wui_15_250 + totalag_15 + BBA_30 * lag_beechnuts + (1|RegionalID),
-                        n.compounds.T ~ Sex + Age + I(Age^2) + wui_15_250 + totalag_15 + BBA_30 * mast + (1|RegionalID),
-                        n.compounds.T ~ Sex + Age + I(Age^2) + wui_15_250 + totalag_15 + BBA_30 * beechnuts + (1|RegionalID),
-                        n.compounds.T ~ Sex + Age + I(Age^2) + wui_30_500 + totalag_15 + BBA_15 * lag_beechnuts + (1|RegionalID),
-                        n.compounds.T ~ Sex + Age + I(Age^2) + wui_30_500 + totalag_15 + BBA_15 * mast + (1|RegionalID),
-                        n.compounds.T ~ Sex + Age + I(Age^2) + wui_30_500 + totalag_15 + BBA_15 * beechnuts + (1|RegionalID),
-                        
-                        
-   
-
+global_formulae <- list(n.compounds.T ~ Sex + Age + I(Age^2) + wui_15_250 + totalag_60 + BBA_15 * lag_beechnuts + (1|RegionalID),
+                        n.compounds.T ~ Sex + Age + I(Age^2) + wui_15_250 + totalag_60 + BBA_15 * mast + (1|RegionalID),
+                        n.compounds.T ~ Sex + Age + I(Age^2) + wui_15_250 + totalag_60 + BBA_15 * beechnuts + (1|RegionalID),
+                        n.compounds.T ~ Sex + Age + I(Age^2) + wui_30_500 + totalag_60 + BBA_30 * lag_beechnuts + (1|RegionalID),
+                        n.compounds.T ~ Sex + Age + I(Age^2) + wui_30_500 + totalag_60 + BBA_30 * mast + (1|RegionalID),
+                        n.compounds.T ~ Sex + Age + I(Age^2) + wui_30_500 + totalag_60 + BBA_30 * beechnuts + (1|RegionalID),
+                        n.compounds.T ~ Sex + Age + I(Age^2) + wui_15_250 + totalag_60 + BBA_30 * lag_beechnuts + (1|RegionalID),
+                        n.compounds.T ~ Sex + Age + I(Age^2) + wui_15_250 + totalag_60 + BBA_30 * mast + (1|RegionalID),
+                        n.compounds.T ~ Sex + Age + I(Age^2) + wui_15_250 + totalag_60 + BBA_30 * beechnuts + (1|RegionalID),
+                        n.compounds.T ~ Sex + Age + I(Age^2) + wui_30_500 + totalag_60 + BBA_15 * lag_beechnuts + (1|RegionalID),
+                        n.compounds.T ~ Sex + Age + I(Age^2) + wui_30_500 + totalag_60 + BBA_15 * mast + (1|RegionalID),
+                        n.compounds.T ~ Sex + Age + I(Age^2) + wui_30_500 + totalag_60 + BBA_15 * beechnuts + (1|RegionalID),
+                        n.compounds.T ~ Sex + Age + I(Age^2) + mix_60_500 + totalag_60 + BBA_15 * lag_beechnuts + (1|RegionalID),
+                        n.compounds.T ~ Sex + Age + I(Age^2) + mix_60_500 + totalag_60 + BBA_15 * mast + (1|RegionalID),
+                        n.compounds.T ~ Sex + Age + I(Age^2) + mix_60_500 + totalag_60 + BBA_15 * beechnuts + (1|RegionalID),
+                        n.compounds.T ~ Sex + Age + I(Age^2) + mix_60_500 + pasture_15 + BBA_30 * lag_beechnuts + (1|RegionalID),
+                        n.compounds.T ~ Sex + Age + I(Age^2) + mix_60_500 + pasture_15 + BBA_30 * mast + (1|RegionalID),
+                        n.compounds.T ~ Sex + Age + I(Age^2) + mix_60_500 + pasture_15 + BBA_30 * beechnuts + (1|RegionalID),
+                        n.compounds.T ~ Sex + Age + I(Age^2) + build_cat_15*deciduous_15 + totalag_60 + lag_beechnuts + (1|RegionalID),
+                        n.compounds.T ~ Sex + Age + I(Age^2) + build_cat_15*deciduous_15 + totalag_60 + mast + (1|RegionalID),
+                        n.compounds.T ~ Sex + Age + I(Age^2) + build_cat_15*deciduous_15 + totalag_60 + beechnuts + (1|RegionalID),
+                        n.compounds.T ~ Sex + Age + I(Age^2) + build_cat_15*deciduous_15 + pasture_15 + lag_beechnuts + (1|RegionalID),
+                        n.compounds.T ~ Sex + Age + I(Age^2) + build_cat_15*deciduous_15 + pasture_15 + mast + (1|RegionalID),
+                        n.compounds.T ~ Sex + Age + I(Age^2) + build_cat_15*deciduous_15 + pasture_15 + beechnuts + (1|RegionalID)
                         )
 names(global_formulae) <- as.character(global_formulae)
 
