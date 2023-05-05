@@ -81,12 +81,6 @@ names(wui1)[4:12] <- c("wui_15_100", "wui_30_100", "wui_60_100",
                        "wui_15_250", "wui_30_250", "wui_60_250",
                        "wui_15_500", "wui_30_500", "wui_60_500") 
 
-## Landscape metrics
-lsm1 <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, ai:lsi) %>% 
-  distinct() %>% 
-  group_by(RegionalID) %>% 
-  pivot_wider(names_from=buffsize, values_from=c(ai:lsi), values_fn=unique) 
-
 #### Set up data to run for each combination of covariates ####
 dat1 <- dat %>% select(RegionalID:Town,n.compounds.T,beechnuts,lag_beechnuts) %>% distinct() %>%
           left_join(pctAG, by=c("RegionalID", "pt_name", "pt_index")) %>%
@@ -95,18 +89,17 @@ dat1 <- dat %>% select(RegionalID:Town,n.compounds.T,beechnuts,lag_beechnuts) %>
           left_join(intermix1, by=c("RegionalID", "pt_name", "pt_index")) %>%
           left_join(interface1, by=c("RegionalID", "pt_name", "pt_index")) %>%
           left_join(wui1, by=c("RegionalID", "pt_name", "pt_index")) %>%
-          left_join(lsm1, by=c("RegionalID", "pt_name", "pt_index")) %>%
           left_join(build1, by=c("RegionalID", "pt_name", "pt_index"))
 dat1$Sex[dat1$RegionalID=="2019-7709" | dat1$RegionalID=="2020-70001"] <- "F"
-# write_csv(dat1, "output/model_data_notscaled.csv")
+write_csv(dat1, "output/model_data_notscaled.csv")
 
 ## Scale and center variables
-dat1[,c(8,16:107)] <- scale(dat1[,c(8,16:107)])
+dat1[,c(8,16:83)] <- scale(dat1[,c(8,16:83)])
 dat1$mast <- as.factor(ifelse(dat1$year==2018 | dat1$year==2020, "fail", "mast"))
 
 # correlation coefficient
-cormat <- cor(dat1[,c(16:104)]) |> as.data.frame()
-# write_csv(cormat, "output/correlation_matrix.csv")
+cormat <- cor(dat1[,c(16:83)]) |> as.data.frame()
+write_csv(cormat, "output/correlation_matrix.csv")
 
 #### Read in formulas ####
 source("00_model_lists.R")

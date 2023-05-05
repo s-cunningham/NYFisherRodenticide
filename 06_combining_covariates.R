@@ -25,7 +25,6 @@ bmi <- read_csv("data/analysis-ready/baa_sum.csv")
 baa <- read_csv("data/analysis-ready/baa_sum_single_raster.csv")
 pts <- read_csv("output/random_point_locs.csv")
 wmua <- read_csv("data/analysis-ready/wmuas.csv")
-lsm <- read_csv("data/analysis-ready/forest_lsm_2.csv")
 build <- read_csv("data/analysis-ready/building-centroid_sum.csv") %>%
             rename(pt_name=name) 
 mast <- read_csv("data/analysis-ready/ALTEMP26_beech-data.csv")
@@ -83,16 +82,6 @@ wui[is.na(wui)] <- 0
 wui <- mutate(wui, totalWUI=intermix + interface)
 names(wui)[1] <- "pt_name"
 
-# reorganize landscape metrics
-lsm <- lsm %>% 
-        filter(metric!="pafrac") %>%
-        mutate(buffer=replace(buffer, buffer==4370.200, 15)) %>%
-        mutate(buffer=replace(buffer, buffer==4370.200, 15)) %>%
-        mutate(buffer=replace(buffer, buffer==6180.38, 30)) %>%
-        mutate(buffer=replace(buffer, buffer==8740.388, 60)) %>%
-        pivot_wider(names_from=metric, values_from=value) %>%
-        rename(buffsize=buffer, pt_name=plot_id) 
-        
 # Create categorical variable for buildings
 build <- build %>% mutate(build_cat=case_when(
                              nbuildings<1 ~ "None",
@@ -129,7 +118,6 @@ dat <- dat %>% select(RegionalID:n.compounds.MO, n.compounds.T,buffsize,radius)
 dat <- left_join(dat, ag, by=c("pt_name", "buffsize")) %>%
   left_join(forest, by=c("pt_name", "buffsize")) %>%
   left_join(wui, by=c("pt_name", "buffsize", "radius")) %>%
-  left_join(lsm, by=c("pt_name", "buffsize")) %>%
   left_join(build, by=c("pt_name", "buffsize")) %>%
   left_join(baa, by=c("pt_name", "buffsize"))
 
