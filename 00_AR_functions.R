@@ -392,18 +392,103 @@ logistic_pred_wui <- function(fixed, random, compound, sex, meanAge, meanWUI, me
 }
 
 
+## reorganize data for anlaysis
+covar_org <- function(dat) {
+  # Make random effects factors
+  dat$WMU <- as.factor(dat$WMU)
+  dat$year <- factor(dat$year)
+  dat$RegionalID <- factor(dat$RegionalID)
+  
+  ## Percent agriculture
+  pctAG <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, pasture, crops, totalag) %>% 
+    distinct() %>% 
+    group_by(RegionalID) %>% 
+    pivot_wider(names_from=buffsize, values_from=c(pasture, crops, totalag)) %>% 
+    as.data.frame()
+  
+  ## Beech basal area
+  baa1 <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, BMI, laggedBMI, BBA, beechnuts, lag_beechnuts) %>% 
+    distinct() %>% 
+    group_by(RegionalID) %>% 
+    pivot_wider(names_from=buffsize, values_from=c(BMI, laggedBMI, BBA, beechnuts, lag_beechnuts), values_fn=unique) %>% 
+    as.data.frame()
+  
+  ## Percent forest
+  pctFOR <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, deciduous, evergreen, mixed, totalforest) %>% 
+    distinct() %>% 
+    group_by(RegionalID) %>% 
+    pivot_wider(names_from=buffsize, values_from=c(deciduous, evergreen, mixed, totalforest)) %>% 
+    as.data.frame()
+  
+  ## Number of buildings
+  build1 <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, nbuildings, build_cat) %>%
+    distinct() %>% 
+    group_by(RegionalID) %>% 
+    pivot_wider(names_from=buffsize, values_from=c(nbuildings, build_cat), values_fn=unique) %>% 
+    as.data.frame()
+  
+  ## Wildland-urban interface
+  intermix1 <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, radius, intermix) %>%
+    unite("buffrad", 4:5, sep="_") %>% 
+    group_by(RegionalID) %>% 
+    pivot_wider(names_from=buffrad, values_from=intermix) %>% 
+    as.data.frame()
+  names(intermix1)[4:12] <- c("mix_15_100", "mix_30_100", "mix_60_100",
+                              "mix_15_250", "mix_30_250", "mix_60_250",
+                              "mix_15_500", "mix_30_500", "mix_60_500") 
+  
+  interface1  <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, radius, interface) %>%
+    unite("buffrad", 4:5, sep="_") %>% 
+    group_by(RegionalID) %>% 
+    pivot_wider(names_from=buffrad, values_from=interface) %>% 
+    as.data.frame()
+  names(interface1)[4:12] <- c("face_15_100", "face_30_100", "face_60_100",
+                               "face_15_250", "face_30_250", "face_60_250",
+                               "face_15_500", "face_30_500", "face_60_500") 
+  
+  wui1  <- dat %>% select(RegionalID, pt_name, pt_index, buffsize, radius, totalWUI) %>%
+    unite("buffrad", 4:5, sep="_") %>% 
+    group_by(RegionalID) %>% 
+    pivot_wider(names_from=buffrad, values_from=totalWUI) %>% 
+    as.data.frame()
+  names(wui1)[4:12] <- c("wui_15_100", "wui_30_100", "wui_60_100",
+                         "wui_15_250", "wui_30_250", "wui_60_250",
+                         "wui_15_500", "wui_30_500", "wui_60_500") 
+  
+  #### Set up data to run for each combination of covariates ####
+  dat1 <- dat %>% select(RegionalID:Town,bin.exp,bin.exp.ntr,beechnuts,lag_beechnuts) %>% distinct() %>%
+    left_join(pctAG, by=c("RegionalID", "pt_name", "pt_index")) %>%
+    left_join(pctFOR, by=c("RegionalID", "pt_name", "pt_index")) %>%
+    left_join(baa1, by=c("RegionalID", "pt_name", "pt_index")) %>%
+    left_join(intermix1, by=c("RegionalID", "pt_name", "pt_index")) %>%
+    left_join(interface1, by=c("RegionalID", "pt_name", "pt_index")) %>%
+    left_join(wui1, by=c("RegionalID", "pt_name", "pt_index")) %>%
+    left_join(build1, by=c("RegionalID", "pt_name", "pt_index"))
+  dat1$Sex[dat1$RegionalID=="2019-7709" | dat1$RegionalID=="2020-70001"] <- "F"
+  return(dat1)
+}
 
 
+## Function for calculating variances for parameters (based on math in Blanchong et al 2006 WSB 34(3))
 
+# m is the number of imputations (10), U should be a vector of estimated variances from each imputation
+u_bar <- function(U, m) {
+  ubar <- (1/m) * sum(U)
+  return(ubar)
+}
 
+# Between-imputation variance
+# q is vector of sample variances 
+B <- function(m, q) {
+  Q <- mean(q)
+  b <- (1/(m-1))*sum((q-Q)^2)
+  return(b)
+}
 
-
-# create empty data frame to store
-# full_vals <- matrix(NA, ncol=100+1, nrow=nrow(diph_re))
-# full_vals <- data.frame()
-# full_vals <- bind_rows(full_vals, as.data.frame(t(1:100)))
-# 
-# full_vals$level <- diph_re$grp[1:43]
-# 
-# # crete a sequence of values to estimate for age
-# age_iter <- seq(0.5, 8.5, length.out=100)
+# Total variance
+total_var <- function(u_bar, m, B) {
+  
+  Tvar <- u_bar + (1+(1/m))*B
+  return(Tvar)
+  
+}

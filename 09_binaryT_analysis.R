@@ -13,7 +13,7 @@ dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") %>% rename(BBA=baa
 
 # Individual compounds
 dat2 <- read_csv("output/summarized_AR_results.csv") %>%
-          filter(compound=="Diphacinone" | compound=="Brodifacoum" | compound=="Bromadiolone") %>%
+          filter(compound=="Diphacinone" | compound=="Brodifacoum" | compound=="Bromadiolone" | compound=="Dicoumarol") %>%
           select(RegionalID,compound,bin.exp,bin.exp.ntr)
 dat <- left_join(dat, dat2, by="RegionalID") %>%
         rename(catAge=AgeClass)

@@ -167,6 +167,10 @@ write_csv(dat, "data/analysis-ready/combined_AR_covars.csv")
 
 ggplot(dat, aes(x=rand_x, y=rand_y, color=factor(Region))) + geom_point() + theme_bw()
 
+d_bin <- dat %>% mutate(binT = if_else(n.compounds.T>=1, 1, 0))
+
+ggplot(d_bin, aes(x=rand_x, y=rand_y, color=factor(binT))) + geom_point() + theme_bw()
+
 
 #### Semivariogram ####
 dat1 <- dat %>% select(RegionalID,rand_x,rand_y, Region, n.compounds.T)

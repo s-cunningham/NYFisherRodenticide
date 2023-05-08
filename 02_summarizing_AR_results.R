@@ -64,10 +64,13 @@ for (i in 10:20) {
 }
 
 ## write wide data
-# write_csv(dat, "output/AR_results_wide.csv")
+write_csv(dat, "output/AR_results_wide.csv")
+
+# Separate dicoumarol
+dicoum <- dat %>% select(RegionalID:Town, Dicoumarol)
 
 ## Convert to long format for ggplotting and later analysis
-datl <- as.data.frame(pivot_longer(dat, cols=11:21, names_to="compound", values_to="ppm"))
+datl <- dat %>% pivot_longer(cols=c(11:21), names_to="compound", values_to="ppm")
 
 # Remove compounds with no detections
 datl <- datl[datl$compound!="Pindone" & datl$compound!="Coumafuryl" & 
@@ -85,22 +88,35 @@ datl$bin.exp.ntr <- ifelse(datl$exposure=="measured", 1, 0)
 # write to file
 # write_csv(datl, "output/summarized_AR_results.csv")
 
-## Summarize by number of compounds
+brod <- datl %>% filter(compound=="Brodifacoum") %>% select(RegionalID:Town, bin.exp, bin.exp.ntr)
+brom <- datl %>% filter(compound=="Bromadiolone") %>% select(RegionalID:Town, bin.exp, bin.exp.ntr)
+diph <- datl %>% filter(compound=="Diphacinone") %>% select(RegionalID:Town, bin.exp, bin.exp.ntr)
+dico <- datl %>% filter(compound=="Dicoumarol") %>% select(RegionalID:Town, bin.exp, bin.exp.ntr)
 
+write_csv(brod,"output/binary_brodifacoum.csv")
+write_csv(brom,"output/binary_bromadiolone.csv")
+write_csv(diph,"output/binary_diphacinone.csv")
+write_csv(dico,"output/binary_dicoumarol.csv")
+
+## Summarize by number of compounds
 # look at years
 yr <- dat[,c(1:7)]
 
 # with trace
-dat2 <- datl %>% group_by(RegionalID) %>% summarize(n.compounds=sum(bin.exp))
+dat2 <- datl %>% group_by(RegionalID) %>%
+          filter(compound!="Dicoumarol") %>%
+          summarize(n.compounds=sum(bin.exp))
 dat2 <- left_join(dat2, yr, by="RegionalID") %>%
           select(RegionalID, year:key, n.compounds)
-# write.csv(dat2, "output/ncompounds_trace.csv")
+write.csv(dat2, "output/ncompounds_trace.csv")
 
 # without trace
-dat3 <- datl %>% group_by(RegionalID) %>% summarize(n.compounds=sum(bin.exp.ntr))
+dat3 <- datl %>% group_by(RegionalID) %>% 
+          filter(compound!="Dicoumarol") %>%
+          summarize(n.compounds=sum(bin.exp.ntr))
 dat3 <- left_join(dat3, yr, by="RegionalID")%>%
           select(RegionalID, year:key, n.compounds)
-# write.csv(dat3, "output/ncompounds_notrace.csv")
+write.csv(dat3, "output/ncompounds_notrace.csv")
 
 dat2s <- dat2 %>% group_by(n.compounds, year) %>% count()
 dat2s$Trace <- "yes"
@@ -126,6 +142,8 @@ ggplot(dat2) +
 ggplot(dat3) +
   geom_tile(aes(x=RegionalID, y=n.compounds, fill=n.compounds), color="black") +
   facet_grid(year~., space="free_y", scales="free")
+
+
 
 # plot by concentration
 ggplot(datl) +
