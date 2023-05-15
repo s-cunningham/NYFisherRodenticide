@@ -8,9 +8,6 @@ dat <- read_csv("output/summarized_AR_results.csv")
 trace_y <- read_csv("output/ncompounds_trace.csv") %>% 
   select(RegionalID, n.compounds) %>%
   rename(n.compounds.T=n.compounds)
-trace_n <- read_csv("output/ncompounds_notrace.csv") %>% 
-  select(RegionalID, n.compounds) %>%
-  rename(n.compounds.MO=n.compounds)
 wui100 <- read_csv("data/analysis-ready/wui100_frac.csv") %>%
   filter(value==1 | value==2) %>%
   filter(complete.cases(.))
@@ -31,7 +28,7 @@ mast <- read_csv("data/analysis-ready/ALTEMP26_beech-data.csv")
 
 #### Combine data ####
 ## Number of compounds detected
-ncomps <- left_join(trace_n, trace_y, by="RegionalID")
+# ncomps <- left_join(trace_n, trace_y, by="RegionalID")
 
 ## Save details of each sample
 dets <- dat %>% select(RegionalID:WMU,Town) %>% distinct()
@@ -101,7 +98,7 @@ build <- build %>% mutate(build_cat=case_when(
 ## Joining data
 # Join location, age & sex details to random points
 dets <- left_join(pts, dets, by="RegionalID")
-dat <- left_join(dets, ncomps, by="RegionalID")
+dat <- left_join(dets, trace_y, by="RegionalID")
 dat <- separate(dat, 2, into=c("id", "pt_index"), sep="_", remove=FALSE) 
 dat <- dat[,-c(3)]
 dat$pt_index <- as.numeric(dat$pt_index)
@@ -112,7 +109,7 @@ dat <- bind_rows(dat, dat, dat)
 dat$buffsize <- rep(c(15,30,60), each=3380) # buffer sizes
 dat <- bind_rows(dat, dat, dat)
 dat$radius <- rep(c(100,250,500), each=10140) # WUI radius sizes
-dat <- dat %>% select(RegionalID:n.compounds.MO, n.compounds.T,buffsize,radius)
+dat <- dat %>% select(RegionalID:n.compounds.T,buffsize,radius)
 
 # join covariate data
 dat <- left_join(dat, ag, by=c("pt_name", "buffsize")) %>%
@@ -155,11 +152,8 @@ dat <- dat %>% mutate(beechnuts=case_when(
                           year==2020 ~ 295))
 
 
-# mast_mean <- mean(mast$Total_Beechnuts)
-# mast_median <- median(mast$Total_Beechnuts)
-# mast_max <- max(mast$Total_Beechnuts)
-# mast$devMean <- mast$Total_Beechnuts - mast_mean
-# mast$devMedian <- mast$Total_Beechnuts - mast_median
+
+dat %>% filter(pt_index==1 & radius==100 & buffsize==15) %>% group_by(n.compounds.T) %>% count()
 
 ### Save data to file ####
 write_csv(dat, "data/analysis-ready/combined_AR_covars.csv")
@@ -172,32 +166,10 @@ d_bin <- dat %>% mutate(binT = if_else(n.compounds.T>=1, 1, 0))
 ggplot(d_bin, aes(x=rand_x, y=rand_y, color=factor(binT))) + geom_point() + theme_bw()
 
 
-#### Semivariogram ####
-dat1 <- dat %>% select(RegionalID,rand_x,rand_y, Region, n.compounds.T)
-dat1 <- unique(dat1)
-sp::coordinates(dat1) <- ~rand_x+rand_y
-vario <- gstat::variogram(n.compounds.T~1, data=dat1)
-plot(vario)
 
-## Moran's I
-midat <- dat[dat$pt_index==1,c(1,4:10,16)]
-midat$binary.T <- ifelse(midat$n.compounds.T==0, 0, 1)
-midat <- distinct(midat)
 
-# Create distance matrix
-ar.dists <- as.matrix(dist(cbind(midat$rand_x, midat$rand_y)))
 
-# create inverse distance matrix
-ar.dists.inv <- 1/ar.dists
-diag(ar.dists.inv) <- 0
-ar.dists.inv[1:5, 1:5]
 
-# Moran's I
-ape::Moran.I(midat$n.compounds.T, ar.dists.inv)
-
-# Binary distance matrix, where d=50 km
-ar.dists.bin <- (ar.dists >0 & ar.dists <= 50000)
-ape::Moran.I(midat$n.compounds.T, ar.dists.bin)
 
 #### Plot covariate values ####
 dat100 <- dat[dat$radius==100,]

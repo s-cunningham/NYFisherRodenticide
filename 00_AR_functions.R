@@ -11,11 +11,17 @@ logistic_pred_age <- function(fixed, random, compound, sex, meanWUI, meanPasture
   # create empty data frame to store
   full_vals <- data.frame()
   
+  lcl <- data.frame()
+  ucl <- data.frame()
+  
   # Loop over each level of random effect
   for (j in 1:nrow(random)) {
     
     # Empty vector for each level of random effect
     exp_val <- c()
+    
+    lcl <- data.frame()
+    ucl <- data.frame()
     
     # Loop over values of age
     for (i in 1:length(age_iter)) {
@@ -30,15 +36,35 @@ logistic_pred_age <- function(fixed, random, compound, sex, meanWUI, meanPasture
                                 fixed$mast[1]*meanMast + 
                                 fixed$intx_beech[1]*meanBBA*meanMast +
                                 random$REval[j])
+ 
+      lcl_val[i] <- inv.logit(fixed$intercept[4] + 
+                                fixed$SexM[4]*sex + 
+                                fixed$Age[4]*age_iter[i] + 
+                                fixed$Age2[4]*(age_iter[i]^2) +
+                                fixed$WUI[4]*meanWUI + 
+                                fixed$pasture[4]*meanPasture + 
+                                fixed$basalarea[4]*meanBBA +
+                                fixed$mast[4]*meanMast + 
+                                fixed$intx_beech[4]*meanBBA*meanMast +
+                                random$REval[j])
       
-      # Does RE need to be weighted somehow?
-      # level_probs <- random %>% group_by(grp) %>% summarize(wmu_prop=n()/nrow(random))
-      
+      ucl_val[i] <- inv.logit(fixed$intercept[5] + 
+                                fixed$SexM[5]*sex + 
+                                fixed$Age[5]*age_iter[i] + 
+                                fixed$Age2[5]*(age_iter[i]^2) +
+                                fixed$WUI[5]*meanWUI + 
+                                fixed$pasture[5]*meanPasture + 
+                                fixed$basalarea[5]*meanBBA +
+                                fixed$mast[5]*meanMast + 
+                                fixed$intx_beech[5]*meanBBA*meanMast +
+                                random$REval[j])
     }
     
     # Save the expected values to data frame
     full_vals <- bind_rows(full_vals, as.data.frame(t(exp_val)))
     
+    lcl <- bind_rows(lcl, as.data.frame(t(lcl_val)))
+    ucl <- bind_rows(ucl, as.data.frame(t(ucl_val)))
   }
   
   names(full_vals) <- 1:lo
@@ -55,17 +81,37 @@ logistic_pred_age <- function(fixed, random, compound, sex, meanWUI, meanPasture
   
   full_vals <- full_vals %>% select(compound, sex, level, Age, index, exp_val)
   
+  # Add confidence interval
+  names(lcl) <- 1:lo
+  lcl$level <- random$grp
+  
+  lcl <- pivot_longer(lcl, 1:100, names_to="index", values_to="prob_2pt5") %>%
+    mutate_at(c('index', 'prob_2pt5'), as.numeric)
+  
+  full_vals <- left_join(full_vals, lcl, by=c("level", "index"))
+  
+  names(ucl) <- 1:lo
+  ucl$level <- random$grp
+  
+  ucl <- pivot_longer(ucl, 1:100, names_to="index", values_to="prob_97pt5") %>%
+    mutate_at(c('index', 'prob_97pt5'), as.numeric)
+  
+  full_vals <- left_join(full_vals, ucl, by=c("level", "index"))
+  
   return(full_vals)
   
 }
 
 poisson_pred_age <- function(fixed, random, sex, meanWUI, meanPasture, meanBBA, meanMast, ageStart, ageEnd, lo) {
   
-  # crete a sequence of values to estimate for age
+  # create a sequence of values to estimate for age
   age_iter <- seq(ageStart, ageEnd, length.out=lo)
   
   # create empty data frame to store
   full_vals <- data.frame()
+  
+  lcl <- data.frame()
+  ucl <- data.frame()
   
   # Loop over each level of random effect
   for (j in 1:nrow(random)) {
@@ -73,9 +119,14 @@ poisson_pred_age <- function(fixed, random, sex, meanWUI, meanPasture, meanBBA, 
     # Empty vector for each level of random effect
     exp_val <- c()
     
+    # Empty vector for confidence interval
+    lcl_val <- c()
+    ucl_val <- c()
+    
     # Loop over values of age
     for (i in 1:length(age_iter)) {
       
+      # Expected value
       exp_val[i] <- exp(fixed$intercept[1] + 
                           fixed$SexM[1]*sex + 
                           fixed$Age[1]*age_iter[i] + 
@@ -86,19 +137,41 @@ poisson_pred_age <- function(fixed, random, sex, meanWUI, meanPasture, meanBBA, 
                           fixed$mast[1]*meanMast + 
                           fixed$intx_beech[1]*meanBBA*meanMast +
                           random$REval[j])
+      
+      # Lower confidence interval
+      lcl_val[i] <- exp(fixed$intercept[4] + 
+                          fixed$SexM[4]*sex + 
+                          fixed$Age[4]*age_iter[i] + 
+                          fixed$Age2[4]*(age_iter[i]^2) +
+                          fixed$WUI[4]*meanWUI + 
+                          fixed$pasture[4]*meanPasture + 
+                          fixed$basalarea[4]*meanBBA +
+                          fixed$mast[4]*meanMast + 
+                          fixed$intx_beech[4]*meanBBA*meanMast +
+                          random$REval[j])
+      
+      # Upper confidence interval
+      ucl_val[i] <- exp(fixed$intercept[5] + 
+                          fixed$SexM[5]*sex + 
+                          fixed$Age[5]*age_iter[i] + 
+                          fixed$Age2[5]*(age_iter[i]^2) +
+                          fixed$WUI[5]*meanWUI + 
+                          fixed$pasture[5]*meanPasture + 
+                          fixed$basalarea[5]*meanBBA +
+                          fixed$mast[5]*meanMast + 
+                          fixed$intx_beech[5]*meanBBA*meanMast +
+                          random$REval[j])    
     }
     
     # Save the expected values to data frame
     full_vals <- bind_rows(full_vals, as.data.frame(t(exp_val)))
     
+    lcl <- bind_rows(lcl, as.data.frame(t(lcl_val)))
+    ucl <- bind_rows(ucl, as.data.frame(t(ucl_val)))
+    
   }
   
-  # Does RE need to be weighted somehow? maybe in calculating the mean?
-  # level_probs <- random %>% 
-  #                   group_by(grp) %>% 
-  #                   summarize(wmu_prop=n()/nrow(random)) %>%
-  #                   rename(level=grp)
-  
+  # Expected value
   names(full_vals) <- 1:lo
   full_vals$level <- random$grp
   
@@ -111,7 +184,23 @@ poisson_pred_age <- function(fixed, random, sex, meanWUI, meanPasture, meanBBA, 
   full_vals$sex <- ifelse(sex==1, "Male", "Female")
   
   full_vals <- full_vals %>% select(sex, level, Age, index, exp_val)
-  # full_vals <- left_join(full_vals, level_probs, by="level")
+  
+  # Confidence interval
+  names(lcl) <- 1:lo
+  lcl$level <- random$grp
+  
+  lcl <- pivot_longer(lcl, 1:100, names_to="index", values_to="prob_2pt5") %>%
+    mutate_at(c('index', 'prob_2pt5'), as.numeric)
+  
+  full_vals <- left_join(full_vals, lcl, by=c("level", "index"))
+  
+  names(ucl) <- 1:lo
+  ucl$level <- random$grp
+
+  ucl <- pivot_longer(ucl, 1:100, names_to="index", values_to="prob_97pt5") %>%
+    mutate_at(c('index', 'prob_97pt5'), as.numeric)
+  
+  full_vals <- left_join(full_vals, ucl, by=c("level", "index"))
   
   return(full_vals)
   
@@ -126,11 +215,18 @@ logistic_pred_mast <- function(fixed, random, compound, sex, meanWUI, meanPastur
   # create empty data frame to store
   full_vals <- data.frame()
   
+  lcl <- data.frame()
+  ucl <- data.frame()
+  
   # Loop over each level of random effect
   for (j in 1:nrow(random)) {
     
     # Empty vector for each level of random effect
     exp_val <- c()
+    
+    # Empty vector for confidence interval
+    lcl_val <- c()
+    ucl_val <- c()
     
     # Loop over values of age
     for (i in 1:length(mast_iter)) {
@@ -146,14 +242,34 @@ logistic_pred_mast <- function(fixed, random, compound, sex, meanWUI, meanPastur
                                 fixed$intx_beech[1]*meanBBA*mast_iter[i] +
                                 random$REval[j])
       
-      # Does RE need to be weighted somehow?
-      # level_probs <- random %>% group_by(grp) %>% summarize(wmu_prop=n()/nrow(random))
+      lcl_val[i] <- inv.logit(fixed$intercept[4] + 
+                                fixed$SexM[4]*sex + 
+                                fixed$Age[4]*meanAge + 
+                                fixed$Age2[4]*(meanAge^2) +
+                                fixed$WUI[4]*meanWUI + 
+                                fixed$pasture[4]*meanPasture + 
+                                fixed$basalarea[4]*meanBBA +
+                                fixed$mast[4]*mast_iter[i] + 
+                                fixed$intx_beech[4]*meanBBA*mast_iter[i] +
+                                random$REval[j])
       
+      ucl_val[i] <- inv.logit(fixed$intercept[5] + 
+                                fixed$SexM[5]*sex + 
+                                fixed$Age[5]*meanAge + 
+                                fixed$Age2[5]*(meanAge^2) +
+                                fixed$WUI[5]*meanWUI + 
+                                fixed$pasture[5]*meanPasture + 
+                                fixed$basalarea[5]*meanBBA +
+                                fixed$mast[5]*mast_iter[i] + 
+                                fixed$intx_beech[5]*meanBBA*mast_iter[i] +
+                                random$REval[j])
     }
     
     # Save the expected values to data frame
     full_vals <- bind_rows(full_vals, as.data.frame(t(exp_val)))
     
+    lcl <- bind_rows(lcl, as.data.frame(t(lcl_val)))
+    ucl <- bind_rows(ucl, as.data.frame(t(ucl_val)))    
   }
   
   names(full_vals) <- 1:lo
@@ -170,6 +286,23 @@ logistic_pred_mast <- function(fixed, random, compound, sex, meanWUI, meanPastur
   
   full_vals <- full_vals %>% select(compound, sex, level, Mast, index, exp_val)
   
+  # Add confidence interval
+  names(lcl) <- 1:lo
+  lcl$level <- random$grp
+  
+  lcl <- pivot_longer(lcl, 1:100, names_to="index", values_to="prob_2pt5") %>%
+    mutate_at(c('index', 'prob_2pt5'), as.numeric)
+  
+  full_vals <- left_join(full_vals, lcl, by=c("level", "index"))
+  
+  names(ucl) <- 1:lo
+  ucl$level <- random$grp
+  
+  ucl <- pivot_longer(ucl, 1:100, names_to="index", values_to="prob_97pt5") %>%
+    mutate_at(c('index', 'prob_97pt5'), as.numeric)
+  
+  full_vals <- left_join(full_vals, ucl, by=c("level", "index"))
+  
   return(full_vals)
   
 }
@@ -182,11 +315,18 @@ poisson_pred_mast <- function(fixed, random, sex, meanWUI, meanPasture, meanBBA,
   # create empty data frame to store
   full_vals <- data.frame()
   
+  lcl <- data.frame()
+  ucl <- data.frame()
+  
   # Loop over each level of random effect
   for (j in 1:nrow(random)) {
     
     # Empty vector for each level of random effect
     exp_val <- c()
+    
+    # Empty vector for confidence interval
+    lcl_val <- c()
+    ucl_val <- c()
     
     # Loop over values of age
     for (i in 1:length(mast_iter)) {
@@ -202,10 +342,35 @@ poisson_pred_mast <- function(fixed, random, sex, meanWUI, meanPasture, meanBBA,
                           fixed$intx_beech[1]*meanBBA*mast_iter[i] +
                           random$REval[j])
       
+      lcl_val[i] <- exp(fixed$intercept[4] + 
+                          fixed$SexM[4]*sex + 
+                          fixed$Age[4]*meanAge + 
+                          fixed$Age2[4]*(meanAge^2) +
+                          fixed$WUI[4]*meanWUI +
+                          fixed$pasture[4]*meanPasture + 
+                          fixed$basalarea[4]*meanBBA +
+                          fixed$mast[4]*mast_iter[i] + 
+                          fixed$intx_beech[4]*meanBBA*mast_iter[i] +
+                          random$REval[j])      
+      
+      ucl_val[i] <- exp(fixed$intercept[5] + 
+                          fixed$SexM[5]*sex + 
+                          fixed$Age[5]*meanAge + 
+                          fixed$Age2[5]*(meanAge^2) +
+                          fixed$WUI[5]*meanWUI +
+                          fixed$pasture[5]*meanPasture + 
+                          fixed$basalarea[5]*meanBBA +
+                          fixed$mast[5]*mast_iter[i] + 
+                          fixed$intx_beech[5]*meanBBA*mast_iter[i] +
+                          random$REval[j])     
+      
     }
     
     # Save the expected values to data frame
     full_vals <- bind_rows(full_vals, as.data.frame(t(exp_val)))
+    
+    lcl <- bind_rows(lcl, as.data.frame(t(lcl_val)))
+    ucl <- bind_rows(ucl, as.data.frame(t(ucl_val)))    
     
   }
   
@@ -221,7 +386,23 @@ poisson_pred_mast <- function(fixed, random, sex, meanWUI, meanPasture, meanBBA,
   full_vals$sex <- ifelse(sex==1, "Male", "Female")
   
   full_vals <- full_vals %>% select(sex, level, Mast, index, exp_val)
-  # full_vals <- left_join(full_vals, level_probs, by="level")
+  
+  # Add confidence interval
+  names(lcl) <- 1:lo
+  lcl$level <- random$grp
+  
+  lcl <- pivot_longer(lcl, 1:100, names_to="index", values_to="prob_2pt5") %>%
+    mutate_at(c('index', 'prob_2pt5'), as.numeric)
+  
+  full_vals <- left_join(full_vals, lcl, by=c("level", "index"))
+  
+  names(ucl) <- 1:lo
+  ucl$level <- random$grp
+  
+  ucl <- pivot_longer(ucl, 1:100, names_to="index", values_to="prob_97pt5") %>%
+    mutate_at(c('index', 'prob_97pt5'), as.numeric)
+  
+  full_vals <- left_join(full_vals, ucl, by=c("level", "index"))
   
   return(full_vals)
   
@@ -236,11 +417,18 @@ logistic_pred_wui <- function(fixed, random, compound, sex, meanAge, meanPasture
   # create empty data frame to store
   full_vals <- data.frame()
   
+  lcl <- data.frame()
+  ucl <- data.frame()
+  
   # Loop over each level of random effect
   for (j in 1:nrow(random)) {
     
     # Empty vector for each level of random effect
     exp_val <- c()
+    
+    # Empty vector for confidence interval
+    lcl_val <- c()
+    ucl_val <- c()
     
     # Loop over values of age
     for (i in 1:length(wui_iter)) {
@@ -256,14 +444,35 @@ logistic_pred_wui <- function(fixed, random, compound, sex, meanAge, meanPasture
                                 fixed$intx_beech[1]*meanBBA*meanMast +
                                 random$REval[j])
       
-      # Does RE need to be weighted somehow?
-      # level_probs <- random %>% group_by(grp) %>% summarize(wmu_prop=n()/nrow(random))
+      lcl_val[i] <- inv.logit(fixed$intercept[4] + 
+                                fixed$SexM[4]*sex + 
+                                fixed$Age[4]*meanAge + 
+                                fixed$Age2[4]*(meanAge^2) +
+                                fixed$WUI[4]*wui_iter[i] + 
+                                fixed$pasture[4]*meanPasture + 
+                                fixed$basalarea[4]*meanBBA +
+                                fixed$mast[4]*meanMast + 
+                                fixed$intx_beech[4]*meanBBA*meanMast +
+                                random$REval[j])
+      
+      ucl_val[i] <- inv.logit(fixed$intercept[5] + 
+                                fixed$SexM[5]*sex + 
+                                fixed$Age[5]*meanAge + 
+                                fixed$Age2[5]*(meanAge^2) +
+                                fixed$WUI[5]*wui_iter[i] + 
+                                fixed$pasture[5]*meanPasture + 
+                                fixed$basalarea[5]*meanBBA +
+                                fixed$mast[5]*meanMast + 
+                                fixed$intx_beech[5]*meanBBA*meanMast +
+                                random$REval[j])
       
     }
     
     # Save the expected values to data frame
     full_vals <- bind_rows(full_vals, as.data.frame(t(exp_val)))
     
+    lcl <- bind_rows(lcl, as.data.frame(t(lcl_val)))
+    ucl <- bind_rows(ucl, as.data.frame(t(ucl_val)))    
   }
   
   names(full_vals) <- 1:lo
@@ -280,6 +489,23 @@ logistic_pred_wui <- function(fixed, random, compound, sex, meanAge, meanPasture
   
   full_vals <- full_vals %>% select(compound, sex, level, WUI, index, exp_val)
   
+  # Add confidence interval
+  names(lcl) <- 1:lo
+  lcl$level <- random$grp
+  
+  lcl <- pivot_longer(lcl, 1:100, names_to="index", values_to="prob_2pt5") %>%
+    mutate_at(c('index', 'prob_2pt5'), as.numeric)
+  
+  full_vals <- left_join(full_vals, lcl, by=c("level", "index"))
+  
+  names(ucl) <- 1:lo
+  ucl$level <- random$grp
+  
+  ucl <- pivot_longer(ucl, 1:100, names_to="index", values_to="prob_97pt5") %>%
+    mutate_at(c('index', 'prob_97pt5'), as.numeric)
+  
+  full_vals <- left_join(full_vals, ucl, by=c("level", "index"))
+  
   return(full_vals)
   
 }
@@ -292,11 +518,18 @@ poisson_pred_wui <- function(fixed, random, sex, meanAge, meanPasture, meanBBA, 
   # create empty data frame to store
   full_vals <- data.frame()
   
+  lcl <- data.frame()
+  ucl <- data.frame()
+  
   # Loop over each level of random effect
   for (j in 1:nrow(random)) {
     
     # Empty vector for each level of random effect
     exp_val <- c()
+    
+    # Empty vector for confidence interval
+    lcl_val <- c()
+    ucl_val <- c()
     
     # Loop over values of age
     for (i in 1:length(wui_iter)) {
@@ -312,10 +545,34 @@ poisson_pred_wui <- function(fixed, random, sex, meanAge, meanPasture, meanBBA, 
                           fixed$intx_beech[1]*meanBBA*meanMast +
                           random$REval[j])
       
+      lcl_val[i] <- exp(fixed$intercept[4] + 
+                          fixed$SexM[4]*sex + 
+                          fixed$Age[4]*meanAge + 
+                          fixed$Age2[4]*(meanAge^2) +
+                          fixed$WUI[4]*wui_iter[i] +
+                          fixed$pasture[4]*meanPasture + 
+                          fixed$basalarea[4]*meanBBA +
+                          fixed$mast[4]*meanMast + 
+                          fixed$intx_beech[4]*meanBBA*meanMast +
+                          random$REval[j])
+      
+      ucl_val[i] <- exp(fixed$intercept[5] + 
+                          fixed$SexM[5]*sex + 
+                          fixed$Age[5]*meanAge + 
+                          fixed$Age2[5]*(meanAge^2) +
+                          fixed$WUI[5]*wui_iter[i] +
+                          fixed$pasture[5]*meanPasture + 
+                          fixed$basalarea[5]*meanBBA +
+                          fixed$mast[5]*meanMast + 
+                          fixed$intx_beech[5]*meanBBA*meanMast +
+                          random$REval[j])
     }
     
     # Save the expected values to data frame
     full_vals <- bind_rows(full_vals, as.data.frame(t(exp_val)))
+    
+    lcl <- bind_rows(lcl, as.data.frame(t(lcl_val)))
+    ucl <- bind_rows(ucl, as.data.frame(t(ucl_val)))   
     
   }
   
@@ -331,7 +588,23 @@ poisson_pred_wui <- function(fixed, random, sex, meanAge, meanPasture, meanBBA, 
   full_vals$sex <- ifelse(sex==1, "Male", "Female")
   
   full_vals <- full_vals %>% select(sex, level, WUI, index, exp_val)
-  # full_vals <- left_join(full_vals, level_probs, by="level")
+  
+  # Add confidence interval
+  names(lcl) <- 1:lo
+  lcl$level <- random$grp
+  
+  lcl <- pivot_longer(lcl, 1:100, names_to="index", values_to="prob_2pt5") %>%
+    mutate_at(c('index', 'prob_2pt5'), as.numeric)
+  
+  full_vals <- left_join(full_vals, lcl, by=c("level", "index"))
+  
+  names(ucl) <- 1:lo
+  ucl$level <- random$grp
+  
+  ucl <- pivot_longer(ucl, 1:100, names_to="index", values_to="prob_97pt5") %>%
+    mutate_at(c('index', 'prob_97pt5'), as.numeric)
+  
+  full_vals <- left_join(full_vals, ucl, by=c("level", "index"))
   
   return(full_vals)
   
@@ -346,11 +619,18 @@ logistic_pred_wui <- function(fixed, random, compound, sex, meanAge, meanWUI, me
   # create empty data frame to store
   full_vals <- data.frame()
   
+  lcl <- data.frame()
+  ucl <- data.frame()
+  
   # Loop over each level of random effect
   for (j in 1:nrow(random)) {
     
     # Empty vector for each level of random effect
     exp_val <- c()
+    
+    # Empty vector for confidence interval
+    lcl_val <- c()
+    ucl_val <- c()
     
     # Loop over values of age
     for (i in 1:length(ag_iter)) {
@@ -365,12 +645,35 @@ logistic_pred_wui <- function(fixed, random, compound, sex, meanAge, meanWUI, me
                                 fixed$mast[1]*meanMast + 
                                 fixed$intx_beech[1]*meanBBA*meanMast +
                                 random$REval[j])
-    
+      
+      lcl_val[i] <- inv.logit(fixed$intercept[4] + 
+                                fixed$SexM[4]*sex + 
+                                fixed$Age[4]*meanAge + 
+                                fixed$Age2[4]*(meanAge^2) +
+                                fixed$WUI[4]*meanWUI + 
+                                fixed$pasture[4]*ag_iter[i] + 
+                                fixed$basalarea[4]*meanBBA +
+                                fixed$mast[4]*meanMast + 
+                                fixed$intx_beech[4]*meanBBA*meanMast +
+                                random$REval[j])
+      
+      ucl_val[i] <- inv.logit(fixed$intercept[5] + 
+                                fixed$SexM[5]*sex + 
+                                fixed$Age[5]*meanAge + 
+                                fixed$Age2[5]*(meanAge^2) +
+                                fixed$WUI[5]*meanWUI + 
+                                fixed$pasture[5]*ag_iter[i] + 
+                                fixed$basalarea[5]*meanBBA +
+                                fixed$mast[5]*meanMast + 
+                                fixed$intx_beech[1]*meanBBA*meanMast +
+                                random$REval[j])
     }
     
     # Save the expected values to data frame
     full_vals <- bind_rows(full_vals, as.data.frame(t(exp_val)))
     
+    lcl <- bind_rows(lcl, as.data.frame(t(lcl_val)))
+    ucl <- bind_rows(ucl, as.data.frame(t(ucl_val)))   
   }
   
   names(full_vals) <- 1:lo
@@ -471,24 +774,12 @@ covar_org <- function(dat) {
 
 ## Function for calculating variances for parameters (based on math in Blanchong et al 2006 WSB 34(3))
 
-# m is the number of imputations (10), U should be a vector of estimated variances from each imputation
-u_bar <- function(U, m) {
-  ubar <- (1/m) * sum(U)
-  return(ubar)
-}
-
 # Between-imputation variance
 # q is vector of sample variances 
-B <- function(m, q) {
+B <- function(q) {
   Q <- mean(q)
+  m <- length(q)
   b <- (1/(m-1))*sum((q-Q)^2)
   return(b)
 }
 
-# Total variance
-total_var <- function(u_bar, m, B) {
-  
-  Tvar <- u_bar + (1+(1/m))*B
-  return(Tvar)
-  
-}

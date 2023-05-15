@@ -11,6 +11,8 @@ library(performance)
 options(scipen=999, digits=3)
 set.seed(123)
 
+source("00_AR_functions.R")
+
 #### Parallel processing ####
 nt <- min(parallel::detectCores(),4)
 
@@ -118,11 +120,8 @@ model_tab <- as.data.frame(model.list)
 model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model") %>% as_tibble()
 write_csv(model_tab, "output/model_selection/agesex_model_selection_table.csv")
 
-
-all_ag <- c(ag_formulae, crops_formulae, pasture_form)
-
 # Agriculture
-ag.models <- lapply(all_ag, FUN=glmmTMB, data=dat1, 
+ag.models <- lapply(ag_formulae, FUN=glmmTMB, data=dat1, 
                     family=compois(link = "log"), 
                     control=glmmTMBControl(parallel=nt, 
                                            profile=TRUE, 
@@ -174,10 +173,8 @@ model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model")
 model_tab
 write_csv(model_tab, "output/model_selection/building_model_selection_table.csv")
 
-
-all_wui <- c(interface_formulae, intermix_formulae, wui_formulae)
 ## WUI
-wui.models <- lapply(all_wui, FUN=glmmTMB, data=dat1, 
+wui.models <- lapply(wui_formulae, FUN=glmmTMB, data=dat1, 
                      family=compois(link = "log"), control=glmmTMBControl(parallel=nt,
                                                                           profile=TRUE, 
                                                                           optCtrl=list(iter.max=1e20,eval.max=1e20), 
@@ -203,13 +200,6 @@ model_tab <- model_tab %>% select(df:weight) %>% rownames_to_column(var="model")
 model_tab
 write_csv(model_tab, "output/model_selection/global_model_selection_table.csv")
 
-
-system.time(m1 <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + face_15_100 + (1|RegionalID), data=dat1,
-        family=compois(link = "log"), 
-        control=glmmTMBControl(parallel=nt, 
-                               profile=TRUE, 
-                               optCtrl=list(iter.max=1e19,eval.max=1e19))))
-
 #### Running iteration models ####
 
 ## Loop over each set of random points
@@ -224,6 +214,7 @@ classstats <- data.frame()
 overallstats <- data.frame()
 ranef_coef <- data.frame()
 vif <- list()
+r2cm <- list()
 
 system.time(
 # Loop over each point set
@@ -234,11 +225,15 @@ for (i in 1:10) {
   
   # Run model with deltaAICc < 2
 
-  m1_pt <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + mix_30_250 + pasture_30 + BBA_15 * lag_beechnuts + (1|WMU), data=pt, 
+  m1_pt <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + mix_15_100 + pasture_15 + BBA_15 * lag_beechnuts + (1|WMU), data=pt, 
                       family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
   
   vif[[i]] <- check_collinearity(m1_pt, "count")
   m1s <- summary(m1_pt)
+  
+  r2cm[[i]] <- r2(m1_pt, metrics="R2", ci=TRUE)
+  
+  
   
   # save averaged confidence intervals
   pct2.5 <- rbind(pct2.5, t(confint(m1_pt))[1,1:(nrow(confint(m1_pt))-1)])
@@ -248,15 +243,18 @@ for (i in 1:10) {
   m_est <- rbind(m_est, coef(m1s)$cond[,1])
   m_stderr <- rbind(m_stderr, coef(m1s)$cond[,2])
   m_zscore <- rbind(m_zscore, coef(m1s)$cond[,3])
-  
-  # broom.mixed::tidy(m1_pt)
-  
+
   m_ranef <- rbind(m_ranef, unlist(VarCorr(m1_pt)))
   
   # Save the coefficients for each level of the random effect
   ranefc <- as_tibble(ranef(m1_pt)) 
   ranefc$iter <- i
   ranef_coef <- bind_rows(ranef_coef, ranefc)
+  
+  # Checking model fit
+  simres <- simulateResiduals(m1_pt)
+  
+  resids <- residuals(m1_pt, "response")
   
   # 5-fold cross validation
   row_idx <- sample(1:5, nrow(pt), replace=TRUE)
@@ -267,7 +265,7 @@ for (i in 1:10) {
     testSet <- pt[row_idx!=j,] %>% as_tibble()
 
     # Fit model on training set
-    m1_cv <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + mix_60_250 + pasture_30 + BBA_15 * lag_beechnuts + (1|WMU), data=pt,
+    m1_cv <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + mix_15_100 + pasture_15 + BBA_15 * lag_beechnuts + (1|WMU), data=pt,
                      family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
     pred <- predict(m1_cv, newdata=testSet, type="response", se.fit=TRUE)
 
@@ -326,6 +324,12 @@ perf2 <- perf %>% as_tibble() %>%
 mean(perf2$Accuracy)
 range(perf2$Accuracy)
 
+# save VIF values
+saveRDS(vif, "results/ncompounds_VIF.rds")
+
+r2cm_out <- plyr::ldply(r2cm)
+write_csv(r2cm_out, "results/r2_glmm_ncompounds.csv")
+
 # Save averaged values for each level of random effect
 re <- ranef_coef %>% 
   group_by(grp) %>% 
@@ -335,7 +339,6 @@ write_csv(re, "results/ncompounds_random_effects_coefficients.csv")
 
 # Calculate averages for each coefficient
 coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)], na.rm=TRUE)
-stderr_avg <- colMeans(m_stderr[sapply(m_stderr, is.numeric)], na.rm=TRUE)
 zscore_avg <- colMeans(m_zscore[sapply(m_zscore, is.numeric)], na.rm=TRUE)
 pct2.5_avg <- colMeans(pct2.5[sapply(pct2.5, is.numeric)], na.rm=TRUE)
 pct97.5_avg <- colMeans(pct97.5[sapply(pct97.5, is.numeric)], na.rm=TRUE)
@@ -345,10 +348,34 @@ names(ranef_avg)[2] <- "variance"
 mean(m_est[,2])
 sd(m_est[,2])
 
+# Calculate variance
+m_var <- m_stderr**2
+u_bar <- colMeans(m_var[sapply(m_var, is.numeric)], na.rm=TRUE) # within impuation variance
+btwnimpvar <- sapply(m_est, B)
+
+total_var <- data.frame()
+for (i in 1:length(u_bar)) {
+  
+  v <- u_bar[i] + (1 + (1/10))*btwnimpvar[i]
+  total_var <- bind_rows(total_var, v)
+  
+}
+
+# consense, saving only the diagonals (removing NAs)
+coef_var <- total_var %>% summarise(across(everything(), ~ na.omit(.x)))
+
+# Calculate confidence intervals
+ucl <- coef_avg + 1.96*(sqrt(coef_var)/sqrt(338))
+lcl <- coef_avg - 1.96*(sqrt(coef_var)/sqrt(338))
+
+# Other manual calculation of 95% CIs
+(m_est + qt(0.95, 336)*m_stderr)
+m_est - qt(0.95, 336)*m_stderr
+
 # Combine and clean up data frame
-coef_summary <- bind_rows(coef_avg, stderr_avg, zscore_avg, pct2.5_avg, pct97.5_avg)
+coef_summary <- bind_rows(coef_avg, coef_var, zscore_avg, lcl, ucl, pct2.5_avg, pct97.5_avg)
 coef_summary <- as.data.frame(coef_summary)
-coefs <- c("param_est", "std_error", "z-score", "2.5CI", "97.5CI")
+coefs <- c("param_est", "std_error", "z-score", "2.5CI", "97.5CI", "2.5CIavg", "97.5CIavg")
 coef_summary <- data.frame(coef=coefs, coef_summary)
 names(coef_summary)[2] <- "Intercept"
 

@@ -13,9 +13,9 @@ theme_set(theme_classic())
 
 #### Number of compounds ####
 dat <- read_csv("output/model_data_notscaled.csv") %>%
-          select(RegionalID:Town, n.compounds.T, pasture_30, BBA_15, lag_beechnuts, mix_60_250) %>%
-          rename(WUI=mix_60_250,
-                 pasture=pasture_30,
+          select(RegionalID:Town, n.compounds.T, pasture_15, BBA_15, lag_beechnuts, mix_15_100) %>%
+          rename(WUI=mix_15_100,
+                 pasture=pasture_15,
                  basalarea=BBA_15,
                  mast=lag_beechnuts)
 # scale data
@@ -24,7 +24,7 @@ dat <- within(dat, Age.s <- scale(Age))
 dat <- within(dat, intermix.s <- scale(WUI))
 dat[,c(8,16:19)] <- scale(dat[,c(8,16:19)])
 
-# Calculate means
+# Calculate means (should be ~0 if they're scaled)
 meanWUI <- mean(dat$WUI)
 meanPasture <- mean(dat$pasture)
 meanMast <- mean(dat$mast)
@@ -38,8 +38,8 @@ ncomp_re <- read_csv("results/ncompounds_random_effects_coefficients.csv")
 ncomp_fe <- read_csv("results/ncompT_coef-summary.csv") %>%
                 rename(intercept=Intercept, 
                        Age2=I.Age.2.,
-                       WUI=mix_60_250,
-                       pasture=pasture_30, 
+                       WUI=mix_15_100,
+                       pasture=pasture_15, 
                        basalarea=BBA_15,
                        mast=lag_beechnuts,
                        intx_beech=BBA_15.lag_beechnuts)
@@ -69,7 +69,7 @@ age_f <- poisson_pred_age(fixed=ncomp_fe,
 # Combine into single data frame
 pred_vals <- list(age_m, age_f) %>%
   reduce(full_join) %>%
-  select(level, sex, Age, exp_val) %>%
+  select(level, sex, Age, exp_val:prob_97pt5) %>%
   mutate(unscAge=Age * attr(dat$Age.s, 'scaled:scale') + attr(dat$Age.s, 'scaled:center'))
 pred_vals 
 
@@ -83,18 +83,21 @@ level_freq <- dat %>%
   mutate(freq = n / sum(n))
 
 # mean line
-pred_mean <- pred_vals %>% group_by(sex, unscAge) %>% summarize(mval = weighted.mean(exp_val, level_freq$freq))
-# pred_mean <- pred_vals %>% group_by(sex, unscAge) %>% summarize(mval = mean(exp_val))
-
+pred_mean <- pred_vals %>% 
+                  group_by(sex, unscAge) %>% 
+                  summarize(mval = weighted.mean(exp_val, level_freq$freq),
+                            m2_5 = weighted.mean(prob_2pt5, level_freq$freq),
+                            m97_5 = weighted.mean(prob_97pt5, level_freq$freq))
+ 
 pred_mean %>% group_by(sex) %>% summarize(max(mval))
 pred_mean %>% filter(mval>=2.72 & sex=="Male")
 
 # Plot age
-age_plot <- ggplot() + 
-                geom_line(data=pred_vals, 
-                          aes(x=unscAge, y=exp_val, group=interaction(level, sex), color=factor(sex)), alpha=0.2) +
-                geom_line(data=pred_mean, aes(x=unscAge, y=mval, color=sex), size=1) +
+age_plot <- ggplot(data=pred_mean) + 
+                geom_ribbon(aes(x=unscAge, ymin=m2_5, ymax=m97_5, color=sex, fill=sex), alpha=0.5) +
+                geom_line(aes(x=unscAge, y=mval, color=sex), size=1) +
                 scale_color_manual(values=c("#1b7837", "#762a83"), name="Sex") +
+                scale_fill_manual(values=c("#1b7837", "#762a83"), name="Sex") +
                 ylim(0,4.5) +
                 ylab("Expected number of compounds") + xlab("Age (years)") +
                 theme(legend.position=c(0,1),
@@ -131,20 +134,24 @@ mast_f <- poisson_pred_mast(ncomp_fe,
 
 pred_mast <- list(mast_m, mast_f) %>%
   reduce(full_join) %>%
-  select(level, sex, Mast, exp_val) %>%
+  select(level, sex, Mast, exp_val:prob_97pt5) %>%
   mutate(unscMast=Mast * attr(dat$mast.s, 'scaled:scale') + attr(dat$mast.s, 'scaled:center'))
 pred_mast 
 
 # mean line
-mast_mean <- pred_mast %>% group_by(sex, unscMast) %>% summarize(mval = weighted.mean(exp_val, level_freq$freq))
+mast_mean <- pred_mast %>% 
+                  group_by(sex, unscMast) %>% 
+                  summarize(mval = weighted.mean(exp_val, level_freq$freq),
+                            m2_5 = weighted.mean(prob_2pt5, level_freq$freq),
+                            m97_5 = weighted.mean(prob_97pt5, level_freq$freq))
 
-mast_plot <- ggplot() + 
-                geom_line(data=pred_mast, 
-                          aes(x=unscMast, y=exp_val, group=interaction(level, sex), color=factor(sex)), alpha=0.15) +
-                geom_line(data=mast_mean, aes(x=unscMast, y=mval, color=sex), size=1) +
+mast_plot <- ggplot(mast_mean) + 
+                geom_ribbon(aes(x=unscMast, ymin=m2_5, ymax=m97_5, color=sex, fill=sex), alpha=0.5) +
+                geom_line(aes(x=unscMast, y=mval, color=sex), size=1) +
                 scale_color_manual(values=c("#1b7837", "#762a83"), name="Sex") +
+                scale_fill_manual(values=c("#1b7837", "#762a83"), name="Sex") +
                 ylim(0,4.5) +
-                ylab("Expected number of compounds") + xlab("Beechnut count") +
+                ylab("Expected number of compounds") + xlab("Beechnut count (1-yr lag)") +
                 theme(legend.position="none",
                       panel.border=element_rect(color="black", fill=NA, size=0.5),
                       axis.text.x=element_text(size=12),
@@ -177,26 +184,28 @@ wui_f <- poisson_pred_wui(ncomp_fe,
 
 pred_wui <- list(wui_m, wui_f) %>%
   reduce(full_join) %>%
-  select(level, sex, WUI, exp_val) %>%
+  select(level, sex, WUI, exp_val:prob_97pt5) %>%
   mutate(unscWUI=WUI * attr(dat$intermix.s, 'scaled:scale') + attr(dat$intermix.s, 'scaled:center'))
 pred_wui 
 
 # mean line
-wui_mean <- pred_wui %>% group_by(sex, unscWUI) %>% summarize(mval = weighted.mean(exp_val, level_freq$freq))
+wui_mean <- pred_wui %>% group_by(sex, unscWUI) %>% summarize(mval = weighted.mean(exp_val, level_freq$freq),
+                                                              m2_5 = weighted.mean(prob_2pt5, level_freq$freq),
+                                                              m97_5 = weighted.mean(prob_97pt5, level_freq$freq))
 
-wui_plot <- ggplot() + 
-  geom_line(data=pred_wui, 
-            aes(x=unscWUI, y=exp_val, group=interaction(level, sex), color=factor(sex)), alpha=0.15) +
-  geom_line(data=wui_mean, aes(x=unscWUI, y=mval, color=sex), size=1) +
-  scale_color_manual(values=c("#1b7837", "#762a83"), name="Sex") +
-  ylim(0,4.5) +
-  ylab("Expected number of compounds") + xlab("Proportion intermix")  +
-  theme(legend.position="none",
-        panel.border=element_rect(color="black", fill=NA, size=0.5),
-        axis.text.x=element_text(size=12),
-        axis.text.y=element_blank(),
-        axis.title.x=element_text(size=12),
-        axis.title.y=element_blank())
+wui_plot <- ggplot(wui_mean) + 
+               geom_ribbon(aes(x=unscWUI, ymin=m2_5, ymax=m97_5, color=sex, fill=sex), alpha=0.5) + 
+               geom_line(data=wui_mean, aes(x=unscWUI, y=mval, color=sex), size=1) +
+               scale_color_manual(values=c("#1b7837", "#762a83"), name="Sex") +
+               scale_fill_manual(values=c("#1b7837", "#762a83"), name="Sex") +
+               ylim(0,4.5) +
+               ylab("Expected number of compounds") + xlab("Proportion intermix")  +
+               theme(legend.position="none",
+                     panel.border=element_rect(color="black", fill=NA, size=0.5),
+                     axis.text.x=element_text(size=12),
+                     axis.text.y=element_blank(),
+                     axis.title.x=element_text(size=12),
+                     axis.title.y=element_blank())
 
 
 age_plot + mast_plot + wui_plot + plot_annotation(tag_levels="a", tag_prefix="(", tag_suffix=")")
@@ -204,8 +213,8 @@ age_plot + mast_plot + wui_plot + plot_annotation(tag_levels="a", tag_prefix="("
 #### Binary analyses #####
 dat <- read_csv("output/binary_model_data_unscaled.csv") %>%
             select(RegionalID:bin.exp, pasture_30, BBA_15, lag_beechnuts, mix_60_250) %>%
-                  rename(WUI=mix_60_250,
-                         pasture=pasture_30,
+                  rename(WUI=mix_15_100,
+                         pasture=pasture_15,
                          basalarea=BBA_15,
                          mast=lag_beechnuts)
 
@@ -311,7 +320,7 @@ diph_f <- logistic_pred_age(diph_fe,
 # Combine into single data frame
 pred_vals <- list(brod_m, brod_f, brom_m, brom_f, diph_m, diph_f) %>%
                 reduce(full_join) %>%
-                select(compound:Age, exp_val) %>%
+                select(compound:Age, exp_val:prob_97pt5) %>%
                 mutate(unscAge=Age * attr(dat$Age.s, 'scaled:scale') + attr(dat$Age.s, 'scaled:center'))
 pred_vals 
 
@@ -430,7 +439,7 @@ diph_f <- logistic_pred_mast(fixed=diph_fe,
 
 pred_mast <- list(brod_m, brod_f, brom_m, brom_f, diph_m, diph_f) %>%
   reduce(full_join) %>%
-  select(compound, level, sex, Mast, exp_val) %>%
+  select(compound, level, sex, Mast, exp_val:prob_97pt5) %>%
   mutate(unscMast=Mast * attr(dat$mast.s, 'scaled:scale') + attr(dat$mast.s, 'scaled:center'))
 pred_mast 
 
@@ -528,7 +537,7 @@ diph_f <- logistic_pred_wui(fixed=diph_fe,
 
 pred_wui<- list(brod_m, brod_f, brom_m, brom_f, diph_m, diph_f) %>%
   reduce(full_join) %>%
-  select(compound, level, sex, WUI, exp_val) %>%
+  select(compound, level, sex, WUI, exp_val:prob_97pt5) %>%
   mutate(unscWUI=WUI * attr(dat$wui.s, 'scaled:scale') + attr(dat$wui.s, 'scaled:center'))
 pred_wui 
 
