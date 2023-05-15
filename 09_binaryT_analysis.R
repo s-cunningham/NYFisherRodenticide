@@ -4,6 +4,7 @@ library(MuMIn)
 library(caret)
 library(broom)
 library(performance)
+library(partR2)
 
 source("00_AR_functions.R")
 
@@ -60,6 +61,8 @@ kappa[,1] <- 1:10
 
 cmpm <- data.frame()
 vif <- list()
+r2cm <- list()
+
 # Loop over each point set
 for (i in 1:10) {
   
@@ -67,12 +70,15 @@ for (i in 1:10) {
   pt <- brod[brod$pt_index==i,]
   
   # Run model with deltaAICc < 2
-  m1_pt <- lme4::glmer(bin.exp ~ Sex + Age + I(Age^2) + mix_15_100 + pasture_15 + BBA_15 * lag_beechnuts + (1|WMUA), 
+  m1_pt <- lme4::glmer(bin.exp ~ Sex + Age + I(Age^2) + mix_15_100 + pasture_15 + BBA_15 * lag_beechnuts + (1|WMU), 
                  family=binomial(link="logit"), data=pt)
   
   m1s <- summary(m1_pt)
   m1sdf <- m1s$coefficients
   vif[[i]] <- check_collinearity(m1_pt)
+  
+  r2cm[[i]] <- r2(m1_pt, metrics="R2", ci=TRUE)
+  
   # save averaged confidence intervals
   ci <- confint.merMod(m1_pt, method="Wald")
   ci <- ci[complete.cases(ci),]
@@ -99,7 +105,7 @@ for (i in 1:10) {
     testSet <- pt[row_idx!=j,] %>% as_tibble()
     
     # Fit model on training set
-    m1_cv <- glmer(bin.exp ~ Sex + Age + I(Age^2) + mix_15_100 + pasture_15 + BBA_15 * lag_beechnuts + (1|WMUA), 
+    m1_cv <- glmer(bin.exp ~ Sex + Age + I(Age^2) + mix_15_100 + pasture_15 + BBA_15 * lag_beechnuts + (1|WMU), 
                    family=binomial(link="logit"), data=pt)
     pred <- predict(m1_cv, newdata=testSet, type="response", re.form=NA)
     
@@ -155,6 +161,9 @@ write_csv(cmpm, "results/binary_brodifacoum_performance.csv")
 
 # save VIF values
 saveRDS(vif, "results/brod_VIF.rds")
+
+r2cm_out <- plyr::ldply(r2cm)
+write_csv(r2cm_out, "results/r2_glmm_brod.csv")
 
 # Calculate averages for each coefficient
 coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)], na.rm=TRUE)
@@ -219,7 +228,7 @@ ranef_coef <- data.frame()
 cmpm <- data.frame()
 
 vif <- list()
-
+r2cm <- list()
 # Loop over each point set
 for (i in 1:10) {
   
@@ -231,6 +240,8 @@ for (i in 1:10) {
                  family=binomial(link="logit"),data=pt)
   
   vif[[i]] <- check_collinearity(m1_pt)
+  
+  r2cm[[i]] <- r2(m1_pt, metrics="R2", ci=TRUE)
   
   m1s <- summary(m1_pt)
   m1sdf <- m1s$coefficients
@@ -318,6 +329,9 @@ write_csv(cmpm, "results/binary_bromadiolone_performance.csv")
 # save VIF values
 saveRDS(vif, "results/brom_VIF.rds")
 
+r2cm_out <- plyr::ldply(r2cm)
+write_csv(r2cm_out, "results/r2_glmm_brom.csv")
+
 # Calculate averages for each coefficient
 coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)], na.rm=TRUE)
 stderr_avg <- colMeans(m_stderr[sapply(m_stderr, is.numeric)], na.rm=TRUE)
@@ -377,6 +391,7 @@ kappa[,1] <- 1:10
 ranef_coef <- data.frame()
 cmpm <- data.frame()
 vif <- list()
+r2cm <- list()
 # Loop over each point set
 for (i in 1:10) {
   
@@ -388,7 +403,9 @@ for (i in 1:10) {
                family=binomial(link="logit"), data=pt)
   
   vif[[i]] <- check_collinearity(m1_pt)
-  # if (!isSingular(m1_pt)) {
+  
+  r2cm[[i]] <- r2(m1_pt, metrics="R2", ci=TRUE)
+  
     
     m1s <- summary(m1_pt)
     m1sdf <- m1s$coefficients
@@ -477,6 +494,9 @@ write_csv(cmpm, "results/binary_diphacinone_performance.csv")
 # save VIF values
 saveRDS(vif, "results/diph_VIF.rds")
 
+r2cm_out <- plyr::ldply(r2cm)
+write_csv(r2cm_out, "results/r2_glmm_diph.csv")
+
 # Calculate averages for each coefficient
 coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)], na.rm=TRUE)
 stderr_avg <- colMeans(m_stderr[sapply(m_stderr, is.numeric)], na.rm=TRUE)
@@ -537,6 +557,7 @@ kappa[,1] <- 1:10
 ranef_coef <- data.frame()
 cmpm <- data.frame()
 vif <- list()
+r2cm <- list()
 # Loop over each point set
 for (i in 1:10) {
   
@@ -550,6 +571,9 @@ for (i in 1:10) {
   m1s <- summary(m1_pt)
   m1sdf <- m1s$coefficients
   vif[[i]] <- check_collinearity(m1_pt)
+  
+  r2cm[[i]] <- r2(m1_pt, metrics="R2", ci=TRUE)
+  
   # Save the coefficients for each level of the random effect
   ranefc <- as_tibble(ranef(m1_pt)) 
   ranefc$iter <- i
@@ -626,6 +650,9 @@ write_csv(cmpm, "results/binary_dico_performance.csv")
 
 # save VIF values
 saveRDS(vif, "results/dico_VIF.rds")
+
+r2cm_out <- plyr::ldply(r2cm)
+write_csv(r2cm_out, "results/r2_glmm_dico.csv")
 
 # Calculate averages for each coefficient
 coef_avg <- colMeans(m_est[sapply(m_est, is.numeric)], na.rm=TRUE)
