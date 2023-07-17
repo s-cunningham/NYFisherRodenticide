@@ -5,6 +5,10 @@ library(tidyverse)
 # Landscape covariates
 dat <- read_csv("output/AR_results_wide.csv")
 
+max(dat$Diphacinone, na.rm=TRUE)
+max(dat$Brodifacoum, na.rm=TRUE)
+max(dat$Bromadiolone, na.rm=TRUE)
+
 # # Reformat screening results
 # dat[11:21] <- lapply(dat[11:21], function(x) replace(x, is.na(x), 0))
 # dat[11:21] <- lapply(dat[11:21], function(x) replace(x, x>0, 1))
