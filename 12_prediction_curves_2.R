@@ -21,6 +21,10 @@ dat1 <- within(dat1, Age.s <- scale(Age))
 dat1 <- within(dat1, intermix.s <- scale(mix_15_100))
 dat1 <- within(dat1, pasture.s <- scale(pasture_15))
 
+sd(dat1$pasture_15)
+sd(dat1$mix_15_100)
+sd(dat1$lag_beechnuts)
+
 # Scale and center variables
 dat1[,c(8,16:83)] <- scale(dat1[,c(8,16:83)])
 
@@ -28,6 +32,7 @@ dfp_mix <- list()
 dfp_lbn <- list()
 dfp_past <- list()
 dfp_as <- list()
+dfp_a <- list()
 
 # Loop over each point set
 for (i in 1:10) {
@@ -39,28 +44,35 @@ for (i in 1:10) {
   m1_pt <- glmmTMB(n.compounds.T ~ Sex + Age + I(Age^2) + mix_15_100 + pasture_15 + BBA_15 * lag_beechnuts + (1|WMU), data=pt, 
                    family=compois(link = "log"), control=glmmTMBControl(parallel=nt))
   
-
-  p_mix <- plot_model(m1_pt, type="pred", terms=c("mix_15_100 [-1.3,-1.2,-1.1,-1.0,-0.9,-0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4,2.5,2.6,2.7,2.8,2.9,3.0,3.1,3.2,3.3,3.4,3.5,3.6,3.7,3.8,3.9,4.0,4.1,4.2,4.3,4.4,4.5,4.6,4.7,4.8,4.9,5.0,5.1,5.2,5.3]", 
+  p_mix <- plot_model(m1_pt, type="pred", terms=c("mix_15_100 [-1.3,-1.2,-1.1,-1.0,-0.9,-0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4,2.5,2.6,2.7,2.8,2.9,3.0,3.1,3.2,3.3,3.4,3.5,3.6,3.7,3.8,3.9,4.0,4.1,4.2,4.3,4.4,4.5,4.6,4.7,4.8,4.9,5.0,5.1,5.2,5.3]",
                                                   "Sex [all]"))
   dfp_mix[[i]] <- as.data.frame(p_mix$data)
-  
+
   p_past <- plot_model(m1_pt, type="pred", terms=c("pasture_15 [-1.0,-0.9,-0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4,2.5,2.6,2.7,2.8,2.9,3.0,3.1,3.2,3.3,3.4,3.5,3.6,3.7,3.8,3.9,4.0,4.1,4.2,4.3]",
                                                    "Sex [all]" ))
   dfp_past[[i]] <- as.data.frame(p_past$data)
-  
-  
-  p_lbn <- plot_model(m1_pt, type="pred", terms=c("lag_beechnuts [-1.3,-1.2,-1.1,-1.0,-0.9,-0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1]", 
+
+
+  p_lbn <- plot_model(m1_pt, type="pred", terms=c("lag_beechnuts [-1.3,-1.2,-1.1,-1.0,-0.9,-0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1]",
                                                   "Sex [all]"), pred.type="fe")
   dfp_lbn[[i]] <- as.data.frame(p_lbn$data)
-  
 
-  p_as <- plot_model(m1_pt, type="pred", terms=c("Age [-1.0,-0.9,-0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4,2.5,2.6,2.7,2.8,2.9,3.0,3.1,3.2,3.3,3.4,3.5,3.6,3.7,3.8,3.9,4.0]", 
+
+  p_as <- plot_model(m1_pt, type="pred", terms=c("Age [-1.0,-0.9,-0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.3,2.4,2.5,2.6,2.7,2.8,2.9,3.0,3.1,3.2,3.3,3.4,3.5,3.6,3.7,3.8,3.9,4.0]",
                                                  "Sex [all]"), pred.type="fe")
   dfp_as[[i]] <- as.data.frame(p_as$data)
   
+  p_a <- plot_model(m1_pt, type="pred", terms=c("Sex [all]"), pred.type="fe")
+  dfp_a[[i]] <- as.data.frame(p_a$data)
 }
 
 ## Average predictions
+df_a <- dfp_a %>% plyr::ldply(data.frame) %>% as_tibble() %>%
+  select(-group_col) %>% 
+  group_by(group, x) %>%
+  summarize(pred=mean(predicted), se=mean(std.error), ci_low=mean(conf.low), ci_high=mean(conf.high)) %>%
+  ungroup()
+
 df_mix <- dfp_mix %>% plyr::ldply(data.frame) %>% as_tibble() %>%
                 select(-group_col) %>% 
                 group_by(group, x) %>%
@@ -103,9 +115,10 @@ ggplot(df_lbn) +
 
 
 
-age_plot <- ggplot(data=df_as) + 
-  geom_ribbon(aes(x=unscAge, ymin=ci_low, ymax=ci_high, color=Sex, fill=Sex), alpha=0.3) +
-  geom_line(aes(x=unscAge, y=pred, color=Sex), linewidth=1) +
+age_plot <- ggplot() + 
+  geom_ribbon(aes(x=c(3,4,5), ymin=0, ymax=5.5), fill="gray55", alpha=0.3) + 
+  geom_ribbon(data=df_as, aes(x=unscAge, ymin=ci_low, ymax=ci_high, fill=Sex), alpha=0.3) +
+  geom_line(data=df_as, aes(x=unscAge, y=pred, color=Sex), linewidth=1) +
   scale_color_manual(values=c("#1b7837", "#762a83"), name="Sex") +
   scale_fill_manual(values=c("#1b7837", "#762a83"), name="Sex") +
   scale_y_continuous(breaks = c(0,1,2,3,4,5), limits=c(0, 5.5)) +
@@ -113,14 +126,14 @@ age_plot <- ggplot(data=df_as) +
   theme(legend.position=c(0,1),
         legend.justification=c(0,1),
         legend.background=element_rect(fill=NA),
-        panel.border=element_rect(color="black", fill=NA, size=0.5),
+        panel.border=element_rect(color="black", fill=NA, linewidth=0.5),
         axis.text=element_text(size=12),
         axis.title=element_text(size=12),
         legend.title=element_text(size=12),
         legend.text=element_text(size=11))
 
 mix_plot <- ggplot(data=df_mix) + 
-  geom_ribbon(aes(x=unscWUI, ymin=ci_low, ymax=ci_high, color=Sex, fill=Sex), alpha=0.3) +
+  geom_ribbon(aes(x=unscWUI, ymin=ci_low, ymax=ci_high, fill=Sex), alpha=0.3) +
   geom_line(aes(x=unscWUI, y=pred, color=Sex), linewidth=1) +
   scale_color_manual(values=c("#1b7837", "#762a83"), name="Sex") +
   scale_fill_manual(values=c("#1b7837", "#762a83"), name="Sex") +
@@ -135,7 +148,7 @@ mix_plot <- ggplot(data=df_mix) +
         legend.text=element_text(size=11))
 
 beech_plot <- ggplot(data=df_lbn) + 
-  geom_ribbon(aes(x=unscBeechnuts, ymin=ci_low, ymax=ci_high, color=Sex, fill=Sex), alpha=0.3) +
+  geom_ribbon(aes(x=unscBeechnuts, ymin=ci_low, ymax=ci_high, fill=Sex), alpha=0.3) +
   geom_line(aes(x=unscBeechnuts, y=pred, color=Sex), linewidth=1) +
   scale_color_manual(values=c("#1b7837", "#762a83"), name="Sex") +
   scale_fill_manual(values=c("#1b7837", "#762a83"), name="Sex") +
@@ -150,7 +163,7 @@ beech_plot <- ggplot(data=df_lbn) +
 
 
 past_plot <- ggplot(data=df_past) + 
-  geom_ribbon(aes(x=unscPasture, ymin=ci_low, ymax=ci_high, color=Sex, fill=Sex), alpha=0.3) +
+  geom_ribbon(aes(x=unscPasture, ymin=ci_low, ymax=ci_high, fill=Sex), alpha=0.3) +
   geom_line(aes(x=unscPasture, y=pred, color=Sex), linewidth=1) +
   scale_color_manual(values=c("#1b7837", "#762a83"), name="Sex") +
   scale_fill_manual(values=c("#1b7837", "#762a83"), name="Sex") +
@@ -341,7 +354,7 @@ bin_age <- bind_rows(brod_as, brom_as, diph_as, dico_as)
 
 # plot
 ggplot(bin_age) + 
-  geom_ribbon(aes(x=unscX, ymin=ci_low, ymax=ci_high, color=Sex, fill=Sex), alpha=0.3) +
+  geom_ribbon(aes(x=unscX, ymin=ci_low, ymax=ci_high, fill=Sex), alpha=0.3) +
   geom_line(aes(x=unscX, y=pred, color=Sex), linewidth=1) +
   scale_color_manual(values=c("#1b7837", "#762a83")) +
   scale_fill_manual(values=c("#1b7837", "#762a83")) +
@@ -358,8 +371,6 @@ ggplot(bin_age) +
         axis.title=element_text(size=12),
         legend.title=element_text(size=12),
         legend.text=element_text(size=11))
-
-
 
 
 ### Exposure to individual compounds by WUI intermix
@@ -396,13 +407,129 @@ bin_mix <- bind_rows(brod_mix, brom_mix, diph_mix)
 
 # plot
 ggplot(bin_mix) + 
-  geom_ribbon(aes(x=unscX, ymin=ci_low, ymax=ci_high, color=Sex, fill=Sex), alpha=0.3) +
+  geom_ribbon(aes(x=unscX, ymin=ci_low, ymax=ci_high, fill=Sex), alpha=0.3) +
   geom_line(aes(x=unscX, y=pred, color=Sex), linewidth=1) +
   scale_color_manual(values=c("#1b7837", "#762a83")) +
   scale_fill_manual(values=c("#1b7837", "#762a83")) +
   facet_grid(.~compound) +
   ylim(0,1) +
   ylab("Probability of exposure") + xlab("Proportion intermix") +
+  theme(legend.position=c(0,0),
+        legend.justification=c(0,0),
+        # legend.position="bottom",
+        legend.background=element_rect(fill=NA),
+        panel.border=element_rect(color="black", fill=NA, size=0.5),
+        axis.text=element_text(size=12),
+        strip.text=element_text(size=12),
+        axis.title=element_text(size=12),
+        legend.title=element_text(size=12),
+        legend.text=element_text(size=11))
+
+
+
+### Exposure to individual compounds by pasture
+brod_past <- brod_past %>% plyr::ldply(data.frame) %>% as_tibble() %>%
+  select(-group_col) %>% 
+  group_by(group, x) %>%
+  summarize(pred=mean(predicted), se=mean(std.error), ci_low=mean(conf.low), ci_high=mean(conf.high)) %>%
+  ungroup() %>%
+  mutate(unscX=x * attr(brod$pasture.s, 'scaled:scale') + attr(brod$pasture.s, 'scaled:center')) %>%
+  rename(Sex=group)
+brod_past$compound <- "Brodifacoum"
+
+brom_past <- brom_past %>% plyr::ldply(data.frame) %>% as_tibble() %>%
+  select(-group_col) %>% 
+  group_by(group, x) %>%
+  summarize(pred=mean(predicted), se=mean(std.error), ci_low=mean(conf.low), ci_high=mean(conf.high)) %>%
+  ungroup() %>%
+  mutate(unscX=x * attr(brom$pasture.s, 'scaled:scale') + attr(brom$pasture.s, 'scaled:center')) %>%
+  rename(Sex=group)
+brom_past$compound <- "Bromadiolone"
+
+diph_past <- diph_past %>% plyr::ldply(data.frame) %>% as_tibble() %>%
+  select(-group_col) %>% 
+  group_by(group, x) %>%
+  summarize(pred=mean(predicted), se=mean(std.error), ci_low=mean(conf.low), ci_high=mean(conf.high)) %>%
+  ungroup() %>%
+  mutate(unscX=x * attr(diph$pasture.s, 'scaled:scale') + attr(diph$pasture.s, 'scaled:center')) %>%
+  rename(Sex=group)
+diph_past$compound <- "Diphacinone"
+
+dico_past <- dico_past %>% plyr::ldply(data.frame) %>% as_tibble() %>%
+  select(-group_col) %>% 
+  group_by(group, x) %>%
+  summarize(pred=mean(predicted), se=mean(std.error), ci_low=mean(conf.low), ci_high=mean(conf.high)) %>%
+  ungroup() %>%
+  mutate(unscX=x * attr(dico$pasture.s, 'scaled:scale') + attr(dico$pasture.s, 'scaled:center')) %>%
+  rename(Sex=group)
+dico_past$compound <- "Dicoumarol"
+
+# combine
+bin_past <- bind_rows(brod_past, brom_past, diph_past, dico_past)
+
+# plot
+ggplot(bin_past) + 
+  geom_ribbon(aes(x=unscX, ymin=ci_low, ymax=ci_high, fill=Sex), alpha=0.3) +
+  geom_line(aes(x=unscX, y=pred, color=Sex), linewidth=1) +
+  scale_color_manual(values=c("#1b7837", "#762a83")) +
+  scale_fill_manual(values=c("#1b7837", "#762a83")) +
+  facet_grid(.~compound) +
+  ylim(0,1) +
+  ylab("Probability of exposure") + xlab("Proportion pasture") +
+  theme(legend.position=c(0,0),
+        legend.justification=c(0,0),
+        # legend.position="bottom",
+        legend.background=element_rect(fill=NA),
+        panel.border=element_rect(color="black", fill=NA, size=0.5),
+        axis.text=element_text(size=12),
+        strip.text=element_text(size=12),
+        axis.title=element_text(size=12),
+        legend.title=element_text(size=12),
+        legend.text=element_text(size=11),
+        panel.spacing.x=unit(0.65, "lines"))
+
+
+### Exposure to individual compounds by lagged beechnuts
+brod_lbn <- brod_lbn %>% plyr::ldply(data.frame) %>% as_tibble() %>%
+  select(-group_col) %>% 
+  group_by(group, x) %>%
+  summarize(pred=mean(predicted), se=mean(std.error), ci_low=mean(conf.low), ci_high=mean(conf.high)) %>%
+  ungroup() %>%
+  mutate(unscX=x * attr(brod$mast.s, 'scaled:scale') + attr(brod$mast.s, 'scaled:center')) %>%
+  rename(Sex=group)
+brod_lbn$compound <- "Brodifacoum"
+
+brom_lbn <- brom_lbn %>% plyr::ldply(data.frame) %>% as_tibble() %>%
+  select(-group_col) %>% 
+  group_by(group, x) %>%
+  summarize(pred=mean(predicted), se=mean(std.error), ci_low=mean(conf.low), ci_high=mean(conf.high)) %>%
+  ungroup() %>%
+  mutate(unscX=x * attr(brom$mast.s, 'scaled:scale') + attr(brom$mast.s, 'scaled:center')) %>%
+  rename(Sex=group)
+brom_lbn$compound <- "Bromadiolone"
+
+diph_lbn <- diph_lbn %>% plyr::ldply(data.frame) %>% as_tibble() %>%
+  select(-group_col) %>% 
+  group_by(group, x) %>%
+  summarize(pred=mean(predicted), se=mean(std.error), ci_low=mean(conf.low), ci_high=mean(conf.high)) %>%
+  ungroup() %>%
+  mutate(unscX=x * attr(diph$mast.s, 'scaled:scale') + attr(diph$mast.s, 'scaled:center')) %>%
+  rename(Sex=group)
+diph_lbn$compound <- "Diphacinone"
+
+
+# combine
+bin_lbn <- bind_rows(brod_lbn, brom_lbn, diph_lbn)
+
+# plot
+ggplot(bin_lbn) + 
+  geom_ribbon(aes(x=unscX, ymin=ci_low, ymax=ci_high, fill=Sex), alpha=0.3) +
+  geom_line(aes(x=unscX, y=pred, color=Sex), linewidth=1) +
+  scale_color_manual(values=c("#1b7837", "#762a83")) +
+  scale_fill_manual(values=c("#1b7837", "#762a83")) +
+  facet_grid(.~compound) +
+  ylim(0,1) +
+  ylab("Probability of exposure") + xlab("Beechnut count (1-yr lag)") +
   theme(legend.position=c(0,0),
         legend.justification=c(0,0),
         # legend.position="bottom",
