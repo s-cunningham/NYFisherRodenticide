@@ -159,3 +159,21 @@ dat2 %>% group_by(year) %>% count()
 
 dat2 %>% group_by(Sex) %>% summarize(sum(binexp))
 dat2 %>% group_by(Sex) %>% count()
+
+#### Subset polygon ####
+twmu <- st_read("data/spatial/WMUtown_union_Harv.shp")
+twmu <- unite(twmu, "key", c("Name", "NAME_1"), sep="-")
+
+twmu <- twmu %>% filter(key %in% unique(dat$key)) %>% select(key, x_coord, y_coord, geometry)
+
+plot(st_geometry(twmu))
+
+# Remove islands
+twmu <- twmu[-c(104:109,130,145),]
+
+twmu <- st_zm(twmu)
+# twmu <- st_transform(twmu, crs=32632)
+
+st_write(twmu, "data/spatial/AR_towns_WMUs.shp", driver = "ESRI Shapefile", append=FALSE)
+
+
