@@ -85,7 +85,7 @@ sdf <- bind_cols(sdf, map2(keycount$key, keycount$n*10, rep) %>% unlist()) %>%
         select(key, x, y)
 sdf$pt_index <- rep(1:10, 338)
 sdf <- add_sub_key(sdf)
-# write_csv(sdf, "output/random_point_locs.csv")
+write_csv(sdf, "output/random_point_locs.csv")
 
 loc <- add_sub_key2(loc)
 loc <- left_join(loc, sdf, by=c("key", "key_sub"))
@@ -105,10 +105,10 @@ buff60 <- st_buffer(samples, 4370.194)
 
 # Plot and example to see what 
 ggplot() + 
-  # geom_sf(data=twmu, aes(color=WMU, fill=Town)) +
+  geom_sf(data=twmu, aes(color=key, fill=key)) +
   geom_sf(data=samples, shape=20, color="blue", size=3) +
   geom_sf(data=buff15, fill=NA, color="blue") +
-  # geom_sf(data=buff60, fill=NA, color="green") +
+  geom_sf(data=buff60, fill=NA, color="green") +
   # coord_sf(xlim=c(1583308.486, 1625741.123), ylim=c(861590.893, 888677.666)) +
   coord_sf(xlim=c(1668479, 1719120), ylim=c(819906, 894757)) +
   theme_bw() +
