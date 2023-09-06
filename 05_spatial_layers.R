@@ -47,15 +47,14 @@ loc <- loc[,-1]
 aea <- "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-96 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs"
 
 ## Read edited polygon layer back in
-twmu <- st_read("data/spatial", "ARfinal20221128")
+twmu <- st_read("data/spatial", "www_AR_townWMUs")
 st_crs(twmu)
+
 # Make sure projection is what it's supposed to be, and as a proj4 string
 twmu <- st_transform(twmu, aea)
 
 # Remove unneeded columns from twmu
-twmu <- twmu %>% select(Name, NAME_1, geometry) %>%
-          rename(WMU=Name, Town=NAME_1) %>%
-          unite("key", WMU:Town, sep="-", remove=FALSE) 
+twmu <- twmu %>% select(key, geometry) 
 
 ## Select random points for multiple imputation
 # How many fishers per polygon
