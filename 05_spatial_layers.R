@@ -85,12 +85,13 @@ sdf <- bind_cols(sdf, map2(keycount$key, keycount$n*10, rep) %>% unlist()) %>%
         select(key, x, y)
 sdf$pt_index <- rep(1:10, 338)
 sdf <- add_sub_key(sdf)
-write_csv(sdf, "output/random_point_locs.csv")
+
 
 loc <- add_sub_key2(loc)
 loc <- left_join(loc, sdf, by=c("key", "key_sub"))
+write_csv(loc, "output/random_point_locs.csv")
 
-ggplot(loc, aes(x=x, y=y, color=factor(Region))) +geom_point()
+ggplot(loc, aes(x=x, y=y, color=factor(Region))) + geom_point()
 
 # convert back to sf
 loc <- loc %>% unite("name", c(1,12), sep="_", remove=FALSE) %>%
