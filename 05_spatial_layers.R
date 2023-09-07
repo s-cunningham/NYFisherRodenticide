@@ -89,13 +89,13 @@ sdf <- add_sub_key(sdf)
 
 loc <- add_sub_key2(loc)
 loc <- left_join(loc, sdf, by=c("key", "key_sub"))
-write_csv(loc, "output/random_point_locs.csv")
 
 ggplot(loc, aes(x=x, y=y, color=factor(Region))) + geom_point()
 
 # convert back to sf
 loc <- loc %>% unite("name", c(1,12), sep="_", remove=FALSE) %>%
           select(RegionalID, name, pt_index, key, key_sub, year, Region, x, y)
+write_csv(loc, "output/random_point_locs.csv")
 samples <- st_as_sf(loc, coords=c("x","y"), crs=aea)
 # st_write(samples, "data/spatial/df_random_samples.shp", layer_options="SHPT=POINT", append=FALSE)
 
