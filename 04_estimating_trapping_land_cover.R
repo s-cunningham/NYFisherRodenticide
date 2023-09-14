@@ -42,7 +42,7 @@ dat <- bind_cols(st_drop_geometry(datsf), dat[,2:3])
 
 ggplot(dat, aes(x=utm_x, y=utm_y, color=landcov)) + geom_point() +theme_bw()
 
-dat %>% group_by(landcov) %>% count()
+dat %>% group_by(landcov) %>% count() %>% mutate(pct=(n/1078)*100)
 
 st_write(datsf, "data/JensenHumphries2019/harvest_locations_landcov2008.shp")
 
