@@ -7,10 +7,10 @@
 library(magrittr)
 
 # Exposure occurs as a negative binomial process with rate $\gamma$, so $P(C_{i,t+1} = k) = NegBinom(1 - \gamma)$, where $C_{i,t}$ refers to the number of compounds individual $i$ is exposed to by time $t$.  Just to give an idea, with a probability of annual contact $\gamma = 0.2$
-
+par(mfrow=c(1,1))
 par(bty = "l", mar = c(3,3,1,1), bty = "l", mgp= c(1,.2,0), 
     tck = 0.01, cex.axis = .8)
-gamma <- 0.2
+gamma <- 0.5
 plot(0:6, 
      dnbinom(0:6, prob = 1-gamma, size = 1), type = "h", lwd = 5, ylab = "probability",
      xlab = "number of exposures per year")
@@ -18,7 +18,7 @@ plot(0:6,
 # Mortality depends on exposure.  INTERESTINGLY, it also has to depend on an interaction between exposure and age(!)  I have a relatively simple two parameter model, but the AGE bit should probably be included as another parameter.
 par(bty = "l", mar = c(3,3,1,1), bty = "l", mgp= c(1,.2,0), tck = 0.01, cex.axis = .8)
 age.max <- 10; c.max <- 5
-mu <- 0.1; beta <- 0.2
+mu <- 0.2; beta <- 0.2
 
 expit <- function(x) exp(x)/(1+exp(x))
 exposure.matrix <- matrix(0:(c.max-1), nrow = age.max, ncol = c.max, byrow = TRUE)
@@ -35,15 +35,15 @@ legend("topleft", col = 1:c.max, legend = 1:c.max-1, lwd = 2, title = "RCs")
 # basic paramaters
 T <- seq(0, 40)
 c.max <- 5
-age.max <- 10
+age.max <- 9
 births <- 100
 
 # rate of exposure
-gamma <- .2
+gamma <- .75
 
 # parameters of mortality 
-beta <- .2
-mu <- .25
+beta <- 0.2
+mu <- .2
 
 expit <- function(x) exp(x)/(1+exp(x))
 exposure.matrix <- matrix(0:(c.max-1), nrow = age.max, ncol = c.max, byrow = TRUE)
