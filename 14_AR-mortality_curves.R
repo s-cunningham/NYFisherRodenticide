@@ -29,21 +29,23 @@ matplot(mortality.matrix, type = "l", pch = 1, col = 1:5, lty = 1, lwd = 2, xlab
 legend("topleft", col = 1:c.max, legend = 1:c.max-1, lwd = 2, title = "RCs")
 
 
-# In this model, animals with no exposure have a constant annual mortality of 10% through their adult life (actually not a terrible assumption).  But the more rodenticide they've been exposed to, the higher the mortality rate at higher ages. 
+# In this model, animals with no exposure have a constant annual mortality of 10% through their adult life (actually not a terrible assumption). 
+# But the more rodenticide they've been exposed to, the higher the mortality rate at higher ages. 
 
 ## Set up simulation
 # basic paramaters
-T <- seq(0, 40)
+T <- seq(0, 10)
 c.max <- 5
 age.max <- 9
 births <- 100
 
 # rate of exposure
-gamma <- .75
+# gamma <- .75
+gamma <- .83
 
 # parameters of mortality 
 beta <- 0.2
-mu <- .2
+mu <- .32
 
 expit <- function(x) exp(x)/(1+exp(x))
 exposure.matrix <- matrix(0:(c.max-1), nrow = age.max, ncol = c.max, byrow = TRUE)
@@ -91,7 +93,9 @@ plot(T, apply(M.total, 1, sum), type = "l", lty = 1, main = "total population",
      ylab = "population")
 
 plot(0:(age.max-1), CompoundsByAge, 
-     type = "o",  main = "mean number of compounds", xlab = "age")
+     type="l", main="mean number of compounds", xlab = "age")
+points(0:(age.max-1), CompoundsByAge, pch=20, cex=1.8)
+abline(v=1,col="gray60")
 
 matplot(0:(age.max-1), M.final, type = "l", lty = 1, lwd = 2, 
         col = gplots::rich.colors(c.max), xlab = "age", 
