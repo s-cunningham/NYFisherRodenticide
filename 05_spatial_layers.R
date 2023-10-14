@@ -100,9 +100,10 @@ samples <- st_as_sf(loc, coords=c("x","y"), crs=aea)
 # st_write(samples, "data/spatial/df_random_samples.shp", layer_options="SHPT=POINT", append=FALSE)
 
 # Create buffer for 15km2 area
-buff15 <- st_buffer(samples, 2185.1)
-buff30 <- st_buffer(samples, 3090.19)
-buff60 <- st_buffer(samples, 4370.194)
+buff15 <- st_buffer(samples, 2185.0969)
+buff30 <- st_buffer(samples, 3090.1936)
+buff45 <- st_buffer(samples, 3784.6988)
+# buff60 <- st_buffer(samples, 4370.194)
 
 # Plot and example to see what 
 ggplot() + 
