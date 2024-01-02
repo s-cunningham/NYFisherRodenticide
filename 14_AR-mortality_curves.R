@@ -53,7 +53,7 @@ mu <- 0.1
 expit <- function(x) exp(x)/(1+exp(x))
 exposure.matrix <- matrix(0:(c.max-1), nrow = age.max, ncol = c.max, byrow = TRUE)
 age.matrix <- matrix(0:(age.max-1), nrow = age.max, ncol = c.max, byrow = FALSE)
-mortality.matrix <- expit( log(mu) + beta * exposure.matrix * age.matrix)
+mortality.matrix <- expit(log(mu) + beta * exposure.matrix * age.matrix)
 
 # construct exposure transition probability matrix
 gamma.vector <- dnbinom(1:c.max, 1, prob = 1 - gamma)
