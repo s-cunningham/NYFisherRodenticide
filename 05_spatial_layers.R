@@ -9,7 +9,7 @@ library(landscapemetrics)
 
 set.seed(1)
 
-# Fundction
+# Function
 add_sub_key <- function(df) {
   df$key_sub <- 1
   key <- unique(df$key)
@@ -76,7 +76,7 @@ samples <- st_sample(twmu, samples_per_polygon)
 samples <- st_as_sf(samples) %>% 
   st_transform(crs=aea)
 samples$key <- map2(keycount$key, keycount$n*10, rep) %>% unlist()
-st_write(samples, "data/spatial/random_samples.shp", layer_options="SHPT=POINT", append=FALSE)
+# st_write(samples, "data/spatial/random_samples.shp", layer_options="SHPT=POINT", append=FALSE)
 
 # Add names to points to associate with a liver ID
 sdf <- st_coordinates(samples)
