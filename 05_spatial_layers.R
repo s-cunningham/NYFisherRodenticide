@@ -76,7 +76,7 @@ samples <- st_sample(twmu, samples_per_polygon)
 samples <- st_as_sf(samples) %>% 
   st_transform(crs=aea)
 samples$key <- map2(keycount$key, keycount$n*10, rep) %>% unlist()
-st_write(samples, "data/spatial/random_samples.shp", layer_options="SHPT=POINT", append=FALSE)
+# st_write(samples, "data/spatial/random_samples.shp", layer_options="SHPT=POINT", append=FALSE)
 
 # Add names to points to associate with a liver ID
 sdf <- st_coordinates(samples)
@@ -95,7 +95,7 @@ ggplot(loc, aes(x=x, y=y, color=factor(Region))) + geom_point()
 # convert back to sf
 loc <- loc %>% unite("name", c(1,12), sep="_", remove=FALSE) %>%
           select(RegionalID, name, pt_index, key, key_sub, year, Region, x, y)
-write_csv(loc, "output/random_point_locs.csv")
+# write_csv(loc, "output/random_point_locs.csv")
 samples <- st_as_sf(loc, coords=c("x","y"), crs=aea)
 # st_write(samples, "data/spatial/df_random_samples.shp", layer_options="SHPT=POINT", append=FALSE)
 
@@ -103,14 +103,14 @@ samples <- st_as_sf(loc, coords=c("x","y"), crs=aea)
 buff15 <- st_buffer(samples, 2185.0969)
 buff30 <- st_buffer(samples, 3090.1936)
 buff45 <- st_buffer(samples, 3784.6988)
-# buff60 <- st_buffer(samples, 4370.194)
+# buff45 <- st_buffer(samples, 4370.194)
 
 # Plot and example to see what 
 ggplot() + 
   geom_sf(data=twmu, aes(color=key, fill=key)) +
   geom_sf(data=samples, shape=20, color="blue", size=3) +
   geom_sf(data=buff15, fill=NA, color="blue") +
-  geom_sf(data=buff60, fill=NA, color="green") +
+  geom_sf(data=buff45, fill=NA, color="green") +
   # coord_sf(xlim=c(1583308.486, 1625741.123), ylim=c(861590.893, 888677.666)) +
   coord_sf(xlim=c(1668479, 1719120), ylim=c(819906, 894757)) +
   theme_bw() +
@@ -124,7 +124,7 @@ buff15 <- st_as_sf(buff15)%>%
   st_transform(crs=crs(nlcd))
 buff30 <- st_as_sf(buff30)%>% 
   st_transform(crs=crs(nlcd))
-buff60 <- st_as_sf(buff60)%>% 
+buff45 <- st_as_sf(buff45)%>% 
   st_transform(crs=crs(nlcd))
 
 # Reclassify 0 (unclassified) and 128 (?) to no data
@@ -161,16 +161,16 @@ landcov_fracs30 <- exact_extract(nlcd, buff30, function(df) {
 }, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
 landcov_fracs30$buffsize <- 30
 
-landcov_fracs60 <- exact_extract(nlcd, buff60, function(df) {
+landcov_fracs45 <- exact_extract(nlcd, buff45, function(df) {
   df %>%
     mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
     group_by(name, value) %>%
     summarize(freq = sum(frac_total))
 }, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
-landcov_fracs60$buffsize <- 60
+landcov_fracs45$buffsize <- 45
 
 # Combine into single data frame
-landcov_frac <- bind_rows(landcov_fracs15, landcov_fracs30, landcov_fracs60)
+landcov_frac <- bind_rows(landcov_fracs15, landcov_fracs30, landcov_fracs45)
 
 # Remove everything that is not forest or ag
 keep_cov <- c(41, 42, 43, 81, 82)
@@ -225,16 +225,16 @@ wui100_fracs30 <- exact_extract(wui100, buff30, function(df) {
 }, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
 wui100_fracs30$buffsize <- 30
 
-## 60 km2 buffer
-wui100_fracs60 <- exact_extract(wui100, buff60, function(df) {
+## 45 km2 buffer
+wui100_fracs45 <- exact_extract(wui100, buff45, function(df) {
   df %>%
     mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
     group_by(name, value) %>%
     summarize(freq = sum(frac_total))
 }, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
-wui100_fracs60$buffsize <- 60
+wui100_fracs45$buffsize <- 45
 
-wui100_fracs <- rbind(wui100_fracs15, wui100_fracs30, wui100_fracs60)
+wui100_fracs <- rbind(wui100_fracs15, wui100_fracs30, wui100_fracs45)
 write_csv(wui100_fracs, "data/analysis-ready/wui100_frac.csv")
 
 
@@ -258,17 +258,17 @@ wui250_fracs30 <- exact_extract(wui250, buff30, function(df) {
 }, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
 wui250_fracs30$buffsize <- 30
 
-## 60 km2 buffer
-wui250_fracs60 <- exact_extract(wui250, buff60, function(df) {
+## 45 km2 buffer
+wui250_fracs45 <- exact_extract(wui250, buff45, function(df) {
   df %>%
     mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
     group_by(name, value) %>%
     summarize(freq = sum(frac_total))
 }, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
-wui250_fracs60$buffsize <- 60
+wui250_fracs45$buffsize <- 45
 
 # Save as .csv
-wui250_fracs <- rbind(wui250_fracs15, wui250_fracs30, wui250_fracs60)
+wui250_fracs <- rbind(wui250_fracs15, wui250_fracs30, wui250_fracs45)
 write_csv(wui250_fracs, "data/analysis-ready/wui250_frac.csv")
 
 ## 500 m radius
@@ -291,17 +291,17 @@ wui500_fracs30 <- exact_extract(wui500, buff30, function(df) {
 }, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
 wui500_fracs30$buffsize <- 30
 
-## 60 km2 radius
-wui500_fracs60 <- exact_extract(wui500, buff60, function(df) {
+## 45 km2 radius
+wui500_fracs45 <- exact_extract(wui500, buff45, function(df) {
   df %>%
     mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
     group_by(name, value) %>%
     summarize(freq = sum(frac_total))
 }, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
-wui500_fracs60$buffsize <- 60
+wui500_fracs45$buffsize <- 45
 
 # Save to csv
-wui500_fracs <- rbind(wui500_fracs15, wui500_fracs30, wui500_fracs60)
+wui500_fracs <- rbind(wui500_fracs15, wui500_fracs30, wui500_fracs45)
 write_csv(wui500_fracs, "data/analysis-ready/wui500_frac.csv")
 
 #### Read in predicted beech layer ####
@@ -320,10 +320,10 @@ beech_sum15 <- data.frame(name=buff15$name, baa=beech_sum15, buffsize=15)
 beech_sum30 <- exact_extract(beech, buff30, 'sum')
 beech_sum30 <- data.frame(name=buff30$name, baa=beech_sum30, buffsize=30)
 
-beech_sum60 <- exact_extract(beech, buff60, 'sum')
-beech_sum60 <- data.frame(name=buff60$name, baa=beech_sum60, buffsize=60)
+beech_sum45 <- exact_extract(beech, buff45, 'sum')
+beech_sum45 <- data.frame(name=buff45$name, baa=beech_sum45, buffsize=45)
 
-beech_sum_single <- bind_rows(beech_sum15, beech_sum30, beech_sum60)
+beech_sum_single <- bind_rows(beech_sum15, beech_sum30, beech_sum45)
 write_csv(beech_sum_single, "data/analysis-ready/baa_sum_single_raster.csv")
 
 # annual beech mast index
@@ -348,10 +348,10 @@ for (i in 1:4) {
   beech_sum30 <- exact_extract(beech_list[[i]], buff30, 'sum')
   beech_sum30 <- data.frame(name=buff30$name, year=years[i], baa=beech_sum30, buffsize=30)
   
-  beech_sum60 <- exact_extract(beech_list[[i]], buff60, 'sum')
-  beech_sum60 <- data.frame(name=buff60$name, year=years[i], baa=beech_sum60, buffsize=60)
+  beech_sum45 <- exact_extract(beech_list[[i]], buff45, 'sum')
+  beech_sum45 <- data.frame(name=buff45$name, year=years[i], baa=beech_sum45, buffsize=45)
   
-  beech_sum <- bind_rows(beech_sum, beech_sum15, beech_sum30, beech_sum60)
+  beech_sum <- bind_rows(beech_sum, beech_sum15, beech_sum30, beech_sum45)
 }
 
 write_csv(beech_sum, "data/analysis-ready/baa_sum.csv")
@@ -366,52 +366,14 @@ build_sum15 <- data.frame(name=buff15$name, nbuildings=build_sum15, buffsize=15)
 build_sum30 <- exact_extract(build_cntroid, buff30, 'sum')
 build_sum30 <- data.frame(name=buff30$name, nbuildings=build_sum30, buffsize=30)
 
-build_sum60 <- exact_extract(build_cntroid, buff60, 'sum')
-build_sum60 <- data.frame(name=buff60$name, nbuildings=build_sum60, buffsize=60)
+build_sum45 <- exact_extract(build_cntroid, buff45, 'sum')
+build_sum45 <- data.frame(name=buff45$name, nbuildings=build_sum45, buffsize=45)
 
-build_sum <- bind_rows(build_sum15, build_sum30, build_sum60)
+build_sum <- bind_rows(build_sum15, build_sum30, build_sum45)
 write_csv(build_sum, "data/analysis-ready/building-centroid_sum.csv")
 
 ggplot(build_sum, aes(x=nbuildings)) + geom_histogram() + facet_wrap(buffsize~.)
 
-#### Landscape metrics for forest cover ####
+#### Stand age ####
 
-## Load rasters reclassified in ArcMap
-tforest <- rast("data/rasters/nybuff_totalforest.tif")
-
-nlcd_values <- c(1,2)
-
-# Add class names and numbers to the raster
-nlcd_class <- c("not forest", "total forest")
-levels(tforest) <- list(data.frame(ID=nlcd_values, landcov=nlcd_class))
-
-# Reproject samples
-samples <- samples %>% st_transform(crs=crs(tforest))
-
-## Landscape metrics...use points and have LSM create buffer
-sizes <- c(6180.38)
-
-# total forest
-lsm_tforest_output <- sizes %>%
-  set_names() %>%
-  map_dfr(~sample_lsm(tforest, 
-                      y=samples, 
-                      plot_id=samples$name, 
-                      what=c("lsm_c_cai_cv",
-                             "lsm_c_cai_mn",
-                             "lsm_c_cai_sd",
-                             "lsm_c_clumpy",
-                             "lsm_c_core_cv",
-                             "lsm_c_ai",
-                             "lsm_c_lsi",
-                             "lsm_c_dcore_cv"),
-                      shape="circle", size=.), .id="buffer")
-
-# Save only metrics for total forest (class = s)
-lsm_tforest_output <- lsm_tforest_output %>%
-  filter(class==2) %>%
-  select(plot_id, buffer, metric, value)
-
-lsm_tforest_output <- 
-
-write_csv(lsm_tforest_output, "data/analysis-ready/forest_lsm_30km2.csv")
+stnd <- rast("E:/PhDwork/Projects/Chapter4_Gradients-driving-fisher-survival/NZ-Fisher-Survival/sp-data-esf-desktop/standageNY.tif")
