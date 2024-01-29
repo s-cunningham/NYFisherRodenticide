@@ -377,5 +377,18 @@ write_csv(build_sum, "data/analysis-ready/building-centroid_sum.csv")
 stnd <- rast("data/rasters/NYstandage_forest.tif")
 stnd <- project(stnd, nlcd) # Match projection to nlcd
 
+stnd_mean10 <- exact_extract(stnd, buff10, 'mean')
+stnd_mean10 <- data.frame(name=buff10$name, nbuildings=stnd_mean10, buffsize=10)
+
+stnd_mean25 <- exact_extract(stnd, buff25, 'mean')
+stnd_mean25 <- data.frame(name=buff25$name, nbuildings=stnd_mean25, buffsize=25)
+
+stnd_mean45 <- exact_extract(stnd, buff45, 'mean')
+stnd_mean45 <- data.frame(name=buff45$name, nbuildings=stnd_mean45, buffsize=45)
+
+stnd_mean <- bind_rows(stnd_mean10, stnd_mean25, stnd_mean45)
+write_csv(stnd_sum, "data/analysis-readystand-age_mean.csv")
+
+
 
 
