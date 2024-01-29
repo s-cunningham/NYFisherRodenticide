@@ -36,21 +36,24 @@ legend("topleft", col = 1:c.max, legend = 1:c.max-1, lwd = 2, title = "RCs")
 # basic paramaters
 T <- seq(0, 10)
 c.max <- 5
-age.max <- 9
-births <- 100
+age.max <- 11
+births <- 1000
 
 # rate of exposure
 # gamma <- .75
-gamma <- .83
+gamma <- .83  # Using proportion of 338 samples that tested positive
 
 # parameters of mortality 
-beta <- 0.2
-mu <- .32
+# beta <- 0.2
+# mu <- .32 # these values make curves that look like AR results
+beta <- 0.25
+mu <- 0.1
+
 
 expit <- function(x) exp(x)/(1+exp(x))
 exposure.matrix <- matrix(0:(c.max-1), nrow = age.max, ncol = c.max, byrow = TRUE)
 age.matrix <- matrix(0:(age.max-1), nrow = age.max, ncol = c.max, byrow = FALSE)
-mortality.matrix <- expit( log(mu) + beta * exposure.matrix * age.matrix)
+mortality.matrix <- expit(log(mu) + beta * exposure.matrix * age.matrix)
 
 # construct exposure transition probability matrix
 gamma.vector <- dnbinom(1:c.max, 1, prob = 1 - gamma)

@@ -9,7 +9,7 @@ library(landscapemetrics)
 
 set.seed(1)
 
-# Fundction
+# Function
 add_sub_key <- function(df) {
   df$key_sub <- 1
   key <- unique(df$key)
