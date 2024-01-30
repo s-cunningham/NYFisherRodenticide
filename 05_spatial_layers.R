@@ -203,7 +203,7 @@ levels(wui250) <- list(data.frame(ID = wui_values,
 levels(wui500) <- list(data.frame(ID = wui_values,
                                   landcov = wui_class))
 
-#### Extract WUI 
+#### Extract WUI ####
 
 ### 100m radius
 
@@ -423,4 +423,15 @@ lsm_tforest_output <- lsm_tforest_output %>%
   select(plot_id, buffer, metric, value)
   
 write_csv(lsm_tforest_output, "data/analysis-ready/forest_edge_density.csv")
+
+#### Precipitation and minimum temperature (30 yr normal) ####
+tmin <- rast("data/rasters/PRISM30yrTMIN_NY.tif")
+tmin <- resample(tmin, nlcd, method="bilinear") # Match projection to nlcd
+ppt <- rast("data/rasters/PRISM30yrPPT_NY.tif")
+ppt <- resample(ppt, nlcd, method="bilinear") # Match projection to nlcd
+
+
+
+
+
 
