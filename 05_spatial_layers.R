@@ -145,13 +145,13 @@ levels(nlcd) <- list(data.frame(ID = nlcd_values,
                                 landcov = nlcd_class))
 
 ## Extract values from NLCD raster based on buffer using exactextractr
-landcov_fracs15 <- exact_extract(nlcd, buff10, function(df) {
+landcov_fracs10 <- exact_extract(nlcd, buff10, function(df) {
   df %>%
     mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
     group_by(name, value) %>%
     summarize(freq = sum(frac_total))
 }, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
-landcov_fracs15$buffsize <- 15
+landcov_fracs10$buffsize <- 10
 
 landcov_fracs25 <- exact_extract(nlcd, buff25, function(df) {
   df %>%
@@ -170,7 +170,7 @@ landcov_fracs45 <- exact_extract(nlcd, buff45, function(df) {
 landcov_fracs45$buffsize <- 45
 
 # Combine into single data frame
-landcov_frac <- bind_rows(landcov_fracs15, landcov_fracs25, landcov_fracs45)
+landcov_frac <- bind_rows(landcov_fracs10, landcov_fracs25, landcov_fracs45)
 
 # Remove everything that is not forest or ag
 keep_cov <- c(41, 42, 43, 81, 82)

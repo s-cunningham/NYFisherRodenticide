@@ -8,16 +8,10 @@ dat <- read_csv("output/summarized_AR_results.csv")
 trace_y <- read_csv("output/ncompounds_trace.csv") %>% 
   select(RegionalID, n.compounds) %>%
   rename(n.compounds.T=n.compounds)
-wui100 <- read_csv("data/analysis-ready/wui100_frac.csv") %>%
-  filter(value==1 | value==2) %>%
-  filter(complete.cases(.))
-wui250 <- read_csv("data/analysis-ready/wui250_frac.csv") %>%
-  filter(value==1 | value==2) %>%
-  filter(complete.cases(.))
-wui500 <- read_csv("data/analysis-ready/wui500_frac.csv") %>%
-  filter(value==1 | value==2) %>%
-  filter(complete.cases(.))
-ag <- read_csv("data/analysis-ready/nlcd_pct.csv")
+trace_n <- read_csv("output/ncompounds_notrace.csv") %>% 
+  select(RegionalID, n.compounds) %>%
+  rename(n.compounds.MO=n.compounds)
+nlcd <- read_csv("data/analysis-ready/nlcd_pct.csv")
 bmi <- read_csv("data/analysis-ready/baa_sum.csv")
 baa <- read_csv("data/analysis-ready/baa_sum_single_raster.csv")
 pts <- read_csv("output/random_point_locs.csv")
@@ -25,6 +19,13 @@ wmua <- read_csv("data/analysis-ready/wmuas.csv")
 build <- read_csv("data/analysis-ready/building-centroid_sum.csv") %>%
             rename(pt_name=name) 
 mast <- read_csv("data/analysis-ready/ALTEMP26_beech-data.csv")
+lsm <- read_csv("data/analysis-ready/forest_edge_density.csv") %>%
+            mutate(buffsize=case_when(buffer==1784.124 ~ 10,
+                                      buffer==2820.950 ~ 25,
+                                      buffer==3784.699 ~ 45)) %>%
+            rename(edge_density=value, pt_name=plot_id) %>%
+            select(pt_name, buffsize, edge_density) %>%
+            mutate(buffsize=coalesce(buffsize, 45))
 
 #### Combine data ####
 ## Number of compounds detected
@@ -38,7 +39,7 @@ pts <- pts %>% select(RegionalID,name,x,y) %>%
           rename(rand_x=x, rand_y=y, pt_name=name)
 
 ## Subset forest and add together
-forest <- ag %>% filter(value==41 | value==42 | value==43)   
+forest <- nlcd %>% filter(value==41 | value==42 | value==43)   
 forest$value <- factor(forest$value, levels=c(41, 42, 43), labels=c("deciduous", "evergreen", "mixed")) |> as.character()
 forest <- forest %>% select(name,buffsize,value,freq) %>%
            pivot_wider(names_from=value, values_from=freq) %>%
@@ -47,15 +48,6 @@ forest$deciduous[is.na(forest$deciduous)] <- 0
 forest$evergreen[is.na(forest$evergreen)] <- 0
 forest$mixed[is.na(forest$mixed)] <- 0
 forest <- mutate(forest, totalforest=deciduous + evergreen + mixed)
-
-## Subset ag and add together
-ag <- ag %>% filter(value==81 | value==82)
-ag$value <- factor(ag$value, levels=c(81, 82), labels=c("pasture", "crops")) %>% as.character()
-ag <- ag %>% pivot_wider(names_from=value, values_from=freq) %>%
-        rename(pt_name=name)
-ag$crops[is.na(ag$crops)] <- 0
-ag$pasture[is.na(ag$pasture)] <- 0
-ag <- mutate(ag, totalag=crops + pasture)
 
 ## reorganize beech
 # beech mast index
@@ -67,33 +59,24 @@ names(baa)[1] <- "pt_name"
 baa$baa[is.na(baa$baa)] <- 0
 baa <- baa %>% select(pt_name, buffsize, baa)
 
-## reorganize WUI
-wui100$radius <- 100
-wui250$radius <- 250
-wui500$radius <- 500
-wui <- bind_rows(wui100, wui250, wui500)
-wui <- wui[complete.cases(wui),]
-wui <- pivot_wider(wui, names_from=value, values_from=freq)
-names(wui)[4:5] <- c("intermix", "interface")
-wui[is.na(wui)] <- 0
-wui <- mutate(wui, totalWUI=intermix + interface)
-names(wui)[1] <- "pt_name"
-
 # Create categorical variable for buildings
+qntl <- build %>% group_by(buffsize) %>% summarize(first=quantile(nbuildings, probs=0.25), median=quantile(nbuildings, probs=0.5),
+                                                   third=quantile(nbuildings, probs=0.75), fourth=quantile(nbuildings, probs=1))
+
 build <- build %>% mutate(build_cat=case_when(
                              nbuildings<1 ~ "None",
-                             (nbuildings>=1 & nbuildings<=60) & buffsize==15 ~ "1stQuart",
-                             (nbuildings>=1 & nbuildings<=149) & buffsize==30 ~ "1stQuart",
-                             (nbuildings>=1 & nbuildings<=339) & buffsize==60 ~ "1stQuart",
-                             (nbuildings>60 & nbuildings<=132) & buffsize==15 ~ "2ndQuart",
-                             (nbuildings>149 & nbuildings<=287) & buffsize==30 ~ "2ndQuart",
-                             (nbuildings>339 & nbuildings<=610) & buffsize==60 ~ "2ndQuart",
-                             (nbuildings>132 & nbuildings<=241) & buffsize==15 ~ "3rdQuart",
-                             (nbuildings>287 & nbuildings<=503) & buffsize==30 ~ "3rdQuart",
-                             (nbuildings>610 & nbuildings<=1094) & buffsize==60 ~ "3rdQuart",
-                             (nbuildings>241 & nbuildings<=5464) & buffsize==15 ~ "4thQuart",
-                             (nbuildings>503 & nbuildings<=8309) & buffsize==30 ~ "4thQuart",
-                             (nbuildings>1094 & nbuildings<=10798) & buffsize==60 ~ "4thQuart"))
+                             (nbuildings>=1 & nbuildings<=as.vector(qntl[1,2])) & buffsize==10 ~ "1stQuart",
+                             (nbuildings>=1 & nbuildings<=as.vector(qntl[2,2])) & buffsize==25 ~ "1stQuart",
+                             (nbuildings>=1 & nbuildings<=as.vector(qntl[3,2])) & buffsize==45 ~ "1stQuart",
+                             (nbuildings>as.vector(qntl[1,2]) & nbuildings<=as.vector(qntl[1,3])) & buffsize==10 ~ "2ndQuart",
+                             (nbuildings>as.vector(qntl[2,2]) & nbuildings<=as.vector(qntl[2,3])) & buffsize==25 ~ "2ndQuart",
+                             (nbuildings>as.vector(qntl[3,2]) & nbuildings<=as.vector(qntl[3,3])) & buffsize==45 ~ "2ndQuart",
+                             (nbuildings>as.vector(qntl[1,3]) & nbuildings<=as.vector(qntl[1,4])) & buffsize==10 ~ "3rdQuart",
+                             (nbuildings>as.vector(qntl[2,3]) & nbuildings<=as.vector(qntl[2,4])) & buffsize==25 ~ "3rdQuart",
+                             (nbuildings>as.vector(qntl[3,3]) & nbuildings<=as.vector(qntl[3,4])) & buffsize==45 ~ "3rdQuart",
+                             (nbuildings>as.vector(qntl[1,4]) & nbuildings<=as.vector(qntl[1,5])) & buffsize==10 ~ "4thQuart",
+                             (nbuildings>as.vector(qntl[2,4]) & nbuildings<=as.vector(qntl[2,5])) & buffsize==25 ~ "4thQuart",
+                             (nbuildings>as.vector(qntl[3,4]) & nbuildings<=as.vector(qntl[3,5])) & buffsize==45 ~ "4thQuart"))
 
 ## Joining data
 # Join location, age & sex details to random points
@@ -106,17 +89,15 @@ dat <- dat %>% distinct()
 
 # Add columns for buffer and radius
 dat <- bind_rows(dat, dat, dat)
-dat$buffsize <- rep(c(15,30,60), each=3380) # buffer sizes
+dat$buffsize <- rep(c(10,25,45), each=3380) # buffer sizes
 dat <- bind_rows(dat, dat, dat)
-dat$radius <- rep(c(100,250,500), each=10140) # WUI radius sizes
-dat <- dat %>% select(RegionalID:n.compounds.T,buffsize,radius)
+dat <- dat %>% select(RegionalID:n.compounds.T,buffsize)
 
 # join covariate data
-dat <- left_join(dat, ag, by=c("pt_name", "buffsize")) %>%
-  left_join(forest, by=c("pt_name", "buffsize")) %>%
-  left_join(wui, by=c("pt_name", "buffsize", "radius")) %>%
-  left_join(build, by=c("pt_name", "buffsize")) %>%
-  left_join(baa, by=c("pt_name", "buffsize"))
+dat <- dat %>% left_join(forest, by=c("pt_name", "buffsize")) 
+dat <- dat %>% left_join(build, by=c("pt_name", "buffsize")) 
+dat <- dat %>% left_join(baa, by=c("pt_name", "buffsize")) 
+dat <- dat %>% left_join(lsm, by=c("pt_name", "buffsize"))
 
 ## Add beech mast index
 dat <- left_join(dat, bmi, by=c("pt_name", "buffsize", "year")) %>%
@@ -128,12 +109,10 @@ dat <- left_join(dat, bmi, by=c("pt_name", "buffsize", "year")) %>%
   rename(laggedBMI=bmi)
 
 ## Fill in 0 for missing values (WUI)
-dat <- dat %>% mutate(interface = coalesce(interface, 0),
-                      intermix = coalesce(intermix, 0),
-                      totalWUI = coalesce(totalWUI, 0),
-                      crops = coalesce(crops, 0),
-                      pasture = coalesce(pasture, 0),
-                      totalag = coalesce(totalag, 0))
+dat <- dat %>% mutate(evergreen = coalesce(evergreen, 0),
+                      mixed = coalesce(mixed, 0),
+                      totalforest = coalesce(totalforest, 0),
+                      deciduous = coalesce(deciduous, 0))
 
 # Add WMUA 
 dat <- left_join(dat, wmua, by="WMU")
@@ -151,39 +130,5 @@ dat <- dat %>% mutate(beechnuts=case_when(
                           year==2019 ~ 6,
                           year==2020 ~ 295))
 
-
-
-dat %>% filter(pt_index==1 & radius==100 & buffsize==15) %>% group_by(n.compounds.T) %>% count()
-
 ### Save data to file ####
 write_csv(dat, "data/analysis-ready/combined_AR_covars.csv")
-
-
-ggplot(dat, aes(x=rand_x, y=rand_y, color=factor(Region))) + geom_point() + theme_bw()
-
-d_bin <- dat %>% mutate(binT = if_else(n.compounds.T>=1, 1, 0))
-
-ggplot(d_bin, aes(x=rand_x, y=rand_y, color=factor(binT))) + geom_point() + theme_bw()
-
-
-
-
-
-
-
-#### Plot covariate values ####
-dat100 <- dat[dat$radius==100,]
-dat250 <- dat[dat$radius==250,]
-dat500 <- dat[dat$radius==500,]
-
-ggplot(dat100, aes(x=factor(buffsize), y=bmi, fill=factor(Region))) + geom_boxplot() + theme_bw() 
-
-
-ggplot(dat100, aes(x=factor(buffsize), y=pct_ag, fill=factor(Region))) + geom_boxplot() + theme_bw()
-ggplot(dat100, aes(x=factor(buffsize), y=intermix, fill=factor(Region))) + geom_boxplot() + theme_bw()
-ggplot(dat100, aes(x=factor(buffsize), y=interface, fill=factor(Region))) + geom_boxplot() + theme_bw()
-
-ggplot(dat100, aes(x=factor(buffsize), y=totalWUI)) + geom_boxplot() + theme_bw()
-ggplot(dat250, aes(x=factor(buffsize), y=totalWUI)) + geom_boxplot() + theme_bw()
-ggplot(dat500, aes(x=factor(buffsize), y=totalWUI, fill=factor(Region))) + 
-  geom_boxplot() +  theme_bw()
