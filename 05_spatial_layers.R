@@ -76,7 +76,7 @@ samples <- st_sample(twmu, samples_per_polygon)
 samples <- st_as_sf(samples) %>% 
   st_transform(crs=aea)
 samples$key <- map2(keycount$key, keycount$n*10, rep) %>% unlist()
-st_write(samples, "data/spatial/random_samples.shp", layer_options="SHPT=POINT", append=FALSE)
+# st_write(samples, "data/spatial/random_samples.shp", layer_options="SHPT=POINT", append=FALSE)
 
 # Add names to points to associate with a liver ID
 sdf <- st_coordinates(samples)
@@ -97,7 +97,7 @@ loc <- loc %>% unite("name", c(1,12), sep="_", remove=FALSE) %>%
   select(RegionalID, name, pt_index, key, key_sub, year, Region, x, y)
 write_csv(loc, "output/random_point_locs.csv")
 samples <- st_as_sf(loc, coords=c("x","y"), crs=aea)
-st_write(samples, "data/spatial/df_random_samples.shp", layer_options="SHPT=POINT", append=FALSE)
+# st_write(samples, "data/spatial/df_random_samples.shp", layer_options="SHPT=POINT", append=FALSE)
 
 # Create buffers
 buff10 <- st_buffer(samples, 1784.124) # 15: 2185.0969
@@ -387,8 +387,40 @@ stnd_mean45 <- exact_extract(stnd, buff45, 'mean')
 stnd_mean45 <- data.frame(name=buff45$name, nbuildings=stnd_mean45, buffsize=45)
 
 stnd_mean <- bind_rows(stnd_mean10, stnd_mean25, stnd_mean45)
-write_csv(stnd_sum, "data/analysis-readystand-age_mean.csv")
+write_csv(stnd_mean, "data/analysis-ready/stand-age_mean.csv")
 
 
+#### Landscape metrics for forest cover ####
 
+## Load rasters reclassified in ArcMap
+tforest <- rast("data/rasters/allNLCD_reclassFOR.tif")
+tforest <- project(tforest, nlcd) # Match projection to nlcd
+
+nlcd_values <- c(1,2)
+
+# Add class names and numbers to the raster
+nlcd_class <- c("not forest", "forest")
+levels(tforest) <- list(data.frame(ID=nlcd_values, landcov=nlcd_class))
+
+# Reproject samples
+samples <- samples %>% st_transform(crs=crs(tforest))
+
+## Landscape metrics...use points and have LSM create buffer
+sizes <- c(1784.124, 2820.95, 3784.6988)  # 10, 25, 45
+
+# total forest
+lsm_tforest_output <- sizes %>%
+  set_names() %>%
+  map_dfr(~sample_lsm(tforest, 
+                      y=samples, 
+                      plot_id=samples$name, 
+                      what=c("lsm_c_ed"),
+                      shape="circle", size=.), .id="buffer")
+
+# Save only metrics for total forest (class = s)
+lsm_tforest_output <- lsm_tforest_output %>%
+  filter(class==2) %>%
+  select(plot_id, buffer, metric, value)
+  
+write_csv(lsm_tforest_output, "data/analysis-ready/forest_edge_density.csv")
 
