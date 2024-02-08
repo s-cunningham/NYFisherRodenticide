@@ -106,15 +106,15 @@ buff45 <- st_buffer(samples, 3784.6988)
 # buff45 <- st_buffer(samples, 4370.194)
 
 # Plot and example to see what 
-ggplot() + 
-  geom_sf(data=twmu, aes(color=key, fill=key)) +
-  geom_sf(data=samples, shape=20, color="blue", size=3) +
-  geom_sf(data=buff10, fill=NA, color="blue") +
-  geom_sf(data=buff45, fill=NA, color="green") +
-  # coord_sf(xlim=c(1583308.486, 1625741.123), ylim=c(861590.893, 888677.666)) +
-  coord_sf(xlim=c(1668479, 1719120), ylim=c(819906, 894757)) +
-  theme_bw() +
-  theme(legend.position="none")
+# ggplot() + 
+#   geom_sf(data=twmu, aes(color=key, fill=key)) +
+#   geom_sf(data=samples, shape=20, color="blue", size=3) +
+#   geom_sf(data=buff10, fill=NA, color="blue") +
+#   geom_sf(data=buff45, fill=NA, color="green") +
+#   # coord_sf(xlim=c(1583308.486, 1625741.123), ylim=c(861590.893, 888677.666)) +
+#   coord_sf(xlim=c(1668479, 1719120), ylim=c(819906, 894757)) +
+#   theme_bw() +
+#   theme(legend.position="none")
 
 #### Load NLCD layer ####
 nlcd <- rast("data/rasters/nybuffnlcd.tif")
@@ -202,107 +202,6 @@ levels(wui250) <- list(data.frame(ID = wui_values,
 
 levels(wui500) <- list(data.frame(ID = wui_values,
                                   landcov = wui_class))
-
-#### Extract WUI ####
-
-### 100m radius
-
-## 10 km2 buffer
-wui100_fracs10 <- exact_extract(wui100, buff10, function(df) {
-  df %>%
-    mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
-    group_by(name, value) %>%
-    summarize(freq = sum(frac_total))
-}, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
-wui100_fracs10$buffsize <- 10
-
-## 30 km2 buffer
-wui100_fracs30 <- exact_extract(wui100, buff30, function(df) {
-  df %>%
-    mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
-    group_by(name, value) %>%
-    summarize(freq = sum(frac_total))
-}, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
-wui100_fracs30$buffsize <- 30
-
-## 45 km2 buffer
-wui100_fracs45 <- exact_extract(wui100, buff45, function(df) {
-  df %>%
-    mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
-    group_by(name, value) %>%
-    summarize(freq = sum(frac_total))
-}, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
-wui100_fracs45$buffsize <- 45
-
-wui100_fracs <- rbind(wui100_fracs10, wui100_fracs30, wui100_fracs45)
-write_csv(wui100_fracs, "data/analysis-ready/wui100_frac.csv")
-
-
-### 250 m radius
-
-## 10 km2 buffer
-wui250_fracs15 <- exact_extract(wui250, buff15, function(df) {
-  df %>%
-    mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
-    group_by(name, value) %>%
-    summarize(freq = sum(frac_total))
-}, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
-wui250_fracs15$buffsize <- 15
-
-## 25 km2 buffer
-wui250_fracs30 <- exact_extract(wui250, buff30, function(df) {
-  df %>%
-    mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
-    group_by(name, value) %>%
-    summarize(freq = sum(frac_total))
-}, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
-wui250_fracs30$buffsize <- 30
-
-## 45 km2 buffer
-wui250_fracs45 <- exact_extract(wui250, buff45, function(df) {
-  df %>%
-    mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
-    group_by(name, value) %>%
-    summarize(freq = sum(frac_total))
-}, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
-wui250_fracs45$buffsize <- 45
-
-# Save as .csv
-wui250_fracs <- rbind(wui250_fracs15, wui250_fracs30, wui250_fracs45)
-write_csv(wui250_fracs, "data/analysis-ready/wui250_frac.csv")
-
-## 500 m radius
-
-## 10 km2
-wui500_fracs15 <- exact_extract(wui500, buff15, function(df) {
-  df %>%
-    mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
-    group_by(name, value) %>%
-    summarize(freq = sum(frac_total))
-}, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
-wui500_fracs15$buffsize <- 15
-
-## 30 km2
-wui500_fracs30 <- exact_extract(wui500, buff30, function(df) {
-  df %>%
-    mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
-    group_by(name, value) %>%
-    summarize(freq = sum(frac_total))
-}, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
-wui500_fracs30$buffsize <- 30
-
-## 45 km2 radius
-wui500_fracs45 <- exact_extract(wui500, buff45, function(df) {
-  df %>%
-    mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
-    group_by(name, value) %>%
-    summarize(freq = sum(frac_total))
-}, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
-wui500_fracs45$buffsize <- 45
-
-# Save to csv
-wui500_fracs <- rbind(wui500_fracs15, wui500_fracs30, wui500_fracs45)
-write_csv(wui500_fracs, "data/analysis-ready/wui500_frac.csv")
 
 #### Read in predicted beech layer ####
 
