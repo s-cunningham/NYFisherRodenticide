@@ -90,7 +90,6 @@ dat <- dat %>% distinct()
 # Add columns for buffer and radius
 dat <- bind_rows(dat, dat, dat)
 dat$buffsize <- rep(c(10,25,45), each=3380) # buffer sizes
-dat <- bind_rows(dat, dat, dat)
 dat <- dat %>% select(RegionalID:n.compounds.T,buffsize)
 
 # join covariate data
