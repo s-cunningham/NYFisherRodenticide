@@ -7,7 +7,7 @@ library(COMPoissonReg)
 library(MCMCvis)
 
 ## Read data
-dat <- read_csv("data/analysis-ready/combined_AR_covars.csv")
+dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") ## too many rows??
 
 nWMU <- length(unique(dat$WMU))
 
