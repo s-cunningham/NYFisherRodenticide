@@ -1,3 +1,6 @@
+## see code:
+# https://figshare.com/articles/dataset/A_Bayesian_approach_for_multiscale_modeling_of_the_influence_of_seasonal_and_annual_habitat_variation_on_relative_abundance_of_ring-necked_pheasant_roosters/21901740
+
 library(tidyverse)
 library(nimble)
 library(COMPoissonReg)
