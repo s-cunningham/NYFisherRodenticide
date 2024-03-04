@@ -29,7 +29,7 @@ assign('dCOMP', dCOMP, envir=.GlobalEnv)
 assign('rCOMP', rCOMP, envir=.GlobalEnv)
 
 # Build model in BUGS language
-bliss_nimble <- nimbleCode({
+var_scale_code <- nimbleCode({
   
   ## Priors
   psi ~ dunif(0,1) # prior for inclusion probability
@@ -38,7 +38,7 @@ bliss_nimble <- nimbleCode({
   # beta coefficient priors
   for (k in 1:numVars) {
     z[k] ~ dbern(psi) # indicator for each coefficient
-    beta[k] ~ dnorm(0, sd=100)
+    beta[k] ~ dnorm(0, sd=10)
     zbeta[k] <- z[k] * beta[k]
   }
   
@@ -52,45 +52,37 @@ bliss_nimble <- nimbleCode({
   ## Likelihood
   for (i in 1:N) {
     
-    lambda <- alpha[WMU[i]] + inprod()
-    ncomp ~ dCOMP(lambda, nu)
+    log(lambda[i]) <- alpha[WMU[i]] + inprod()
+    ncomp ~ dCOMP(lambda[i], nu)
     
   }
   
 })
 
 ## Set up the model.
-lmIndicatorConstants <- list(N=100, numVars=15, nWMU=55)
-lmIndicatorInits <- list(sigma.alpha=1, psi=0.5, nu=1.21, 
-                         beta=rnorm(lmIndicatorConstants$numVars),
-                         z=sample(0:1, lmIndicatorConstants$numVars, 0.5))
+vsIndicatorConstants <- list(N=100, numVars=15, nWMU=55)
+vsIndicatorInits <- list(sigma.alpha=1, psi=0.5, nu=1.5, 
+                         beta=rnorm(vsIndicatorConstants$numVars),
+                         z=sample(0:1, vsIndicatorConstants$numVars, 0.5))
 
-lmIndicatorData  <- list(y = y, X = X)
-lmIndicatorModel <- nimbleModel(code=bliss_nimble, constants=lmIndicatorConstants,
-                                inits=lmIndicatorInits, data=lmIndicatorData)
+vsIndicatorData  <- list(y = y, X = X)
+vsIndicatorModel <- nimbleModel(code=var_scale_code, constants=vsIndicatorConstants,
+                                inits=vsIndicatorInits, data=vsIndicatorData)
 
-lmIndicatorConf <- configureMCMC(lmIndicatorModel)
-lmIndicatorConf$addMonitors('z') # need to add other variables?
+vsIndicatorConf <- configureMCMC(vsIndicatorModel)
+vsIndicatorConf$addMonitors('z') # need to add other variables?
 
-configureRJ(lmIndicatorConf,
+configureRJ(vsIndicatorConf,
             targetNodes = 'beta',
             indicatorNodes = 'z',
             control = list(mean = 0, scale = .2))
 
 ## Check the assigned samplers
-lmIndicatorConf$printSamplers(c("z[1]", "beta[1]"))
+vsIndicatorConf$printSamplers(c("z[1]", "beta[1]"))
 
 ## Build and run MCMC
-mcmcIndicatorRJ <- buildMCMC(lmIndicatorConf)
+mcmcIndicatorRJ <- buildMCMC(vsIndicatorConf)
 
-cIndicatorModel <- compileNimble(lmIndicatorModel)
+cIndicatorModel <- compileNimble(vsIndicatorModel)
 
-CMCMCIndicatorRJ <- compileNimble(mcmcIndicatorRJ, project = lmIndicatorModel)
-
-# *probably in wrong spot*
-# Individual inclusion proportion
-# We can calculate the proportion of times each coefficient is included in the model.
-betaCols <- grep("beta\\[", colnames(samplesNoIndicator))
-posterior_inclusion_proportions <- colMeans(apply(samplesNoIndicator[, betaCols],
-                                                  2, function(x) x != 0))
-posterior_inclusion_proportions
+CMCMCIndicatorRJ <- compileNimble(mcmcIndicatorRJ, project = vsIndicatorModel)
