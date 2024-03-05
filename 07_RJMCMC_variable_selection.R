@@ -7,7 +7,13 @@ library(COMPoissonReg)
 library(MCMCvis)
 
 ## Read data
-dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") ## too many rows??
+dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") # Need to expand out to have a column for each buffer size
+
+
+
+## 
+
+
 
 nWMU <- length(unique(dat$WMU))
 
