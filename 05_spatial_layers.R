@@ -251,17 +251,33 @@ write_csv(build_sum, "data/analysis-ready/building-centroid_sum.csv")
 stnd <- rast("data/rasters/NYstandage_forest.tif")
 stnd <- project(stnd, nlcd) # Match projection to nlcd
 
+# mean
 stnd_mean15 <- exact_extract(stnd, buff15, 'mean')
-stnd_mean15 <- data.frame(name=buff15$name, nbuildings=stnd_mean15, buffsize=15)
+stnd_mean15 <- data.frame(name=buff15$name, stand_age_mean=stnd_mean15, buffsize=15)
 
 stnd_mean30 <- exact_extract(stnd, buff30, 'mean')
-stnd_mean30 <- data.frame(name=buff30$name, nbuildings=stnd_mean30, buffsize=30)
+stnd_mean30 <- data.frame(name=buff30$name, stand_age_mean=stnd_mean30, buffsize=30)
 
 stnd_mean45 <- exact_extract(stnd, buff45, 'mean')
-stnd_mean45 <- data.frame(name=buff45$name, nbuildings=stnd_mean45, buffsize=45)
+stnd_mean45 <- data.frame(name=buff45$name, stand_age_mean=stnd_mean45, buffsize=45)
 
 stnd_mean <- bind_rows(stnd_mean15, stnd_mean30, stnd_mean45)
 write_csv(stnd_mean, "data/analysis-ready/stand-age_mean.csv")
+
+# standard deviation
+stnd_stdev15 <- exact_extract(stnd, buff15, 'stdev')
+stnd_stdev15 <- data.frame(name=buff15$name, stand_age_sd=stnd_stdev15, buffsize=15)
+
+stnd_stdev30 <- exact_extract(stnd, buff30, 'stdev')
+stnd_stdev30 <- data.frame(name=buff30$name, stand_age_sd=stnd_stdev30, buffsize=30)
+
+stnd_stdev45 <- exact_extract(stnd, buff45, 'stdev')
+stnd_stdev45 <- data.frame(name=buff45$name, stand_age_sd=stnd_stdev45, buffsize=45)
+
+stnd_stdev <- bind_rows(stnd_stdev15, stnd_stdev30, stnd_stdev45)
+write_csv(stnd_stdev, "data/analysis-ready/stand-age_stdev.csv")
+
+
 
 
 #### Landscape metrics for forest cover ####
