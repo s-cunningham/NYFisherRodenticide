@@ -314,11 +314,6 @@ lsm_tforest_output <- lsm_tforest_output %>%
   
 write_csv(lsm_tforest_output, "data/analysis-ready/forest_edge_density.csv")
 
-#### Precipitation and minimum temperature (30 yr normal) ####
-tmin <- rast("data/rasters/PRISM30yrTMIN_NY.tif")
-tmin <- resample(tmin, nlcd, method="bilinear") # Match projection to nlcd
-ppt <- rast("data/rasters/PRISM30yrPPT_NY.tif")
-ppt <- resample(ppt, nlcd, method="bilinear") # Match projection to nlcd
 
 
 
