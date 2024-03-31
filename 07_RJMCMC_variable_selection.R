@@ -7,14 +7,15 @@ library(COMPoissonReg)
 library(MCMCvis)
 
 ## Read data
-dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") # Need to expand out to have a column for each buffer size
+dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") %>%
+          rename(ncomp=n.compounds.T) %>%
+          select(-BMI) %>%
+          pivot_wider(names_from=buffsize, values_from=deciduous:stand_age_sd)
+
+## Set up data
 
 
-
-## 
-
-
-
+numVars <- ncols(dat) 
 nWMU <- length(unique(dat$WMU))
 
 ## Nimble-ize Conway-Maxwell Poisson functions
@@ -46,6 +47,10 @@ var_scale_code <- nimbleCode({
     z[k] ~ dbern(psi) # indicator for each coefficient
     beta[k] ~ dnorm(0, sd=10)
     zbeta[k] <- z[k] * beta[k]
+  }
+  
+  for (k in 1:numVars) {
+    x_scale[k] ~ dcat(c(0.3333333,0.3333333,0.3333333))
   }
   
   # random intercept

@@ -19,10 +19,13 @@ wmua <- read_csv("data/analysis-ready/wmuas.csv")
 build <- read_csv("data/analysis-ready/building-centroid_sum.csv") %>%
             rename(pt_name=name) 
 mast <- read_csv("data/analysis-ready/ALTEMP26_beech-data.csv")
+
 stand_mn <- read_csv("data/analysis-ready/stand-age_mean.csv") %>%
-                  rename(pt_name=name)
+                  rename(pt_name=name) 
+
 stand_sd <- read_csv("data/analysis-ready/stand-age_stdev.csv") %>%
-  rename(pt_name=name)
+  rename(pt_name=name) 
+
 lsm <- read_csv("data/analysis-ready/forest_edge_density.csv") %>%
             mutate(buffsize=case_when(buffer==1784.124 ~ 10,
                                       buffer==2820.950 ~ 25,
@@ -51,8 +54,8 @@ forest <- forest %>% select(name,buffsize,value,freq) %>%
 forest$deciduous[is.na(forest$deciduous)] <- 0
 forest$evergreen[is.na(forest$evergreen)] <- 0
 forest$mixed[is.na(forest$mixed)] <- 0
-forest <- mutate(forest, totalforest=deciduous + evergreen + mixed)
-
+forest <- forest %>% mutate(totalforest=deciduous + evergreen + mixed) 
+  
 ## reorganize beech
 # beech mast index
 names(bmi)[c(1,3)] <- c("pt_name", "bmi")
@@ -61,14 +64,8 @@ bmi$bmi[is.na(bmi$bmi)] <- 0
 # beech basal area
 names(baa)[1] <- "pt_name"
 baa$baa[is.na(baa$baa)] <- 0
-baa <- baa %>% select(pt_name, buffsize, baa)
-
-## pivot stand age wider
-# stand_mn <- stand_mn %>% pivot_wider(names_from=buffsize, values_from=stand_age_mean) %>%
-#                 rename(stand_mean_15=`15`, stand_mean_30=`30`, stand_mean_45=`45`)
-# 
-# stand_sd <- stand_sd %>% pivot_wider(names_from=buffsize, values_from=stand_age_sd) %>%
-#   rename(stand_sd_15=`15`, stand_sd_30=`30`, stand_sd_45=`45`)
+baa <- baa %>% select(pt_name, buffsize, baa) %>%
+          pivot_wider(names_from=buffsize, values_from=)
 
 # Create categorical variable for buildings
 qntl <- build %>% group_by(buffsize) %>% summarize(first=quantile(nbuildings, probs=0.25), median=quantile(nbuildings, probs=0.5),
