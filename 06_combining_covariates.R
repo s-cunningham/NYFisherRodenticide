@@ -72,17 +72,17 @@ qntl <- build %>% group_by(buffsize) %>% summarize(first=quantile(nbuildings, pr
 
 build <- build %>% mutate(build_cat=case_when(
                              nbuildings<1 ~ "None",
-                             (nbuildings>=1 & nbuildings<=as.vector(qntl[1,2])) & buffsize==10 ~ "1stQuart",
-                             (nbuildings>=1 & nbuildings<=as.vector(qntl[2,2])) & buffsize==25 ~ "1stQuart",
+                             (nbuildings>=1 & nbuildings<=as.vector(qntl[1,2])) & buffsize==15 ~ "1stQuart",
+                             (nbuildings>=1 & nbuildings<=as.vector(qntl[2,2])) & buffsize==30 ~ "1stQuart",
                              (nbuildings>=1 & nbuildings<=as.vector(qntl[3,2])) & buffsize==45 ~ "1stQuart",
-                             (nbuildings>as.vector(qntl[1,2]) & nbuildings<=as.vector(qntl[1,3])) & buffsize==10 ~ "2ndQuart",
-                             (nbuildings>as.vector(qntl[2,2]) & nbuildings<=as.vector(qntl[2,3])) & buffsize==25 ~ "2ndQuart",
+                             (nbuildings>as.vector(qntl[1,2]) & nbuildings<=as.vector(qntl[1,3])) & buffsize==15 ~ "2ndQuart",
+                             (nbuildings>as.vector(qntl[2,2]) & nbuildings<=as.vector(qntl[2,3])) & buffsize==30 ~ "2ndQuart",
                              (nbuildings>as.vector(qntl[3,2]) & nbuildings<=as.vector(qntl[3,3])) & buffsize==45 ~ "2ndQuart",
-                             (nbuildings>as.vector(qntl[1,3]) & nbuildings<=as.vector(qntl[1,4])) & buffsize==10 ~ "3rdQuart",
-                             (nbuildings>as.vector(qntl[2,3]) & nbuildings<=as.vector(qntl[2,4])) & buffsize==25 ~ "3rdQuart",
+                             (nbuildings>as.vector(qntl[1,3]) & nbuildings<=as.vector(qntl[1,4])) & buffsize==15 ~ "3rdQuart",
+                             (nbuildings>as.vector(qntl[2,3]) & nbuildings<=as.vector(qntl[2,4])) & buffsize==30 ~ "3rdQuart",
                              (nbuildings>as.vector(qntl[3,3]) & nbuildings<=as.vector(qntl[3,4])) & buffsize==45 ~ "3rdQuart",
-                             (nbuildings>as.vector(qntl[1,4]) & nbuildings<=as.vector(qntl[1,5])) & buffsize==10 ~ "4thQuart",
-                             (nbuildings>as.vector(qntl[2,4]) & nbuildings<=as.vector(qntl[2,5])) & buffsize==25 ~ "4thQuart",
+                             (nbuildings>as.vector(qntl[1,4]) & nbuildings<=as.vector(qntl[1,5])) & buffsize==15 ~ "4thQuart",
+                             (nbuildings>as.vector(qntl[2,4]) & nbuildings<=as.vector(qntl[2,5])) & buffsize==30 ~ "4thQuart",
                              (nbuildings>as.vector(qntl[3,4]) & nbuildings<=as.vector(qntl[3,5])) & buffsize==45 ~ "4thQuart"))
 
 ## Joining data
