@@ -296,7 +296,7 @@ levels(tforest) <- list(data.frame(ID=nlcd_values, landcov=nlcd_class))
 samples <- samples %>% st_transform(crs=crs(tforest))
 
 ## Landscape metrics...use points and have LSM create buffer
-sizes <- c(1784.124, 2820.95, 3784.6988)  # 15, 30, 45
+sizes <- c(2185.0969, 3090.1936, 3784.6988)  # 15, 30, 45
 
 # total forest
 lsm_tforest_output <- sizes %>%

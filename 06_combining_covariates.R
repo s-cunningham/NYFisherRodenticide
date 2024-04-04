@@ -27,8 +27,8 @@ stand_sd <- read_csv("data/analysis-ready/stand-age_stdev.csv") %>%
   rename(pt_name=name) 
 
 lsm <- read_csv("data/analysis-ready/forest_edge_density.csv") %>%
-            mutate(buffsize=case_when(buffer==1784.124 ~ 10,
-                                      buffer==2820.950 ~ 25,
+            mutate(buffsize=case_when(buffer==2185.0969 ~ 15,
+                                      buffer==3090.1936 ~ 30,
                                       buffer==3784.699 ~ 45)) %>%
             rename(edge_density=value, pt_name=plot_id) %>%
             select(pt_name, buffsize, edge_density) %>%
@@ -64,8 +64,7 @@ bmi$bmi[is.na(bmi$bmi)] <- 0
 # beech basal area
 names(baa)[1] <- "pt_name"
 baa$baa[is.na(baa$baa)] <- 0
-baa <- baa %>% select(pt_name, buffsize, baa) %>%
-          pivot_wider(names_from=buffsize, values_from=)
+baa <- baa %>% select(pt_name, buffsize, baa) 
 
 # Create categorical variable for buildings
 qntl <- build %>% group_by(buffsize) %>% summarize(first=quantile(nbuildings, probs=0.25), median=quantile(nbuildings, probs=0.5),
@@ -97,7 +96,7 @@ dat <- dat %>% distinct()
 
 # Add columns for buffer and radius
 dat <- bind_rows(dat, dat, dat)
-dat$buffsize <- rep(c(10,25,45), each=3380) # buffer sizes
+dat$buffsize <- rep(c(15,30,45), each=3380) # buffer sizes
 dat <- dat %>% select(RegionalID:n.compounds.T,buffsize)
 
 # join covariate data
