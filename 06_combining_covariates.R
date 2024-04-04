@@ -64,7 +64,7 @@ bmi$bmi[is.na(bmi$bmi)] <- 0
 # beech basal area
 names(baa)[1] <- "pt_name"
 baa$baa[is.na(baa$baa)] <- 0
-baa <- baa %>% select(pt_name, buffsize, baa) 
+baa <- baa %>% select(pt_name, buffsize, baa) %>% rename(bba=baa)
 
 # Create categorical variable for buildings
 qntl <- build %>% group_by(buffsize) %>% summarize(first=quantile(nbuildings, probs=0.25), median=quantile(nbuildings, probs=0.5),
@@ -126,7 +126,10 @@ dat <- dat %>% mutate(evergreen = coalesce(evergreen, 0),
 dat <- left_join(dat, wmua, by="WMU")
 
 # Reorder columns
-dat <- dat %>% select(RegionalID:AgeClass,key,Region,WMUA_code,WMU,Town:laggedBMI)
+dat <- dat %>% select(RegionalID:AgeClass,key,Region,WMUA_code,WMU,Town:laggedBMI) %>% 
+  rename(ncomp=n.compounds.T) %>%
+  select(-BMI, -laggedBMI) %>%
+  pivot_wider(id_cols=c(RegionalID:ncomp), names_from=buffsize, values_from=deciduous:stand_age_sd)
 
 # Add beechnut counts
 dat <- dat %>% mutate(beechnuts=case_when(
