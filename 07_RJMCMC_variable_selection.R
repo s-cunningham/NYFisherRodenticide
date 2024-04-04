@@ -6,17 +6,26 @@ library(nimble)
 library(COMPoissonReg)
 library(MCMCvis)
 
-## Read data
+## Read data, remove some columns we don't want to test
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") %>%
-          rename(ncomp=n.compounds.T) %>%
-          select(-BMI) %>%
-          pivot_wider(names_from=buffsize, values_from=deciduous:stand_age_sd)
+        mutate(age2=Age^2) 
+
+
 
 ## Set up data
 
-
 numVars <- ncols(dat) 
-nWMU <- length(unique(dat$WMU))
+
+# prep fof nimble model
+vsIndicatorConstants <- list(N=100, 
+                             numVars=15, 
+                             numScaleVars=length(16:45),
+                             nWMU=length(unique(dat$WMU)))
+
+vsIndicatorInits <- list(sigma.alpha=1, psi=0.5, nu=1.5, 
+                         beta=rnorm(vsIndicatorConstants$numVars),
+                         z=sample(0:1, vsIndicatorConstants$numVars, 0.5))
+
 
 ## Nimble-ize Conway-Maxwell Poisson functions
 # Random values function
@@ -49,7 +58,7 @@ var_scale_code <- nimbleCode({
     zbeta[k] <- z[k] * beta[k]
   }
   
-  for (k in 1:numVars) {
+  for (k in 1:numScaleVars) {
     x_scale[k] ~ dcat(c(0.3333333,0.3333333,0.3333333))
   }
   
@@ -63,7 +72,8 @@ var_scale_code <- nimbleCode({
   ## Likelihood
   for (i in 1:N) {
     
-    log(lambda[i]) <- alpha[WMU[i]] + inprod()
+    log(lambda[i]) <- alpha[WMU[i]] + beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] *
+                        inprod()
     ncomp ~ dCOMP(lambda[i], nu)
     
   }
@@ -71,11 +81,6 @@ var_scale_code <- nimbleCode({
 })
 
 ## Set up the model.
-vsIndicatorConstants <- list(N=100, numVars=15, nWMU=55)
-vsIndicatorInits <- list(sigma.alpha=1, psi=0.5, nu=1.5, 
-                         beta=rnorm(vsIndicatorConstants$numVars),
-                         z=sample(0:1, vsIndicatorConstants$numVars, 0.5))
-
 vsIndicatorData  <- list(y = y, X = X)
 vsIndicatorModel <- nimbleModel(code=var_scale_code, constants=vsIndicatorConstants,
                                 inits=vsIndicatorInits, data=vsIndicatorData)

@@ -143,3 +143,7 @@ dat <- dat %>% mutate(beechnuts=case_when(
 
 ### Save data to file ####
 write_csv(dat, "data/analysis-ready/combined_AR_covars.csv")
+
+
+cor(dat[,c(16:30,34:45)])
+
