@@ -84,7 +84,7 @@ assign('rCOMP', rCOMP, envir=.GlobalEnv)
 var_scale_code <- nimbleCode({
   
   ## Priors
-  nu ~ dunif(1,2) # prior for CMP dispersion parameter
+  # nu ~ dunif(1,2) # prior for CMP dispersion parameter
   # V ~ dgamma(3.29, 7.8) # total beta variance
   
   # beta_var <- V/numVars
@@ -102,9 +102,9 @@ var_scale_code <- nimbleCode({
     beta_sex[k] ~ dnorm(0, sd=10)
   }
   
-  cat_prob <- c(1/3, 1/3, 1/3) #1/3 x=3, 
+  cat_prob[1:3] <- c(1/3, 1/3, 1/3) #1/3 x=3, , 1/3, 1/3
   for (k in 1:numScaleVars) {
-    x_scale[k] ~ dcat(prob=cat_prob)
+    x_scale[k] ~ dcat(cat_prob[1:3])
   }
   
   ## random intercepts
@@ -131,8 +131,8 @@ var_scale_code <- nimbleCode({
                         zbeta[6]*scale_covars[i, x_scale[3], 3] + zbeta[7]*scale_covars[i, x_scale[4], 4] +
                         zbeta[8]*scale_covars[i, x_scale[5], 5] + zbeta[9]*scale_covars[i, x_scale[6], 6] +
                         zbeta[10]*scale_covars[i, x_scale[7], 7] + zbeta[11]*scale_covars[i, x_scale[8], 8]
-    ncomp[i] ~ dCOMP(lambda[i], nu)
-    # ncomp[i] ~ dpois(lambda[i])
+    # ncomp[i] ~ dCOMP(lambda[i], nu)
+    ncomp[i] ~ dpois(lambda[i])
     
   }
   

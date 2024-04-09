@@ -147,3 +147,7 @@ write_csv(dat, "data/analysis-ready/combined_AR_covars.csv")
 
 cor(dat[,c(16:30,34:45)])
 
+
+# check <- dat %>% filter(pt_index==1)
+# mean(check$ncomp)
+# var(check$ncomp)
