@@ -38,7 +38,7 @@ covars[1:nrow(dat),3] <- as.numeric(dat$mast_year)
 vsConstants <- list(N=nrow(dat),
                     sex=dat$Sex,
                     nsamples=length(unique(dat$RegionalID)), 
-                    numVars=numScaleVars + nonScaleVars, 
+                    numVars=nonScaleVars, 
                     numScaleVars=numScaleVars,
                     WMU=wmu, # random intercept
                     sampleID=ids, # random intercept
@@ -51,7 +51,7 @@ vsDataBundle <- list(ncomp=ncomp, # response
                      age2=dat$age2) # covariates (scale)
 
 vsInits <- list(sigma.alpha=1, mu.alpha=1, sigma.eta=1, mu.eta=1, nu=1.5, 
-                beta=rnorm(vsConstants$numVars), 
+                beta=rnorm(vsConstants$numVars), sc_beta=rnorm(vsConstants$numScaleVars), 
                 x_scale=rep(1, numScaleVars),
                 beta_age=rnorm(1), beta_age2=rnorm(1), beta_sex=rnorm(2), #beta_mast=rnorm(2),
                 z=sample(0:1,(vsConstants$numVars), 0.5), cat_prob=rep(1/3,3)) 
@@ -89,9 +89,16 @@ var_scale_code <- nimbleCode({
     beta_sex[k] ~ dnorm(0, sd=10)
   }
   
+  # Indicator betas
   for (k in 1:numVars) {
     beta[k] ~ dnorm(0, sd=10)
     z[k] ~ dbern(0.5) # indicator for each coefficient
+    zbeta[k] <- z[k]*beta[k]
+  }
+  
+  # Scale betas
+  for (k in 1:numScaleVars) {
+    sc_beta[k] ~ dnorm(0, sd=10)
   }
   
   cat_prob[1:3] <- c(1/3, 1/3, 1/3)
@@ -118,11 +125,11 @@ var_scale_code <- nimbleCode({
   for (i in 1:N) {
     
     temp1[i] <- beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + alpha[WMU[i]] + eta[sampleID[i]] +
-      z[1]*beta[1]*covars[i,1] + z[2]*beta[2]*covars[i,2] + z[3]*beta[3]*covars[i,3] 
+      zbeta[1]*covars[i,1] + zbeta[2]*covars[i,2] + zbeta[3]*covars[i,3] 
     
-    temp2[i] <- beta[4]*scale_covars[i, x_scale[1], 1] + beta[5]*scale_covars[i, x_scale[2], 2] +
-                beta[6]*scale_covars[i, x_scale[3], 3] + beta[7]*scale_covars[i, x_scale[4], 4] +
-                beta[8]*scale_covars[i, x_scale[5], 5] 
+    temp2[i] <- sc_beta[1]*scale_covars[i, x_scale[1], 1] + sc_beta[2]*scale_covars[i, x_scale[2], 2] +
+                sc_beta[3]*scale_covars[i, x_scale[3], 3] + sc_beta[4]*scale_covars[i, x_scale[4], 4] +
+                sc_beta[5]*scale_covars[i, x_scale[5], 5] 
     
     lambda[i] <- exp(temp1[i] + temp2[i])
     
@@ -155,4 +162,19 @@ cIndicatorModel <- compileNimble(vsModel)
 CMCMCIndicatorRJ <- compileNimble(mcmcIndicatorRJ, project = vsModel)
 
 set.seed(1)
-system.time(samplesIndicator <- runMCMC(CMCMCIndicatorRJ, niter=1000, nburnin=500))
+system.time(samplesIndicator <- runMCMC(CMCMCIndicatorRJ, niter=10000, nburnin=4000))
+
+saveRDS(samplesIndicator, file = "results/ncomp_indicators.rds")
+
+## Looking at results
+par(mfrow = c(2, 1))
+plot(samplesIndicator[,'beta[3]'], pch = 16, cex = 0.4, main = "beta[3] traceplot")
+plot(samplesIndicator[,'z[3]'], pch = 16, cex = 0.4, main = "z[3] traceplot")
+
+# Individual inclusion probabilities
+par(mfrow = c(1, 1))
+zCols <- grep("z\\[", colnames(samplesIndicator))
+posterior_inclusion_prob <- colMeans(samplesIndicator[, zCols])
+plot(1:3, posterior_inclusion_prob, ylim=c(0,1),
+     xlab = "beta", ylab = "inclusion probability",
+     main = "Inclusion probabilities for each beta")
