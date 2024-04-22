@@ -10,14 +10,14 @@ library(MCMCvis)
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") %>%
         mutate(age2=Age^2) %>%
         dplyr::select(-edge_density_15, -edge_density_30, -edge_density_45, -build_cat_15, -build_cat_30,-build_cat_45) %>%
-        mutate(mast_year=if_else(year==2019, 2, 1), # failure years are reference
+        mutate(mast_year=if_else(year==2019, 1, 0), # failure years are reference
                Sex=if_else(Sex=='F',1,2)) # Females are reference
 
 # Scale variables
 dat[,c(8,16:42)] <- scale(dat[,c(8,16:42)])
 
 ## Set up data
-numScaleVars <- length(16:39)/3
+numScaleVars <- 5
 nScales <- 3
 nonScaleVars <- 3
 ncomp <- dat$ncomp
@@ -27,18 +27,15 @@ ids <- as.numeric(factor(dat$RegionalID, labels=1:length(unique(dat$RegionalID))
 # create array for covariate data (slice for each covariate)
 scale_covars <- array(NA, dim=c(nrow(dat), nScales, numScaleVars))
 scale_covars[1:nrow(dat),1:3,1] <- as.matrix(dat[1:nrow(dat),16:18]) # % deciduous
-scale_covars[1:nrow(dat),1:3,2] <- as.matrix(dat[1:nrow(dat),22:24]) # % mixed forest
-scale_covars[1:nrow(dat),1:3,3] <- as.matrix(dat[1:nrow(dat),19:21]) # % evergreen
-scale_covars[1:nrow(dat),1:3,4] <- as.matrix(dat[1:nrow(dat),25:27]) # % total forest
-scale_covars[1:nrow(dat),1:3,5] <- as.matrix(dat[1:nrow(dat),28:30]) # number of buildings
-scale_covars[1:nrow(dat),1:3,6] <- as.matrix(dat[1:nrow(dat),31:33]) # beech basal area
-scale_covars[1:nrow(dat),1:3,7] <- as.matrix(dat[1:nrow(dat),34:36]) # stand age mean
-scale_covars[1:nrow(dat),1:3,8] <- as.matrix(dat[1:nrow(dat),37:39]) # stand age standard deviation
+scale_covars[1:nrow(dat),1:3,2] <- as.matrix(dat[1:nrow(dat),28:30]) # number of buildings
+scale_covars[1:nrow(dat),1:3,3] <- as.matrix(dat[1:nrow(dat),31:33]) # beech basal area
+scale_covars[1:nrow(dat),1:3,4] <- as.matrix(dat[1:nrow(dat),34:36]) # stand age mean
+scale_covars[1:nrow(dat),1:3,5] <- as.matrix(dat[1:nrow(dat),37:39]) # stand age standard deviation
 
-covars <- matrix(NA, nrow=nrow(dat),ncol=nonScaleVars-1)
+covars <- matrix(NA, nrow=nrow(dat),ncol=nonScaleVars)
 covars[1:nrow(dat),1] <- dat$beechnuts
 covars[1:nrow(dat),2] <- dat$lag_beechnuts
-# covars[1:nrow(dat),3] <- as.numeric(dat$mast_year)
+covars[1:nrow(dat),3] <- as.numeric(dat$mast_year)
 
 # prep fof nimble model
 vsConstants <- list(N=nrow(dat),
@@ -125,12 +122,11 @@ var_scale_code <- nimbleCode({
   for (i in 1:N) {
     
     temp1[i] <- beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + alpha[WMU[i]] + eta[sampleID[i]] +
-                z[1]*beta[1]*covars[i,1] + z[2]*beta[2]*covars[i,2] #+ z[3]*beta_mast[covars[i,3]]
+                z[1]*beta[1]*covars[i,1] + z[2]*beta[2]*covars[i,2] + z[3]*beta[3]*covars[i,3] 
                         
-    temp2[i] <- z[3]*beta[3]*scale_covars[i, x_scale[1], 1] + z[4]*beta[4]*scale_covars[i, x_scale[2], 2] +
-                z[5]*beta[5]*scale_covars[i, x_scale[3], 3] + z[6]*beta[6]*scale_covars[i, x_scale[4], 4] +
-                z[7]*beta[7]*scale_covars[i, x_scale[5], 5] + z[8]*beta[8]*scale_covars[i, x_scale[6], 6] +
-                z[9]*beta[9]*scale_covars[i, x_scale[7], 7] + z[10]*beta[10]*scale_covars[i, x_scale[8], 8]
+    temp2[i] <- z[4]*beta[4]*scale_covars[i, x_scale[1], 1] + z[5]*beta[5]*scale_covars[i, x_scale[2], 2] +
+                z[6]*beta[6]*scale_covars[i, x_scale[3], 3] + z[7]*beta[7]*scale_covars[i, x_scale[4], 4] +
+                z[8]*beta[8]*scale_covars[i, x_scale[5], 5] 
     
     lambda[i] <- exp(temp1[i] + temp2[i])
     
@@ -145,11 +141,11 @@ vsModel <- nimbleModel(code=var_scale_code, constants=vsConstants,
                        inits=vsInits, data=vsDataBundle)
 
 vsIndicatorConf <- configureMCMC(vsModel)
-vsIndicatorConf$addMonitors(c('z')) # 'z'
+vsIndicatorConf$addMonitors('z')
 
 configureRJ(vsIndicatorConf,
             targetNodes = 'beta',
-            indicatorNodes = 'z', # 'z', 'x_scale'  # 
+            indicatorNodes = 'z',  
             control = list(mean = 0, scale = .2))
 
 ## Check the assigned samplers
@@ -163,7 +159,7 @@ cIndicatorModel <- compileNimble(vsModel)
 CMCMCIndicatorRJ <- compileNimble(mcmcIndicatorRJ, project = vsModel)
 
 set.seed(1)
-system.time(samplesIndicator <- runMCMC(CMCMCIndicatorRJ, niter = 5000, nburnin = 1000))
+system.time(samplesIndicator <- runMCMC(CMCMCIndicatorRJ, niter=1000, nburnin=500))
 
 ## Looking at results
 par(mfrow = c(2, 2))
@@ -176,7 +172,7 @@ plot(samplesIndicator[,'z[5]'], pch = 16, cex = 0.4, main = "z[5] traceplot")
 par(mfrow = c(1, 1))
 zCols <- grep("z\\[", colnames(samplesIndicator))
 posterior_inclusion_prob <- colMeans(samplesIndicator[, zCols])
-plot(1:11, posterior_inclusion_prob, ylim=c(0,1),
+plot(1:8, posterior_inclusion_prob, ylim=c(0,1),
      xlab = "beta", ylab = "inclusion probability",
      main = "Inclusion probabilities for each beta")
 

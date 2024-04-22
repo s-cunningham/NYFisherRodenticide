@@ -1,7 +1,7 @@
 library(tidyverse)
 library(nimble)
 library(COMPoissonReg)
-library(MCMCvis)
+
 
 ## Read data, remove some columns we don't want to test
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") %>%
@@ -178,3 +178,20 @@ posterior_inclusion_prob <- colMeans(samplesIndicator[, zCols])
 plot(1:3, posterior_inclusion_prob, ylim=c(0,1),
      xlab = "beta", ylab = "inclusion probability",
      main = "Inclusion probabilities for each beta")
+
+## Plot scale probabilities
+sCols <- grep("x_scale\\[", colnames(samplesIndicator))
+posterior_scales <- samplesIndicator[, sCols]
+
+posterior_scales <- as.data.frame(posterior_scales)
+
+names(posterior_scales) <- c("pct_decid", "pct_evrgrn", "nbuildings", "stand_mean", "stand_sd")
+
+posterior_scales <- posterior_scales %>% pivot_longer(1:5, names_to="covar", values_to="scale")
+
+
+ggplot(posterior_scales) +
+  geom_bar(aes(x=scale)) +
+  facet_wrap(vars(covar))
+  
+
