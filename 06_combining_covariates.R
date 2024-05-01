@@ -145,7 +145,7 @@ dat <- dat %>% mutate(beechnuts=case_when(
 write_csv(dat, "data/analysis-ready/combined_AR_covars.csv")
 
 
-cor(dat[,c(16:30,34:45)])
+cor(dat[,c(16:21,28:30,40:45)])
 
 
 # check <- dat %>% filter(pt_index==1)

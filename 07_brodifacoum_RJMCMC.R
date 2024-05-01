@@ -1,6 +1,5 @@
 library(tidyverse)
 library(nimble)
-library(MCMCvis)
 
 ## Read data, remove some columns we don't want to test
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") %>%
@@ -55,7 +54,7 @@ vsDataBundle <- list(y=brod, # response
                      age=dat$Age,
                      age2=dat$age2) # covariates (scale)
 
-vsInits <- list(sigma.alpha=1, mu.alpha=1, sigma.eta=1, mu.eta=1,
+vsInits <- list( sigma.eta=1, mu.eta=1, #sigma.alpha=1, mu.alpha=1,
                 beta=rnorm(vsConstants$numVars), sc_beta=rnorm(vsConstants$numScaleVars), 
                 x_scale=rep(1, numScaleVars),
                 beta_age=rnorm(1), beta_age2=rnorm(1), beta_sex=rnorm(2), #beta_mast=rnorm(2),
@@ -67,22 +66,22 @@ var_scale_code <- nimbleCode({
   ## Priors
   
   # beta coefficient priors
-  beta_age ~ dnorm(0, sd=10)
-  beta_age2 ~ dnorm(0, sd=10)
+  beta_age ~ dnorm(0, sd=1.4)
+  beta_age2 ~ dnorm(0, sd=1.4)
   for (k in 1:2) {
-    beta_sex[k] ~ dnorm(0, sd=10)
+    beta_sex[k] ~ dnorm(0, sd=1.4)
   }
   
   # Indicator betas
   for (k in 1:numVars) {
-    beta[k] ~ dnorm(0, sd=10)
+    beta[k] ~ dnorm(0, sd=1.4)
     z[k] ~ dbern(0.5) # indicator for each coefficient
     zbeta[k] <- z[k]*beta[k]
   }
   
   # Scale betas
   for (k in 1:numScaleVars) {
-    sc_beta[k] ~ dnorm(0, sd=10)
+    sc_beta[k] ~ dnorm(0, sd=1.4)
   }
   
   cat_prob[1:3] <- c(1/3, 1/3, 1/3)
@@ -91,12 +90,12 @@ var_scale_code <- nimbleCode({
   }
   
   ## random intercepts
-  # WMU
-  for (k in 1:nWMU) {
-    alpha[k] ~ dnorm(mu.alpha, sd=sigma.alpha)
-  }
-  mu.alpha ~ dnorm(0, 0.001)
-  sigma.alpha ~ dunif(0, 100)
+  # # WMU
+  # for (k in 1:nWMU) {
+  #   alpha[k] ~ dnorm(mu.alpha, sd=sigma.alpha)
+  # }
+  # mu.alpha ~ dnorm(0, 0.001)
+  # sigma.alpha ~ dunif(0, 100)
   
   # sample
   for (k in 1:nsamples) {
@@ -108,7 +107,7 @@ var_scale_code <- nimbleCode({
   ## Likelihood
   for (i in 1:N) {
     
-    logit(p[i]) <- beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + alpha[WMU[i]] + eta[sampleID[i]] +
+    logit(p[i]) <- beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + eta[sampleID[i]] +
       zbeta[1]*covars[i,1] + zbeta[2]*covars[i,2] + zbeta[3]*covars[i,3] +
       sc_beta[1]*scale_covars[i, x_scale[1], 1] + sc_beta[2]*scale_covars[i, x_scale[2], 2] +
       sc_beta[3]*scale_covars[i, x_scale[3], 3] + sc_beta[4]*scale_covars[i, x_scale[4], 4] +
@@ -143,9 +142,10 @@ cIndicatorModel <- compileNimble(vsModel)
 CMCMCIndicatorRJ <- compileNimble(mcmcIndicatorRJ, project = vsModel)
 
 set.seed(1)
-system.time(samplesIndicator <- runMCMC(CMCMCIndicatorRJ, niter=10000, nburnin=4000))
+system.time(samplesIndicator <- runMCMC(CMCMCIndicatorRJ, niter=200000, nburnin=100000))
 
 saveRDS(samplesIndicator, file = "results/brodifacoum_indicators.rds")
+# samplesIndicator <- readRDS("results/brodifacoum_indicators.rds")
 
 ## Looking at results
 par(mfrow = c(2, 1))

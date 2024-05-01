@@ -1,6 +1,5 @@
 library(tidyverse)
 library(nimble)
-library(MCMCvis)
 
 ## Read data, remove some columns we don't want to test
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") %>%
@@ -17,8 +16,6 @@ brom <- read_csv("output/summarized_AR_results.csv") %>% filter(compound=="Broma
   select(RegionalID,bin.exp)
 dat <- left_join(dat, brom, by="RegionalID")
 dat <- dat %>% select(RegionalID:Town,bin.exp,deciduous_15:mast_year)
-
-
 
 ## Set up data
 numScaleVars <- 5
@@ -71,15 +68,15 @@ var_scale_code <- nimbleCode({
   ## Priors
   
   # beta coefficient priors
-  beta_age ~ dnorm(0, sd=10)
-  beta_age2 ~ dnorm(0, sd=10)
+  beta_age ~ dnorm(0, sd=1.4)
+  beta_age2 ~ dnorm(0, sd=1.4)
   for (k in 1:2) {
-    beta_sex[k] ~ dnorm(0, sd=10)
+    beta_sex[k] ~ dnorm(0, sd=1.4)
   }
   
   # Indicator betas
   for (k in 1:numVars) {
-    beta[k] ~ dnorm(0, sd=10)
+    beta[k] ~ dnorm(0, sd=1.4)
     z[k] ~ dbern(0.5) # indicator for each coefficient
     zbeta[k] <- z[k]*beta[k]
   }
@@ -95,12 +92,12 @@ var_scale_code <- nimbleCode({
   }
   
   ## random intercepts
-  # WMU
-  for (k in 1:nWMU) {
-    alpha[k] ~ dnorm(mu.alpha, sd=sigma.alpha)
-  }
-  mu.alpha ~ dnorm(0, 0.001)
-  sigma.alpha ~ dunif(0, 100)
+  # # WMU
+  # for (k in 1:nWMU) {
+  #   alpha[k] ~ dnorm(mu.alpha, sd=sigma.alpha)
+  # }
+  # mu.alpha ~ dnorm(0, 0.001)
+  # sigma.alpha ~ dunif(0, 100)
   
   # sample
   for (k in 1:nsamples) {
@@ -112,7 +109,7 @@ var_scale_code <- nimbleCode({
   ## Likelihood
   for (i in 1:N) {
     
-    logit(p[i]) <- beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + alpha[WMU[i]] + eta[sampleID[i]] +
+    logit(p[i]) <- beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + eta[sampleID[i]] +
       zbeta[1]*covars[i,1] + zbeta[2]*covars[i,2] + zbeta[3]*covars[i,3] +
       sc_beta[1]*scale_covars[i, x_scale[1], 1] + sc_beta[2]*scale_covars[i, x_scale[2], 2] +
       sc_beta[3]*scale_covars[i, x_scale[3], 3] + sc_beta[4]*scale_covars[i, x_scale[4], 4] +
@@ -147,14 +144,16 @@ cIndicatorModel <- compileNimble(vsModel)
 CMCMCIndicatorRJ <- compileNimble(mcmcIndicatorRJ, project = vsModel)
 
 set.seed(1)
-system.time(samplesIndicator <- runMCMC(CMCMCIndicatorRJ, niter=10000, nburnin=4000))
+system.time(samplesIndicator <- runMCMC(CMCMCIndicatorRJ, niter=200000, nburnin=100000))
 
 saveRDS(samplesIndicator, file = "results/bromadiolone_indicators.rds")
 
+# samplesIndicator <- readRDS("results/bromadiolone_indicators.rds")
+
 ## Looking at results
 par(mfrow = c(2, 1))
-plot(samplesIndicator[,'beta[3]'], pch = 16, cex = 0.4, main = "beta[3] traceplot")
-plot(samplesIndicator[,'z[3]'], pch = 16, cex = 0.4, main = "z[3] traceplot")
+plot(samplesIndicator[,'beta[1]'], pch = 16, cex = 0.4, main = "beta[1] traceplot")
+plot(samplesIndicator[,'z[1]'], pch = 16, cex = 0.4, main = "z[1] traceplot")
 
 # Individual inclusion probabilities
 par(mfrow = c(1, 1))
@@ -173,7 +172,6 @@ posterior_scales <- as.data.frame(posterior_scales)
 names(posterior_scales) <- c("pct_decid", "pct_evrgrn", "nbuildings", "stand_mean", "stand_sd")
 
 posterior_scales <- posterior_scales %>% pivot_longer(1:5, names_to="covar", values_to="scale")
-
 
 ggplot(posterior_scales) +
   geom_bar(aes(x=scale)) +
