@@ -1,6 +1,7 @@
 library(tidyverse)
 library(nimble)
 library(MCMCvis)
+library(HDInterval)
 
 ## Read data, remove some columns we don't want to test
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") %>%
@@ -62,8 +63,8 @@ params <- c("beta_age","beta_age2","beta_sex","beta_mast","beta_decid","beta_evr
 
 # MCMC options
 nt <- 1
-ni <- 20000
-nb <- 5000
+ni <- 75000
+nb <- 35000
 nc <- 3
 
 set.seed(1)
@@ -431,4 +432,115 @@ range(brom.sum10$Rhat)
 
 
 # Combine samples
+
+age <- c(brom.out1$chain1[,56],brom.out2$chain1[,56],brom.out3$chain1[,56],brom.out4$chain1[,56],brom.out5$chain1[,56],
+         brom.out6$chain1[,56],brom.out7$chain1[,56],brom.out8$chain1[,56],brom.out9$chain1[,56],brom.out10$chain1[,56],
+         brom.out1$chain2[,56],brom.out2$chain2[,56],brom.out3$chain2[,56],brom.out4$chain2[,56],brom.out5$chain2[,56],
+         brom.out6$chain2[,56],brom.out7$chain2[,56],brom.out8$chain2[,56],brom.out9$chain2[,56],brom.out10$chain2[,56],
+         brom.out1$chain3[,56],brom.out2$chain3[,56],brom.out3$chain3[,56],brom.out4$chain3[,56],brom.out5$chain3[,56],
+         brom.out6$chain3[,56],brom.out7$chain3[,56],brom.out8$chain3[,56],brom.out9$chain3[,56],brom.out10$chain3[,56])
+
+# Calculate HDI and quantiles
+hdi(age)
+quantile(age, probs=c(0.5,0.025,0.975))
+
+
+age2 <- c(brom.out1$chain1[,57],brom.out2$chain1[,57],brom.out3$chain1[,57],brom.out4$chain1[,57],brom.out5$chain1[,57],
+          brom.out6$chain1[,57],brom.out7$chain1[,57],brom.out8$chain1[,57],brom.out9$chain1[,57],brom.out10$chain1[,57],
+          brom.out1$chain2[,57],brom.out2$chain2[,57],brom.out3$chain2[,57],brom.out4$chain2[,57],brom.out5$chain2[,57],
+          brom.out6$chain2[,57],brom.out7$chain2[,57],brom.out8$chain2[,57],brom.out9$chain2[,57],brom.out10$chain2[,57],
+          brom.out1$chain3[,57],brom.out2$chain3[,57],brom.out3$chain3[,57],brom.out4$chain3[,57],brom.out5$chain3[,57],
+          brom.out6$chain3[,57],brom.out7$chain3[,57],brom.out8$chain3[,57],brom.out9$chain3[,57],brom.out10$chain3[,57])
+
+# Calculate HDI and quantiles
+hdi(age2)
+quantile(age2, probs=c(0.5,0.025,0.975))
+
+build <- c(brom.out1$chain1[,58],brom.out2$chain1[,58],brom.out3$chain1[,58],brom.out4$chain1[,58],brom.out5$chain1[,58],
+           brom.out6$chain1[,58],brom.out7$chain1[,58],brom.out8$chain1[,58],brom.out9$chain1[,58],brom.out10$chain1[,58],
+           brom.out1$chain2[,58],brom.out2$chain2[,58],brom.out3$chain2[,58],brom.out4$chain2[,58],brom.out5$chain2[,58],
+           brom.out6$chain2[,58],brom.out7$chain2[,58],brom.out8$chain2[,58],brom.out9$chain2[,58],brom.out10$chain2[,58],
+           brom.out1$chain3[,58],brom.out2$chain3[,58],brom.out3$chain3[,58],brom.out4$chain3[,58],brom.out5$chain3[,58],
+           brom.out6$chain3[,58],brom.out7$chain3[,58],brom.out8$chain3[,58],brom.out9$chain3[,58],brom.out10$chain3[,58])
+
+# Calculate HDI and quantiles
+hdi(build)
+quantile(build, probs=c(0.5,0.025,0.975))
+
+decid <- c(brom.out1$chain1[,59],brom.out2$chain1[,59],brom.out3$chain1[,59],brom.out4$chain1[,59],brom.out5$chain1[,59],
+           brom.out6$chain1[,59],brom.out7$chain1[,59],brom.out8$chain1[,59],brom.out9$chain1[,59],brom.out10$chain1[,59],
+           brom.out1$chain2[,59],brom.out2$chain2[,59],brom.out3$chain2[,59],brom.out4$chain2[,59],brom.out5$chain2[,59],
+           brom.out6$chain2[,59],brom.out7$chain2[,59],brom.out8$chain2[,59],brom.out9$chain2[,59],brom.out10$chain2[,59],
+           brom.out1$chain3[,59],brom.out2$chain3[,59],brom.out3$chain3[,59],brom.out4$chain3[,59],brom.out5$chain3[,59],
+           brom.out6$chain3[,59],brom.out7$chain3[,59],brom.out8$chain3[,59],brom.out9$chain3[,59],brom.out10$chain3[,59])
+
+# Calculate HDI and quantiles
+hdi(decid)
+quantile(decid, probs=c(0.5,0.025,0.975))
+
+evrgrn <- c(brom.out1$chain1[,60],brom.out2$chain1[,60],brom.out3$chain1[,60],brom.out4$chain1[,60],brom.out5$chain1[,60],
+            brom.out6$chain1[,60],brom.out7$chain1[,60],brom.out8$chain1[,60],brom.out9$chain1[,60],brom.out10$chain1[,60],
+            brom.out1$chain2[,60],brom.out2$chain2[,60],brom.out3$chain2[,60],brom.out4$chain2[,60],brom.out5$chain2[,60],
+            brom.out6$chain2[,60],brom.out7$chain2[,60],brom.out8$chain2[,60],brom.out9$chain2[,60],brom.out10$chain2[,60],
+            brom.out1$chain3[,60],brom.out2$chain3[,60],brom.out3$chain3[,60],brom.out4$chain3[,60],brom.out5$chain3[,60],
+            brom.out6$chain3[,60],brom.out7$chain3[,60],brom.out8$chain3[,60],brom.out9$chain3[,60],brom.out10$chain3[,60])
+
+# Calculate HDI and quantiles
+hdi(evrgrn)
+quantile(evrgrn, probs=c(0.5,0.025,0.975))
+
+mast <- c(brom.out1$chain1[,61],brom.out2$chain1[,61],brom.out3$chain1[,61],brom.out4$chain1[,61],brom.out5$chain1[,61],
+          brom.out6$chain1[,61],brom.out7$chain1[,61],brom.out8$chain1[,61],brom.out9$chain1[,61],brom.out10$chain1[,61],
+          brom.out1$chain2[,61],brom.out2$chain2[,61],brom.out3$chain2[,61],brom.out4$chain2[,61],brom.out5$chain2[,61],
+          brom.out6$chain2[,61],brom.out7$chain2[,61],brom.out8$chain2[,61],brom.out9$chain2[,61],brom.out10$chain2[,61],
+          brom.out1$chain3[,61],brom.out2$chain3[,61],brom.out3$chain3[,61],brom.out4$chain3[,61],brom.out5$chain3[,61],
+          brom.out6$chain3[,61],brom.out7$chain3[,61],brom.out8$chain3[,61],brom.out9$chain3[,61],brom.out10$chain3[,61])
+
+# Calculate HDI and quantiles
+hdi(mast)
+quantile(mast, probs=c(0.5,0.025,0.975))
+
+sex1 <- c(brom.out1$chain1[,62],brom.out2$chain1[,62],brom.out3$chain1[,62],brom.out4$chain1[,62],brom.out5$chain1[,62],
+          brom.out6$chain1[,62],brom.out7$chain1[,62],brom.out8$chain1[,62],brom.out9$chain1[,62],brom.out10$chain1[,62],
+          brom.out1$chain2[,62],brom.out2$chain2[,62],brom.out3$chain2[,62],brom.out4$chain2[,62],brom.out5$chain2[,62],
+          brom.out6$chain2[,62],brom.out7$chain2[,62],brom.out8$chain2[,62],brom.out9$chain2[,62],brom.out10$chain2[,62],
+          brom.out1$chain3[,62],brom.out2$chain3[,62],brom.out3$chain3[,62],brom.out4$chain3[,62],brom.out5$chain3[,62],
+          brom.out6$chain3[,62],brom.out7$chain3[,62],brom.out8$chain3[,62],brom.out9$chain3[,62],brom.out10$chain3[,62])
+
+# Calculate HDI and quantiles
+hdi(sex1)
+quantile(sex1, probs=c(0.5,0.025,0.975))
+
+sex2 <- c(brom.out1$chain1[,63],brom.out2$chain1[,63],brom.out3$chain1[,63],brom.out4$chain1[,63],brom.out5$chain1[,63],
+          brom.out6$chain1[,63],brom.out7$chain1[,63],brom.out8$chain1[,63],brom.out9$chain1[,63],brom.out10$chain1[,63],
+          brom.out1$chain2[,63],brom.out2$chain2[,63],brom.out3$chain2[,63],brom.out4$chain2[,63],brom.out5$chain2[,63],
+          brom.out6$chain2[,63],brom.out7$chain2[,63],brom.out8$chain2[,63],brom.out9$chain2[,63],brom.out10$chain2[,63],
+          brom.out1$chain3[,63],brom.out2$chain3[,63],brom.out3$chain3[,63],brom.out4$chain3[,63],brom.out5$chain3[,63],
+          brom.out6$chain3[,63],brom.out7$chain3[,63],brom.out8$chain3[,63],brom.out9$chain3[,63],brom.out10$chain3[,63])
+
+# Calculate HDI and quantiles
+hdi(sex2)
+quantile(sex2, probs=c(0.5,0.025,0.975))
+
+standmn <- c(brom.out1$chain1[,64],brom.out2$chain1[,64],brom.out3$chain1[,64],brom.out4$chain1[,64],brom.out5$chain1[,64],
+             brom.out6$chain1[,64],brom.out7$chain1[,64],brom.out8$chain1[,64],brom.out9$chain1[,64],brom.out10$chain1[,64],
+             brom.out1$chain2[,64],brom.out2$chain2[,64],brom.out3$chain2[,64],brom.out4$chain2[,64],brom.out5$chain2[,64],
+             brom.out6$chain2[,64],brom.out7$chain2[,64],brom.out8$chain2[,64],brom.out9$chain2[,64],brom.out10$chain2[,64],
+             brom.out1$chain3[,64],brom.out2$chain3[,64],brom.out3$chain3[,64],brom.out4$chain3[,64],brom.out5$chain3[,64],
+             brom.out6$chain3[,64],brom.out7$chain3[,64],brom.out8$chain3[,64],brom.out9$chain3[,64],brom.out10$chain3[,64])
+
+# Calculate HDI and quantiles
+hdi(standmn)
+quantile(standmn, probs=c(0.5,0.025,0.975))
+
+standsd <- c(brom.out1$chain1[,65],brom.out2$chain1[,65],brom.out3$chain1[,65],brom.out4$chain1[,65],brom.out5$chain1[,65],
+             brom.out6$chain1[,65],brom.out7$chain1[,65],brom.out8$chain1[,65],brom.out9$chain1[,65],brom.out10$chain1[,65],
+             brom.out1$chain2[,65],brom.out2$chain2[,65],brom.out3$chain2[,65],brom.out4$chain2[,65],brom.out5$chain2[,65],
+             brom.out6$chain2[,65],brom.out7$chain2[,65],brom.out8$chain2[,65],brom.out9$chain2[,65],brom.out10$chain2[,65],
+             brom.out1$chain3[,65],brom.out2$chain3[,65],brom.out3$chain3[,65],brom.out4$chain3[,65],brom.out5$chain3[,65],
+             brom.out6$chain3[,65],brom.out7$chain3[,65],brom.out8$chain3[,65],brom.out9$chain3[,65],brom.out10$chain3[,65])
+
+# Calculate HDI and quantiles
+hdi(standsd)
+quantile(standsd, probs=c(0.5,0.025,0.975))
 
