@@ -315,8 +315,145 @@ lsm_tforest_output <- lsm_tforest_output %>%
 write_csv(lsm_tforest_output, "data/analysis-ready/forest_edge_density.csv")
 
 
+#### Load Cropland data layer ####
+cldl18 <- rast("F:/PhDwork/map_data/NASSCropScape/CropScape2018_NY.tif")
+cldl19 <- rast("F:/PhDwork/map_data/NASSCropScape/CropScape2019_NY.tif")
+cldl20 <- rast("F:/PhDwork/map_data/NASSCropScape/CropScape2020_NY.tif")
+
+un.cldl <- unique(cldl18$CropScape2018_NY)
+woody <- c(66,67,68,69,70,71,74,75,76,77)
+not_woody <- un.cldl$CropScape2018_NY[!(un.cldl$CropScape2018_NY %in% woody)]
+not_woody <- not_woody[2:length(not_woody)]
+# Reclassify 0 (unclassified) and 128 (?) to no data
+m <- matrix(data=c(0,woody,not_woody, NA, rep(1, length(woody)), rep(2, length(not_woody))),
+            ncol=2,nrow=69, byrow=FALSE)
+cldl18<- classify(cldl18, m)
+unique(cldl18)
+
+cldl19 <- classify(cldl19, m)
+cldl20 <- classify(cldl20, m)
+
+# Set up NLCD classes and class values
+cldl_values <- c(1, 2)
+cldl_class <- c("Tree Crops", "Other")
+
+# Add class names and numbers to the raster
+levels(cldl18) <- list(data.frame(ID = cldl_values,
+                                landcov = cldl_class))
+levels(cldl19) <- list(data.frame(ID = cldl_values,
+                                  landcov = cldl_class))
+levels(cldl20) <- list(data.frame(ID = cldl_values,
+                                  landcov = cldl_class))
+
+buff15 <- st_as_sf(buff15)%>% 
+  st_transform(crs=crs(cldl18))
+buff30 <- st_as_sf(buff30)%>% 
+  st_transform(crs=crs(cldl18))
+buff45 <- st_as_sf(buff45)%>% 
+  st_transform(crs=crs(cldl18))
+
+## Extract values from Cropland data layer raster based on buffer using exactextractr
+landcov_fracs15 <- exact_extract(cldl18, buff15, function(df) {
+  df %>%
+    mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
+    group_by(name, value) %>%
+    summarize(freq = sum(frac_total))
+}, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
+landcov_fracs15$buffsize <- 15
+
+landcov_fracs30 <- exact_extract(cldl18, buff30, function(df) {
+  df %>%
+    mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
+    group_by(name, value) %>%
+    summarize(freq = sum(frac_total))
+}, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
+landcov_fracs30$buffsize <- 30
+
+landcov_fracs45 <- exact_extract(cldl18, buff45, function(df) {
+  df %>%
+    mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
+    group_by(name, value) %>%
+    summarize(freq = sum(frac_total))
+}, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
+landcov_fracs45$buffsize <- 45
+
+# Combine into single data frame
+landcov_frac <- bind_rows(landcov_fracs15, landcov_fracs30, landcov_fracs45)
+
+# Remove everything that is not forest or ag
+keep_cov <- c(1)
+landcov_frac <- landcov_frac[landcov_frac$value %in% keep_cov,]
+
+write_csv(landcov_frac, "data/analysis-ready/cldl_woody_pct_2018.csv")
+
+## Extract values from Cropland data layer raster based on buffer using exactextractr
+landcov_fracs15 <- exact_extract(cldl19, buff15, function(df) {
+  df %>%
+    mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
+    group_by(name, value) %>%
+    summarize(freq = sum(frac_total))
+}, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
+landcov_fracs15$buffsize <- 15
+
+landcov_fracs30 <- exact_extract(cldl19, buff30, function(df) {
+  df %>%
+    mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
+    group_by(name, value) %>%
+    summarize(freq = sum(frac_total))
+}, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
+landcov_fracs30$buffsize <- 30
+
+landcov_fracs45 <- exact_extract(cldl19, buff45, function(df) {
+  df %>%
+    mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
+    group_by(name, value) %>%
+    summarize(freq = sum(frac_total))
+}, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
+landcov_fracs45$buffsize <- 45
+
+# Combine into single data frame
+landcov_frac <- bind_rows(landcov_fracs15, landcov_fracs30, landcov_fracs45)
+
+# Remove everything that is not forest or ag
+keep_cov <- c(1)
+landcov_frac <- landcov_frac[landcov_frac$value %in% keep_cov,]
+
+write_csv(landcov_frac, "data/analysis-ready/cldl_woody_pct_2019.csv")
+
+## Extract values from Cropland data layer raster based on buffer using exactextractr
+landcov_fracs15 <- exact_extract(cldl20, buff15, function(df) {
+  df %>%
+    mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
+    group_by(name, value) %>%
+    summarize(freq = sum(frac_total))
+}, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
+landcov_fracs15$buffsize <- 15
+
+landcov_fracs30 <- exact_extract(cldl20, buff30, function(df) {
+  df %>%
+    mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
+    group_by(name, value) %>%
+    summarize(freq = sum(frac_total))
+}, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
+landcov_fracs30$buffsize <- 30
+
+landcov_fracs45 <- exact_extract(cldl20, buff45, function(df) {
+  df %>%
+    mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
+    group_by(name, value) %>%
+    summarize(freq = sum(frac_total))
+}, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
+landcov_fracs45$buffsize <- 45
+
+# Combine into single data frame
+landcov_frac <- bind_rows(landcov_fracs15, landcov_fracs30, landcov_fracs45)
+
+# Remove everything that is not forest or ag
+keep_cov <- c(1)
+landcov_frac <- landcov_frac[landcov_frac$value %in% keep_cov,]
+
+write_csv(landcov_frac, "data/analysis-ready/cldl_woody_pct_2020.csv")
 
 
-
-
-
+ggplot(landcov_frac) +
+  geom_density(aes(x=freq, color=factor(buffsize), fill=factor(buffsize)), alpha=0.6)

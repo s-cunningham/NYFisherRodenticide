@@ -1,6 +1,7 @@
 library(tidyverse)
 library(nimble)
 library(MCMCvis)
+library(HDInterval)
 
 ## Read data, remove some columns we don't want to test
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") %>%
@@ -64,8 +65,8 @@ params <- c("beta_age","beta_age2","beta_sex","beta_mast","beta_decid","beta_evr
 
 # MCMC options
 nt <- 1
-ni <- 75000
-nb <- 35000
+ni <- 150000
+nb <- 75000
 nc <- 3
 
 set.seed(1)
@@ -224,6 +225,7 @@ range(diph.sum4$Rhat)
 dat5 <- dat %>% filter(pt_index==5)
 
 diph5 <- dat5$bin.exp
+wmu5 <- as.numeric(factor(dat5$WMU, labels=1:55))
 
 # create array for covariate data (column for each covariate)
 covars5 <- matrix(NA, nrow=nrow(dat5),ncol=6)
@@ -259,6 +261,7 @@ range(diph.sum5$Rhat)
 dat6<- dat %>% filter(pt_index==6)
 
 diph6 <- dat6$bin.exp
+wmu6 <- as.numeric(factor(dat6$WMU, labels=1:55))
 
 # create array for covariate data (column for each covariate)
 covars6 <- matrix(NA, nrow=nrow(dat6),ncol=6)
@@ -294,6 +297,7 @@ range(diph.sum6$Rhat)
 dat7 <- dat %>% filter(pt_index==7)
 
 diph7 <- dat7$bin.exp
+wmu7 <- as.numeric(factor(dat7$WMU, labels=1:55))
 
 # create array for covariate data (column for each covariate)
 covars7 <- matrix(NA, nrow=nrow(dat7),ncol=6)
@@ -330,6 +334,7 @@ range(diph.sum7$Rhat)
 dat8 <- dat %>% filter(pt_index==8)
 
 diph8 <- dat8$bin.exp
+wmu8 <- as.numeric(factor(dat8$WMU, labels=1:55))
 
 # create array for covariate data (column for each covariate)
 covars8 <- matrix(NA, nrow=nrow(dat8),ncol=6)
@@ -365,21 +370,22 @@ range(diph.sum8$Rhat)
 dat9 <- dat %>% filter(pt_index==9)
 
 diph9 <- dat9$bin.exp
+wmu9 <- as.numeric(factor(dat9$WMU, labels=1:55))
 
 # create array for covariate data (column for each covariate)
 covars9 <- matrix(NA, nrow=nrow(dat9),ncol=6)
-covars9[1:nrow(dat9),1] <- dat9$mast_year
-covars9[1:nrow(dat9),2] <- dat9$deciduous_45
-covars9[1:nrow(dat9),3] <- dat9$evergreen_45
-covars9[1:nrow(dat9),4] <- dat9$nbuildings_45
-covars9[1:nrow(dat9),5] <- dat9$stand_age_mean_45
-covars9[1:nrow(dat9),6] <- dat9$stand_age_sd_45
+covars9[1:nrow(dat9),1] <- dat9$deciduous_45
+covars9[1:nrow(dat9),2] <- dat9$evergreen_45
+covars9[1:nrow(dat9),3] <- dat9$nbuildings_45
+covars9[1:nrow(dat9),4] <- dat9$stand_age_mean_45
+covars9[1:nrow(dat9),5] <- dat9$stand_age_sd_45
 
 ## prep fof nimble model
 Constants9 <- list(N=nrow(dat9),
-                   sex=dat9$Sex,
-                   WMU=as.numeric(factor(dat9$WMU, labels=1:55)), # random intercept
-                   nWMU=length(unique(dat9$WMU)))
+                    sex=dat9$Sex,
+                    mast=dat9$mast_year,
+                    WMU=wmu9, # random intercept
+                    nWMU=length(unique(dat9$WMU)))
 
 DataBundle9 <- list(y=diph9, # response
                     covars=covars9, # covariates 
@@ -400,6 +406,7 @@ range(diph.sum9$Rhat)
 dat10 <- dat %>% filter(pt_index==10)
 
 diph10 <- dat10$bin.exp
+wmu10 <- as.numeric(factor(dat10$WMU, labels=1:55))
 
 # create array for covariate data (column for each covariate)
 covars10 <- matrix(NA, nrow=nrow(dat10),ncol=6)
@@ -433,4 +440,126 @@ range(diph.sum10$Rhat)
 
 
 # Combine samples
+age <- c(diph.out1$chain1[,56],diph.out2$chain1[,56],diph.out3$chain1[,56],diph.out4$chain1[,56],diph.out5$chain1[,56],
+         diph.out6$chain1[,56],diph.out7$chain1[,56],diph.out8$chain1[,56],diph.out9$chain1[,56],diph.out10$chain1[,56],
+         diph.out1$chain2[,56],diph.out2$chain2[,56],diph.out3$chain2[,56],diph.out4$chain2[,56],diph.out5$chain2[,56],
+         diph.out6$chain2[,56],diph.out7$chain2[,56],diph.out8$chain2[,56],diph.out9$chain2[,56],diph.out10$chain2[,56],
+         diph.out1$chain3[,56],diph.out2$chain3[,56],diph.out3$chain3[,56],diph.out4$chain3[,56],diph.out5$chain3[,56],
+         diph.out6$chain3[,56],diph.out7$chain3[,56],diph.out8$chain3[,56],diph.out9$chain3[,56],diph.out10$chain3[,56])
+
+# Calculate HDI and quantiles
+hdi(age)
+quantile(age, probs=c(0.5,0.025,0.975))
+
+
+age2 <- c(diph.out1$chain1[,57],diph.out2$chain1[,57],diph.out3$chain1[,57],diph.out4$chain1[,57],diph.out5$chain1[,57],
+          diph.out6$chain1[,57],diph.out7$chain1[,57],diph.out8$chain1[,57],diph.out9$chain1[,57],diph.out10$chain1[,57],
+          diph.out1$chain2[,57],diph.out2$chain2[,57],diph.out3$chain2[,57],diph.out4$chain2[,57],diph.out5$chain2[,57],
+          diph.out6$chain2[,57],diph.out7$chain2[,57],diph.out8$chain2[,57],diph.out9$chain2[,57],diph.out10$chain2[,57],
+          diph.out1$chain3[,57],diph.out2$chain3[,57],diph.out3$chain3[,57],diph.out4$chain3[,57],diph.out5$chain3[,57],
+          diph.out6$chain3[,57],diph.out7$chain3[,57],diph.out8$chain3[,57],diph.out9$chain3[,57],diph.out10$chain3[,57])
+
+# Calculate HDI and quantiles
+hdi(age2)
+quantile(age2, probs=c(0.5,0.025,0.975))
+
+build <- c(diph.out1$chain1[,58],diph.out2$chain1[,58],diph.out3$chain1[,58],diph.out4$chain1[,58],diph.out5$chain1[,58],
+           diph.out6$chain1[,58],diph.out7$chain1[,58],diph.out8$chain1[,58],diph.out9$chain1[,58],diph.out10$chain1[,58],
+           diph.out1$chain2[,58],diph.out2$chain2[,58],diph.out3$chain2[,58],diph.out4$chain2[,58],diph.out5$chain2[,58],
+           diph.out6$chain2[,58],diph.out7$chain2[,58],diph.out8$chain2[,58],diph.out9$chain2[,58],diph.out10$chain2[,58],
+           diph.out1$chain3[,58],diph.out2$chain3[,58],diph.out3$chain3[,58],diph.out4$chain3[,58],diph.out5$chain3[,58],
+           diph.out6$chain3[,58],diph.out7$chain3[,58],diph.out8$chain3[,58],diph.out9$chain3[,58],diph.out10$chain3[,58])
+
+# Calculate HDI and quantiles
+hdi(build)
+quantile(build, probs=c(0.5,0.025,0.975))
+
+decid <- c(diph.out1$chain1[,59],diph.out2$chain1[,59],diph.out3$chain1[,59],diph.out4$chain1[,59],diph.out5$chain1[,59],
+           diph.out6$chain1[,59],diph.out7$chain1[,59],diph.out8$chain1[,59],diph.out9$chain1[,59],diph.out10$chain1[,59],
+           diph.out1$chain2[,59],diph.out2$chain2[,59],diph.out3$chain2[,59],diph.out4$chain2[,59],diph.out5$chain2[,59],
+           diph.out6$chain2[,59],diph.out7$chain2[,59],diph.out8$chain2[,59],diph.out9$chain2[,59],diph.out10$chain2[,59],
+           diph.out1$chain3[,59],diph.out2$chain3[,59],diph.out3$chain3[,59],diph.out4$chain3[,59],diph.out5$chain3[,59],
+           diph.out6$chain3[,59],diph.out7$chain3[,59],diph.out8$chain3[,59],diph.out9$chain3[,59],diph.out10$chain3[,59])
+
+# Calculate HDI and quantiles
+hdi(decid)
+quantile(decid, probs=c(0.5,0.025,0.975))
+
+evrgrn <- c(diph.out1$chain1[,60],diph.out2$chain1[,60],diph.out3$chain1[,60],diph.out4$chain1[,60],diph.out5$chain1[,60],
+            diph.out6$chain1[,60],diph.out7$chain1[,60],diph.out8$chain1[,60],diph.out9$chain1[,60],diph.out10$chain1[,60],
+            diph.out1$chain2[,60],diph.out2$chain2[,60],diph.out3$chain2[,60],diph.out4$chain2[,60],diph.out5$chain2[,60],
+            diph.out6$chain2[,60],diph.out7$chain2[,60],diph.out8$chain2[,60],diph.out9$chain2[,60],diph.out10$chain2[,60],
+            diph.out1$chain3[,60],diph.out2$chain3[,60],diph.out3$chain3[,60],diph.out4$chain3[,60],diph.out5$chain3[,60],
+            diph.out6$chain3[,60],diph.out7$chain3[,60],diph.out8$chain3[,60],diph.out9$chain3[,60],diph.out10$chain3[,60])
+
+# Calculate HDI and quantiles
+hdi(evrgrn)
+quantile(evrgrn, probs=c(0.5,0.025,0.975))
+
+mast1 <- c(diph.out1$chain1[,61],diph.out2$chain1[,61],diph.out3$chain1[,61],diph.out4$chain1[,61],diph.out5$chain1[,61],
+          diph.out6$chain1[,61],diph.out7$chain1[,61],diph.out8$chain1[,61],diph.out9$chain1[,61],diph.out10$chain1[,61],
+          diph.out1$chain2[,61],diph.out2$chain2[,61],diph.out3$chain2[,61],diph.out4$chain2[,61],diph.out5$chain2[,61],
+          diph.out6$chain2[,61],diph.out7$chain2[,61],diph.out8$chain2[,61],diph.out9$chain2[,61],diph.out10$chain2[,61],
+          diph.out1$chain3[,61],diph.out2$chain3[,61],diph.out3$chain3[,61],diph.out4$chain3[,61],diph.out5$chain3[,61],
+          diph.out6$chain3[,61],diph.out7$chain3[,61],diph.out8$chain3[,61],diph.out9$chain3[,61],diph.out10$chain3[,61])
+
+# Calculate HDI and quantiles
+hdi(mast1)
+quantile(mast1, probs=c(0.5,0.025,0.975))
+
+mast2 <- c(diph.out1$chain1[,62],diph.out2$chain1[,62],diph.out3$chain1[,62],diph.out4$chain1[,62],diph.out5$chain1[,62],
+           diph.out6$chain1[,62],diph.out7$chain1[,62],diph.out8$chain1[,62],diph.out9$chain1[,62],diph.out10$chain1[,62],
+           diph.out1$chain2[,62],diph.out2$chain2[,62],diph.out3$chain2[,62],diph.out4$chain2[,62],diph.out5$chain2[,62],
+           diph.out6$chain2[,62],diph.out7$chain2[,62],diph.out8$chain2[,62],diph.out9$chain2[,62],diph.out10$chain2[,62],
+           diph.out1$chain3[,62],diph.out2$chain3[,62],diph.out3$chain3[,62],diph.out4$chain3[,62],diph.out5$chain3[,62],
+           diph.out6$chain3[,62],diph.out7$chain3[,62],diph.out8$chain3[,62],diph.out9$chain3[,62],diph.out10$chain3[,62])
+
+# Calculate HDI and quantiles
+hdi(mast2)
+quantile(mast2, probs=c(0.5,0.025,0.975))
+
+
+sex1 <- c(diph.out1$chain1[,63],diph.out2$chain1[,63],diph.out3$chain1[,63],diph.out4$chain1[,63],diph.out5$chain1[,63],
+          diph.out6$chain1[,63],diph.out7$chain1[,63],diph.out8$chain1[,63],diph.out9$chain1[,63],diph.out10$chain1[,63],
+          diph.out1$chain2[,63],diph.out2$chain2[,63],diph.out3$chain2[,63],diph.out4$chain2[,63],diph.out5$chain2[,63],
+          diph.out6$chain2[,63],diph.out7$chain2[,63],diph.out8$chain2[,63],diph.out9$chain2[,63],diph.out10$chain2[,63],
+          diph.out1$chain3[,63],diph.out2$chain3[,63],diph.out3$chain3[,63],diph.out4$chain3[,63],diph.out5$chain3[,63],
+          diph.out6$chain3[,63],diph.out7$chain3[,63],diph.out8$chain3[,63],diph.out9$chain3[,63],diph.out10$chain3[,63])
+
+# Calculate HDI and quantiles
+hdi(sex1)
+quantile(sex1, probs=c(0.5,0.025,0.975))
+
+sex2 <- c(diph.out1$chain1[,64],diph.out2$chain1[,64],diph.out3$chain1[,64],diph.out4$chain1[,64],diph.out5$chain1[,64],
+          diph.out6$chain1[,64],diph.out7$chain1[,64],diph.out8$chain1[,64],diph.out9$chain1[,64],diph.out10$chain1[,64],
+          diph.out1$chain2[,64],diph.out2$chain2[,64],diph.out3$chain2[,64],diph.out4$chain2[,64],diph.out5$chain2[,64],
+          diph.out6$chain2[,64],diph.out7$chain2[,64],diph.out8$chain2[,64],diph.out9$chain2[,64],diph.out10$chain2[,64],
+          diph.out1$chain3[,64],diph.out2$chain3[,64],diph.out3$chain3[,64],diph.out4$chain3[,64],diph.out5$chain3[,64],
+          diph.out6$chain3[,64],diph.out7$chain3[,64],diph.out8$chain3[,64],diph.out9$chain3[,64],diph.out10$chain3[,64])
+
+# Calculate HDI and quantiles
+hdi(sex2)
+quantile(sex2, probs=c(0.5,0.025,0.975))
+
+standmn <- c(diph.out1$chain1[,65],diph.out2$chain1[,65],diph.out3$chain1[,65],diph.out4$chain1[,65],diph.out5$chain1[,65],
+             diph.out6$chain1[,65],diph.out7$chain1[,65],diph.out8$chain1[,65],diph.out9$chain1[,65],diph.out10$chain1[,65],
+             diph.out1$chain2[,65],diph.out2$chain2[,65],diph.out3$chain2[,65],diph.out4$chain2[,65],diph.out5$chain2[,65],
+             diph.out6$chain2[,65],diph.out7$chain2[,65],diph.out8$chain2[,65],diph.out9$chain2[,65],diph.out10$chain2[,65],
+             diph.out1$chain3[,65],diph.out2$chain3[,65],diph.out3$chain3[,65],diph.out4$chain3[,65],diph.out5$chain3[,65],
+             diph.out6$chain3[,65],diph.out7$chain3[,65],diph.out8$chain3[,65],diph.out9$chain3[,65],diph.out10$chain3[,65])
+
+# Calculate HDI and quantiles
+hdi(standmn)
+quantile(standmn, probs=c(0.5,0.025,0.975))
+
+standsd <- c(diph.out1$chain1[,66],diph.out2$chain1[,66],diph.out3$chain1[,66],diph.out4$chain1[,66],diph.out5$chain1[,66],
+             diph.out6$chain1[,66],diph.out7$chain1[,66],diph.out8$chain1[,66],diph.out9$chain1[,66],diph.out10$chain1[,66],
+             diph.out1$chain2[,66],diph.out2$chain2[,66],diph.out3$chain2[,66],diph.out4$chain2[,66],diph.out5$chain2[,66],
+             diph.out6$chain2[,66],diph.out7$chain2[,66],diph.out8$chain2[,66],diph.out9$chain2[,66],diph.out10$chain2[,66],
+             diph.out1$chain3[,66],diph.out2$chain3[,66],diph.out3$chain3[,66],diph.out4$chain3[,66],diph.out5$chain3[,66],
+             diph.out6$chain3[,66],diph.out7$chain3[,66],diph.out8$chain3[,66],diph.out9$chain3[,66],diph.out10$chain3[,66])
+
+# Calculate HDI and quantiles
+hdi(standsd)
+quantile(standsd, probs=c(0.5,0.025,0.975))
 
