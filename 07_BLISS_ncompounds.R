@@ -165,6 +165,7 @@ set.seed(1)
 system.time(samplesIndicator <- runMCMC(CMCMCIndicatorRJ, thin=5, niter=50000, nburnin=30000))
 
 saveRDS(samplesIndicator, file = "results/ncomp_indicators.rds")
+# samplesIndicator <- readRDS("results/ncomp_indicators.rds")
 
 ## Looking at results
 par(mfrow = c(2, 1))

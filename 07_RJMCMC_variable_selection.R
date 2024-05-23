@@ -159,7 +159,7 @@ cIndicatorModel <- compileNimble(vsModel)
 CMCMCIndicatorRJ <- compileNimble(mcmcIndicatorRJ, project = vsModel)
 
 set.seed(1)
-system.time(samplesIndicator <- runMCMC(CMCMCIndicatorRJ, niter=1000, nburnin=500))
+system.time(samplesIndicator <- runMCMC(CMCMCIndicatorRJ, niter=100000, nburnin=50000))
 
 ## Looking at results
 par(mfrow = c(2, 2))

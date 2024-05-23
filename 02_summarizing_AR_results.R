@@ -66,6 +66,25 @@ for (i in 10:20) {
 ## write wide data
 write_csv(dat, "output/AR_results_wide.csv")
 
+ordin <- dat %>% mutate(ar_cat=case_when(is.na(Warfarin) & is.na(Coumafuryl) & is.na(Diphacinone) & is.na(Pindone) &
+                                         is.na(Brodifacoum) & is.na(Difenacoum) & is.na(Bromadiolone) & is.na(Coumachlor) &
+                                         is.na(Chlorophacinone) & is.na(Difethialone) & is.na(Dicoumarol) ~ "none",
+                                         !is.na(Warfarin) | !is.na(Coumafuryl) | !is.na(Diphacinone) | !is.na(Coumachlor) |
+                                           !is.na(Pindone) | !is.na(Chlorophacinone) | !is.na(Chlorophacinone) |
+                                         !is.na(Dicoumarol) ~ "FGAR",
+                                         !is.na(Brodifacoum) | !is.na(Difenacoum) | 
+                                           !is.na(Bromadiolone) | !is.na(Difethialone) ~ "SGAR",
+                                         (!is.na(Pindone) |  !is.na(Chlorophacinone)| !is.na(Warfarin) | 
+                                           !is.na(Coumafuryl) | !is.na(Diphacinone) | !is.na(Coumachlor) |
+                                            !is.na(Dicoumarol)) &
+                                         (!is.na(Brodifacoum) | !is.na(Difenacoum) | 
+                                           !is.na(Bromadiolone) | !is.na(Difethialone)) ~ "both")) %>%
+        select(RegionalID, ar_cat)
+
+
+ggplot(ordin) +
+  geom_bar(aes(x=ar_cat))
+
 # Separate dicoumarol
 dicoum <- dat %>% select(RegionalID:Town, Dicoumarol)
 
