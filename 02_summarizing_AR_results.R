@@ -162,7 +162,13 @@ ggplot(dat3) +
   geom_tile(aes(x=RegionalID, y=n.compounds, fill=n.compounds), color="black") +
   facet_grid(year~., space="free_y", scales="free")
 
+ggplot(dat2) +
+  geom_bar(aes(x=n.compounds), fill="darkgreen") +
+  ylab("Number of fishers") + xlab("Number of compounds detected") +
+  theme_classic(base_size=12) +
+  theme(panel.border=element_rect(linewidth=0.5, fill=NA, color="black"))
 
+dat2 %>% group_by(n.compounds) %>% count()
 
 # plot by concentration
 ggplot(datl) +

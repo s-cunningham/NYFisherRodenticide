@@ -20,7 +20,7 @@ dat <- dat %>% select(RegionalID:Town,bin.exp,deciduous_15:mast_year)
 ## Set up data
 numScaleVars <- 5
 nScales <- 3
-nonScaleVars <- 3
+nonScaleVars <- 1
 brod <- dat$bin.exp
 wmu <- as.numeric(factor(dat$WMU, labels=1:55))
 ids <- as.numeric(factor(dat$RegionalID, labels=1:length(unique(dat$RegionalID))))
@@ -34,19 +34,17 @@ scale_covars[1:nrow(dat),1:3,4] <- as.matrix(dat[1:nrow(dat),34:36]) # stand age
 scale_covars[1:nrow(dat),1:3,5] <- as.matrix(dat[1:nrow(dat),37:39]) # stand age standard deviation
 
 covars <- matrix(NA, nrow=nrow(dat),ncol=nonScaleVars)
-covars[1:nrow(dat),1] <- dat$beechnuts
-covars[1:nrow(dat),2] <- dat$lag_beechnuts
-covars[1:nrow(dat),3] <- as.numeric(dat$mast_year)
+covars[1:nrow(dat),1] <- dat$lag_beechnuts
+# covars[1:nrow(dat),2] <- dat$lag_beechnuts
+# covars[1:nrow(dat),3] <- as.numeric(dat$mast_year)
 
 ## prep fof nimble model
 vsConstants <- list(N=nrow(dat),
                     sex=dat$Sex,
                     nsamples=length(unique(dat$RegionalID)), 
-                    numVars=nonScaleVars, 
+                    numVars=nonScaleVars+numScaleVars, 
                     numScaleVars=numScaleVars,
-                    WMU=wmu, # random intercept
-                    sampleID=ids, # random intercept
-                    nWMU=length(unique(dat$WMU)))
+                    sampleID=ids) # random intercept
 
 vsDataBundle <- list(y=brod, # response
                      covars=covars, # covariates (no scale)
@@ -54,8 +52,8 @@ vsDataBundle <- list(y=brod, # response
                      age=dat$Age,
                      age2=dat$age2) # covariates (scale)
 
-vsInits <- list( sigma.eta=1, mu.eta=1, #sigma.alpha=1, mu.alpha=1,
-                beta=rnorm(vsConstants$numVars), sc_beta=rnorm(vsConstants$numScaleVars), 
+vsInits <- list(sigma.eta=1, mu.eta=1, #sigma.alpha=1, mu.alpha=1,
+                beta=rnorm(vsConstants$numVars), 
                 x_scale=rep(1, numScaleVars),
                 beta_age=rnorm(1), beta_age2=rnorm(1), beta_sex=rnorm(2), #beta_mast=rnorm(2),
                 z=sample(0:1,(vsConstants$numVars), 0.5), cat_prob=rep(1/3,3)) 
@@ -76,28 +74,15 @@ var_scale_code <- nimbleCode({
   for (k in 1:numVars) {
     beta[k] ~ dnorm(0, sd=1.4)
     z[k] ~ dbern(0.5) # indicator for each coefficient
-    zbeta[k] <- z[k]*beta[k]
   }
   
-  # Scale betas
-  for (k in 1:numScaleVars) {
-    sc_beta[k] ~ dnorm(0, sd=1.4)
-  }
-  
+  # Scale variables
   cat_prob[1:3] <- c(1/3, 1/3, 1/3)
   for (k in 1:numScaleVars) {
     x_scale[k] ~ dcat(cat_prob[1:3])
   }
   
-  ## random intercepts
-  # # WMU
-  # for (k in 1:nWMU) {
-  #   alpha[k] ~ dnorm(mu.alpha, sd=sigma.alpha)
-  # }
-  # mu.alpha ~ dnorm(0, 0.001)
-  # sigma.alpha ~ dunif(0, 100)
-  
-  # sample
+  # random intercept for sample
   for (k in 1:nsamples) {
     eta[k] ~ dnorm(mu.eta, sd=sigma.eta)
   }
@@ -108,10 +93,10 @@ var_scale_code <- nimbleCode({
   for (i in 1:N) {
     
     logit(p[i]) <- beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + eta[sampleID[i]] +
-      zbeta[1]*covars[i,1] + zbeta[2]*covars[i,2] + zbeta[3]*covars[i,3] +
-      sc_beta[1]*scale_covars[i, x_scale[1], 1] + sc_beta[2]*scale_covars[i, x_scale[2], 2] +
-      sc_beta[3]*scale_covars[i, x_scale[3], 3] + sc_beta[4]*scale_covars[i, x_scale[4], 4] +
-      sc_beta[5]*scale_covars[i, x_scale[5], 5] 
+      z[1]*beta[1]*covars[i,1] + #z[2]*beta[2]*covars[i,2] + z[3]*beta[3]*covars[i,3] +
+      z[2]*beta[2]*scale_covars[i, x_scale[1], 1] + z[3]*beta[3]*scale_covars[i, x_scale[2], 2] +
+      z[4]*beta[4]*scale_covars[i, x_scale[3], 3] + z[5]*beta[5]*scale_covars[i, x_scale[4], 4] +
+      z[6]*beta[6]*scale_covars[i, x_scale[5], 5] 
     
     y[i] ~ dbern(p[i])
     
@@ -142,7 +127,7 @@ cIndicatorModel <- compileNimble(vsModel)
 CMCMCIndicatorRJ <- compileNimble(mcmcIndicatorRJ, project = vsModel)
 
 set.seed(1)
-system.time(samplesIndicator <- runMCMC(CMCMCIndicatorRJ, niter=200000, nburnin=100000))
+system.time(samplesIndicator <- runMCMC(CMCMCIndicatorRJ, niter=100000, nburnin=50000))
 
 saveRDS(samplesIndicator, file = "results/brodifacoum_indicators.rds")
 # samplesIndicator <- readRDS("results/brodifacoum_indicators.rds")
@@ -156,7 +141,7 @@ plot(samplesIndicator[,'z[3]'], pch = 16, cex = 0.4, main = "z[3] traceplot")
 par(mfrow = c(1, 1))
 zCols <- grep("z\\[", colnames(samplesIndicator))
 posterior_inclusion_prob <- colMeans(samplesIndicator[, zCols])
-plot(1:3, posterior_inclusion_prob, ylim=c(0,1),
+plot(1:6, posterior_inclusion_prob, ylim=c(0,1),
      xlab = "beta", ylab = "inclusion probability",
      main = "Inclusion probabilities for each beta")
 

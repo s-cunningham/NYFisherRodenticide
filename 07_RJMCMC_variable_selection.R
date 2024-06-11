@@ -19,7 +19,7 @@ dat[,c(8,16:42)] <- scale(dat[,c(8,16:42)])
 ## Set up data
 numScaleVars <- 5
 nScales <- 3
-nonScaleVars <- 3
+nonScaleVars <- 1
 ncomp <- dat$ncomp
 wmu <- as.numeric(factor(dat$WMU, labels=1:55))
 ids <- as.numeric(factor(dat$RegionalID, labels=1:length(unique(dat$RegionalID))))
@@ -34,8 +34,6 @@ scale_covars[1:nrow(dat),1:3,5] <- as.matrix(dat[1:nrow(dat),37:39]) # stand age
 
 covars <- matrix(NA, nrow=nrow(dat),ncol=nonScaleVars)
 covars[1:nrow(dat),1] <- dat$beechnuts
-covars[1:nrow(dat),2] <- dat$lag_beechnuts
-covars[1:nrow(dat),3] <- as.numeric(dat$mast_year)
 
 # prep fof nimble model
 vsConstants <- list(N=nrow(dat),
@@ -54,7 +52,7 @@ vsDataBundle <- list(ncomp=ncomp, # response
                      age=dat$Age,
                      age2=dat$age2) # covariates (scale)
 
-vsInits <- list(sigma.alpha=1, mu.alpha=1, sigma.eta=1, mu.eta=1, nu=1.5, 
+vsInits <- list( sigma.eta=1, mu.eta=1, nu=1.5, #sigma.alpha=1, mu.alpha=1,
                 beta=rnorm(vsConstants$numVars), 
                 x_scale=rep(1, numScaleVars),
                 beta_age=rnorm(1), beta_age2=rnorm(1), beta_sex=rnorm(2), #beta_mast=rnorm(2),
@@ -105,11 +103,11 @@ var_scale_code <- nimbleCode({
   
   ## random intercepts
   # WMU
-  for (k in 1:nWMU) {
-    alpha[k] ~ dnorm(mu.alpha, sd=sigma.alpha)
-  }
-  mu.alpha ~ dnorm(0, 0.001)
-  sigma.alpha ~ dunif(0, 100)
+  # for (k in 1:nWMU) {
+  #   alpha[k] ~ dnorm(mu.alpha, sd=sigma.alpha)
+  # }
+  # mu.alpha ~ dnorm(0, 0.001)
+  # sigma.alpha ~ dunif(0, 100)
   
   # sample
   for (k in 1:nsamples) {
@@ -121,14 +119,13 @@ var_scale_code <- nimbleCode({
   ## Likelihood
   for (i in 1:N) {
     
-    temp1[i] <- beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + alpha[WMU[i]] + eta[sampleID[i]] +
-                z[1]*beta[1]*covars[i,1] + z[2]*beta[2]*covars[i,2] + z[3]*beta[3]*covars[i,3] 
-                        
-    temp2[i] <- z[4]*beta[4]*scale_covars[i, x_scale[1], 1] + z[5]*beta[5]*scale_covars[i, x_scale[2], 2] +
-                z[6]*beta[6]*scale_covars[i, x_scale[3], 3] + z[7]*beta[7]*scale_covars[i, x_scale[4], 4] +
-                z[8]*beta[8]*scale_covars[i, x_scale[5], 5] 
-    
-    lambda[i] <- exp(temp1[i] + temp2[i])
+    lambda[i] <- exp(beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + eta[sampleID[i]] + #alpha[WMU[i]] + 
+                z[1]*beta[1]*covars[i,1] + 
+                z[2]*beta[2]*scale_covars[i, x_scale[1], 1] + 
+                z[3]*beta[3]*scale_covars[i, x_scale[2], 2] + 
+                z[4]*beta[4]*scale_covars[i, x_scale[3], 3] + 
+                z[5]*beta[5]*scale_covars[i, x_scale[4], 4] + 
+                z[6]*beta[6]*scale_covars[i, x_scale[5], 5] )
     
     ncomp[i] ~ dCOMP(lambda[i], nu)
     
@@ -159,7 +156,9 @@ cIndicatorModel <- compileNimble(vsModel)
 CMCMCIndicatorRJ <- compileNimble(mcmcIndicatorRJ, project = vsModel)
 
 set.seed(1)
-system.time(samplesIndicator <- runMCMC(CMCMCIndicatorRJ, niter=100000, nburnin=50000))
+system.time(samplesIndicator <- runMCMC(CMCMCIndicatorRJ, niter=200000, nburnin=100000))
+
+saveRDS(samplesIndicator, file = "results/ncomp_indicators_scales.rds")
 
 ## Looking at results
 par(mfrow = c(2, 2))
@@ -172,7 +171,7 @@ plot(samplesIndicator[,'z[5]'], pch = 16, cex = 0.4, main = "z[5] traceplot")
 par(mfrow = c(1, 1))
 zCols <- grep("z\\[", colnames(samplesIndicator))
 posterior_inclusion_prob <- colMeans(samplesIndicator[, zCols])
-plot(1:8, posterior_inclusion_prob, ylim=c(0,1),
+plot(1:6, posterior_inclusion_prob, ylim=c(0,1),
      xlab = "beta", ylab = "inclusion probability",
      main = "Inclusion probabilities for each beta")
 
