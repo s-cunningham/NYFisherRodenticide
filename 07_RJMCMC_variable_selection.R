@@ -17,7 +17,7 @@ dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") %>%
 dat[,c(8,16:42)] <- scale(dat[,c(8,16:42)])
 
 ## Set up data
-numScaleVars <- 5
+numScaleVars <- 1
 nScales <- 3
 nonScaleVars <- 1
 ncomp <- dat$ncomp
@@ -26,14 +26,10 @@ ids <- as.numeric(factor(dat$RegionalID, labels=1:length(unique(dat$RegionalID))
 
 # create array for covariate data (slice for each covariate)
 scale_covars <- array(NA, dim=c(nrow(dat), nScales, numScaleVars))
-scale_covars[1:nrow(dat),1:3,1] <- as.matrix(dat[1:nrow(dat),16:18]) # % deciduous
-scale_covars[1:nrow(dat),1:3,2] <- as.matrix(dat[1:nrow(dat),28:30]) # number of buildings
-scale_covars[1:nrow(dat),1:3,3] <- as.matrix(dat[1:nrow(dat),31:33]) # beech basal area
-scale_covars[1:nrow(dat),1:3,4] <- as.matrix(dat[1:nrow(dat),34:36]) # stand age mean
-scale_covars[1:nrow(dat),1:3,5] <- as.matrix(dat[1:nrow(dat),37:39]) # stand age standard deviation
+scale_covars[1:nrow(dat),1:3,1] <- as.matrix(dat[1:nrow(dat),28:30]) # number of buildings
 
 covars <- matrix(NA, nrow=nrow(dat),ncol=nonScaleVars)
-covars[1:nrow(dat),1] <- dat$beechnuts
+covars[1:nrow(dat),1] <- dat$lag_beechnuts
 
 # prep fof nimble model
 vsConstants <- list(N=nrow(dat),
@@ -42,9 +38,7 @@ vsConstants <- list(N=nrow(dat),
                     numVars=numScaleVars + nonScaleVars, 
                     numScaleVars=numScaleVars,
                     # nonScaleVars=nonScaleVars,
-                    WMU=wmu, # random intercept
-                    sampleID=ids, # random intercept
-                    nWMU=length(unique(dat$WMU)))
+                    sampleID=ids) # Random intercepts
 
 vsDataBundle <- list(ncomp=ncomp, # response
                      covars=covars, # covariates (no scale)
@@ -52,7 +46,7 @@ vsDataBundle <- list(ncomp=ncomp, # response
                      age=dat$Age,
                      age2=dat$age2) # covariates (scale)
 
-vsInits <- list( sigma.eta=1, mu.eta=1, nu=1.5, #sigma.alpha=1, mu.alpha=1,
+vsInits <- list( sigma.eta=1, mu.eta=1, nu=1.5, 
                 beta=rnorm(vsConstants$numVars), 
                 x_scale=rep(1, numScaleVars),
                 beta_age=rnorm(1), beta_age2=rnorm(1), beta_sex=rnorm(2), #beta_mast=rnorm(2),
@@ -101,14 +95,6 @@ var_scale_code <- nimbleCode({
     x_scale[k] ~ dcat(cat_prob[1:3])
   }
   
-  ## random intercepts
-  # WMU
-  # for (k in 1:nWMU) {
-  #   alpha[k] ~ dnorm(mu.alpha, sd=sigma.alpha)
-  # }
-  # mu.alpha ~ dnorm(0, 0.001)
-  # sigma.alpha ~ dunif(0, 100)
-  
   # sample
   for (k in 1:nsamples) {
     eta[k] ~ dnorm(mu.eta, sd=sigma.eta)
@@ -119,13 +105,10 @@ var_scale_code <- nimbleCode({
   ## Likelihood
   for (i in 1:N) {
     
-    lambda[i] <- exp(beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + eta[sampleID[i]] + #alpha[WMU[i]] + 
-                z[1]*beta[1]*covars[i,1] + 
-                z[2]*beta[2]*scale_covars[i, x_scale[1], 1] + 
-                z[3]*beta[3]*scale_covars[i, x_scale[2], 2] + 
-                z[4]*beta[4]*scale_covars[i, x_scale[3], 3] + 
-                z[5]*beta[5]*scale_covars[i, x_scale[4], 4] + 
-                z[6]*beta[6]*scale_covars[i, x_scale[5], 5] )
+    lambda[i] <- exp(beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + 
+                       eta[sampleID[i]] + 
+                       z[1]*beta[1]*covars[i,1] + 
+                       z[2]*beta[2]*scale_covars[i, x_scale[1], 1])
     
     ncomp[i] ~ dCOMP(lambda[i], nu)
     
