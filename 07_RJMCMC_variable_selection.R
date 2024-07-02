@@ -139,22 +139,22 @@ cIndicatorModel <- compileNimble(vsModel)
 CMCMCIndicatorRJ <- compileNimble(mcmcIndicatorRJ, project = vsModel)
 
 set.seed(1)
-system.time(samplesIndicator <- runMCMC(CMCMCIndicatorRJ, niter=200000, nburnin=100000))
+system.time(samplesIndicator <- runMCMC(CMCMCIndicatorRJ, niter=250000, nburnin=150000))
 
 saveRDS(samplesIndicator, file = "results/ncomp_indicators_scales.rds")
 
 ## Looking at results
 par(mfrow = c(2, 2))
-plot(samplesIndicator[,'beta[3]'], pch = 16, cex = 0.4, main = "beta[3] traceplot")
-plot(samplesIndicator[,'z[3]'], pch = 16, cex = 0.4, main = "z[3] traceplot")
-plot(samplesIndicator[,'beta[5]'], pch = 16, cex = 0.4, main = "beta[5] traceplot")
-plot(samplesIndicator[,'z[5]'], pch = 16, cex = 0.4, main = "z[5] traceplot")
+plot(samplesIndicator[,'beta[2]'], pch = 16, cex = 0.4, main = "beta[2] traceplot")
+plot(samplesIndicator[,'z[1]'], pch = 16, cex = 0.4, main = "z[2] traceplot")
+plot(samplesIndicator[,'beta[1]'], pch = 16, cex = 0.4, main = "beta[1] traceplot")
+plot(samplesIndicator[,'z[1]'], pch = 16, cex = 0.4, main = "z[1] traceplot")
 
 # Individual inclusion probabilities
 par(mfrow = c(1, 1))
 zCols <- grep("z\\[", colnames(samplesIndicator))
 posterior_inclusion_prob <- colMeans(samplesIndicator[, zCols])
-plot(1:6, posterior_inclusion_prob, ylim=c(0,1),
+plot(1:2, posterior_inclusion_prob, ylim=c(0,1),
      xlab = "beta", ylab = "inclusion probability",
      main = "Inclusion probabilities for each beta")
 

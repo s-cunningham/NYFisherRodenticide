@@ -1,7 +1,7 @@
 library(tidyverse)
 library(nimble)
 
-## Read data, remove some columns we don't want to test
+## Read data, remove some columns we don't want 
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") %>%
   mutate(age2=Age^2) %>%
   dplyr::select(-edge_density_15, -edge_density_30, -edge_density_45, -build_cat_15, -build_cat_30,-build_cat_45) %>%
