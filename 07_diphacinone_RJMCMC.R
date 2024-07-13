@@ -1,7 +1,7 @@
 library(tidyverse)
 library(nimble)
 
-## Read data, remove some columns we don't want 
+## Read data, remove some columns we don't want to test
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") %>%
   mutate(age2=Age^2) %>%
   dplyr::select(-edge_density_15, -edge_density_30, -edge_density_45, -build_cat_15, -build_cat_30,-build_cat_45) %>%
@@ -13,7 +13,7 @@ dat[,c(8,16:42)] <- scale(dat[,c(8,16:42)])
 
 # read data for individual compounds
 diph <- read_csv("output/summarized_AR_results.csv") %>% filter(compound=="Diphacinone") %>%
-            select(RegionalID,bin.exp)
+  select(RegionalID,bin.exp)
 dat <- left_join(dat, diph, by="RegionalID")
 dat <- dat %>% select(RegionalID:Town,bin.exp,deciduous_15:mast_year)
 
@@ -60,6 +60,7 @@ vsInits <- list(sigma.eta=1, mu.eta=1, #sigma.alpha=1, mu.alpha=1,
 var_scale_code <- nimbleCode({
   
   ## Priors
+  
   # beta coefficient priors
   beta_age ~ dnorm(0, sd=1.4)
   beta_age2 ~ dnorm(0, sd=1.4)
@@ -90,7 +91,7 @@ var_scale_code <- nimbleCode({
   for (i in 1:N) {
     
     logit(p[i]) <- beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + eta[sampleID[i]] +
-      z[1]*beta[1]*covars[i,1] + #z[2]*beta[2]*covars[i,2] + z[3]*beta[3]*covars[i,3] +
+      z[1]*beta[1]*covars[i,1] + 
       z[2]*beta[2]*scale_covars[i, x_scale[1], 1] + z[3]*beta[3]*scale_covars[i, x_scale[2], 2] +
       z[4]*beta[4]*scale_covars[i, x_scale[3], 3] + z[5]*beta[5]*scale_covars[i, x_scale[4], 4] +
       z[6]*beta[6]*scale_covars[i, x_scale[5], 5] 
@@ -138,7 +139,7 @@ plot(samplesIndicator[,'z[1]'], pch = 16, cex = 0.4, main = "z[1] traceplot")
 par(mfrow = c(1, 1))
 zCols <- grep("z\\[", colnames(samplesIndicator))
 posterior_inclusion_prob <- colMeans(samplesIndicator[, zCols])
-plot(1:6, posterior_inclusion_prob, ylim=c(0,1),
+plot(1:5, posterior_inclusion_prob, ylim=c(0,1),
      xlab = "beta", ylab = "inclusion probability",
      main = "Inclusion probabilities for each beta")
 posterior_inclusion_prob
@@ -149,9 +150,9 @@ posterior_scales <- samplesIndicator[, sCols]
 
 posterior_scales <- as.data.frame(posterior_scales)
 
-names(posterior_scales) <- c("pct_decid", "pct_evrgrn", "nbuildings", "stand_mean", "stand_sd")
+names(posterior_scales) <- c("pct_decid",  "nbuildings", "stand_mean", "stand_sd")
 
-posterior_scales <- posterior_scales %>% pivot_longer(1:5, names_to="covar", values_to="scale")
+posterior_scales <- posterior_scales %>% pivot_longer(1:4, names_to="covar", values_to="scale")
 
 ggplot(posterior_scales) +
   geom_bar(aes(x=scale)) +

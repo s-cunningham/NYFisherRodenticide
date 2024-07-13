@@ -93,7 +93,7 @@ var_scale_code <- nimbleCode({
   for (i in 1:N) {
     
     logit(p[i]) <- beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + eta[sampleID[i]] +
-      z[1]*beta[1]*covars[i,1] + #z[2]*beta[2]*covars[i,2] + z[3]*beta[3]*covars[i,3] +
+      z[1]*beta[1]*covars[i,1] + 
       z[2]*beta[2]*scale_covars[i, x_scale[1], 1] + z[3]*beta[3]*scale_covars[i, x_scale[2], 2] +
       z[4]*beta[4]*scale_covars[i, x_scale[3], 3] + z[5]*beta[5]*scale_covars[i, x_scale[4], 4] +
       z[6]*beta[6]*scale_covars[i, x_scale[5], 5] 

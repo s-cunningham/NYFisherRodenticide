@@ -14,35 +14,28 @@ dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") %>%
 dat[,c(8,16:42)] <- scale(dat[,c(8,16:42)])
 
 ## Set up data
-numScaleVars <- 5
+numScaleVars <- 1
 nScales <- 3
-nonScaleVars <- 3
+nonScaleVars <- 1
 ncomp <- dat$ncomp
 wmu <- as.numeric(factor(dat$WMU, labels=1:55))
 ids <- as.numeric(factor(dat$RegionalID, labels=1:length(unique(dat$RegionalID))))
 
 # create array for covariate data (slice for each covariate)
 scale_covars <- array(NA, dim=c(nrow(dat), nScales, numScaleVars))
-scale_covars[1:nrow(dat),1:3,1] <- as.matrix(dat[1:nrow(dat),16:18]) # % deciduous
-scale_covars[1:nrow(dat),1:3,2] <- as.matrix(dat[1:nrow(dat),19:21]) # % evergreen
-scale_covars[1:nrow(dat),1:3,3] <- as.matrix(dat[1:nrow(dat),28:30]) # number of buildings
-scale_covars[1:nrow(dat),1:3,4] <- as.matrix(dat[1:nrow(dat),34:36]) # stand age mean
-scale_covars[1:nrow(dat),1:3,5] <- as.matrix(dat[1:nrow(dat),37:39]) # stand age standard deviation
+scale_covars[1:nrow(dat),1:3,1] <- as.matrix(dat[1:nrow(dat),28:30]) # number of buildings
 
 covars <- matrix(NA, nrow=nrow(dat),ncol=nonScaleVars)
-covars[1:nrow(dat),1] <- dat$beechnuts
-covars[1:nrow(dat),2] <- dat$lag_beechnuts
-covars[1:nrow(dat),3] <- as.numeric(dat$mast_year)
+covars[1:nrow(dat),1] <- dat$lag_beechnuts
 
 # prep fof nimble model
 vsConstants <- list(N=nrow(dat),
                     sex=dat$Sex,
                     nsamples=length(unique(dat$RegionalID)), 
-                    numVars=nonScaleVars, 
+                    numVars=numScaleVars + nonScaleVars, 
                     numScaleVars=numScaleVars,
-                    # WMU=wmu, # random intercept
-                    sampleID=ids) #, # random intercept
-                    # nWMU=length(unique(dat$WMU)))
+                    # nonScaleVars=nonScaleVars,
+                    sampleID=ids) # Random intercepts
 
 vsDataBundle <- list(ncomp=ncomp, # response
                      covars=covars, # covariates (no scale)
@@ -50,11 +43,11 @@ vsDataBundle <- list(ncomp=ncomp, # response
                      age=dat$Age,
                      age2=dat$age2) # covariates (scale)
 
-vsInits <- list(sigma.eta=1, mu.eta=1, nu=1.5,# sigma.alpha=1, mu.alpha=1,
-                beta=rnorm(vsConstants$numVars), sc_beta=rnorm(vsConstants$numScaleVars), 
-                x_scale=rep(1, numScaleVars),
-                beta_age=rnorm(1), beta_age2=rnorm(1), beta_sex=rnorm(2), #beta_mast=rnorm(2),
-                z=sample(0:1,(vsConstants$numVars), 0.5), cat_prob=rep(1/3,3)) 
+vsInits <- list( sigma.eta=1, mu.eta=1, nu=1.5, 
+                 beta=rnorm(vsConstants$numVars), 
+                 x_scale=rep(1, numScaleVars),
+                 beta_age=rnorm(1), beta_age2=rnorm(1), beta_sex=rnorm(2), #beta_mast=rnorm(2),
+                 z=sample(0:1,(vsConstants$numVars), 0.5), cat_prob=rep(1/3,3)) 
 
 ## Nimble-ize Conway-Maxwell Poisson functions
 # Random values function
@@ -89,30 +82,15 @@ var_scale_code <- nimbleCode({
     beta_sex[k] ~ dnorm(0, sd=10)
   }
   
-  # Indicator betas
   for (k in 1:numVars) {
     beta[k] ~ dnorm(0, sd=10)
     z[k] ~ dbern(0.5) # indicator for each coefficient
-    zbeta[k] <- z[k]*beta[k]
-  }
-  
-  # Scale betas
-  for (k in 1:numScaleVars) {
-    sc_beta[k] ~ dnorm(0, sd=10)
   }
   
   cat_prob[1:3] <- c(1/3, 1/3, 1/3)
   for (k in 1:numScaleVars) {
     x_scale[k] ~ dcat(cat_prob[1:3])
   }
-  
-  ## random intercepts
-  # WMU
-  # for (k in 1:nWMU) {
-  #   alpha[k] ~ dnorm(mu.alpha, sd=sigma.alpha)
-  # }
-  # mu.alpha ~ dnorm(0, 0.001)
-  # sigma.alpha ~ dunif(0, 100)
   
   # sample
   for (k in 1:nsamples) {
@@ -124,14 +102,10 @@ var_scale_code <- nimbleCode({
   ## Likelihood
   for (i in 1:N) {
     
-    temp1[i] <- eta[sampleID[i]] + beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + 
-                  zbeta[1]*covars[i,1] + zbeta[2]*covars[i,2] + zbeta[3]*covars[i,3] 
-    
-    temp2[i] <- sc_beta[1]*scale_covars[i, x_scale[1], 1] + sc_beta[2]*scale_covars[i, x_scale[2], 2] +
-                sc_beta[3]*scale_covars[i, x_scale[3], 3] + sc_beta[4]*scale_covars[i, x_scale[4], 4] +
-                sc_beta[5]*scale_covars[i, x_scale[5], 5] 
-    
-    lambda[i] <- exp(temp1[i] + temp2[i])
+    lambda[i] <- exp(beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + 
+                       eta[sampleID[i]] + 
+                       z[1]*beta[1]*covars[i,1] + 
+                       z[2]*beta[2]*scale_covars[i, x_scale[1], 1])
     
     ncomp[i] ~ dCOMP(lambda[i], nu)
     
@@ -162,7 +136,7 @@ cIndicatorModel <- compileNimble(vsModel)
 CMCMCIndicatorRJ <- compileNimble(mcmcIndicatorRJ, project = vsModel)
 
 set.seed(1)
-system.time(samplesIndicator <- runMCMC(CMCMCIndicatorRJ, thin=5, niter=50000, nburnin=30000))
+system.time(samplesIndicator <- runMCMC(CMCMCIndicatorRJ, thin=1, niter=100000, nburnin=50000))
 
 saveRDS(samplesIndicator, file = "results/ncomp_indicators.rds")
 # samplesIndicator <- readRDS("results/ncomp_indicators.rds")
