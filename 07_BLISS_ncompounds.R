@@ -16,7 +16,7 @@ dat[,c(8,16:42)] <- scale(dat[,c(8,16:42)])
 ## Set up data
 numScaleVars <- 1
 nScales <- 3
-nonScaleVars <- 1
+nonScaleVars <- 0
 ncomp <- dat$ncomp
 wmu <- as.numeric(factor(dat$WMU, labels=1:55))
 ids <- as.numeric(factor(dat$RegionalID, labels=1:length(unique(dat$RegionalID))))
@@ -25,12 +25,13 @@ ids <- as.numeric(factor(dat$RegionalID, labels=1:length(unique(dat$RegionalID))
 scale_covars <- array(NA, dim=c(nrow(dat), nScales, numScaleVars))
 scale_covars[1:nrow(dat),1:3,1] <- as.matrix(dat[1:nrow(dat),28:30]) # number of buildings
 
-covars <- matrix(NA, nrow=nrow(dat),ncol=nonScaleVars)
-covars[1:nrow(dat),1] <- dat$lag_beechnuts
+# covars <- matrix(NA, nrow=nrow(dat),ncol=nonScaleVars)
+# covars[1:nrow(dat),1] <- dat$lag_beechnuts
 
 # prep fof nimble model
 vsConstants <- list(N=nrow(dat),
                     sex=dat$Sex,
+                    mast=(dat$mast_year+1),
                     nsamples=length(unique(dat$RegionalID)), 
                     numVars=numScaleVars + nonScaleVars, 
                     numScaleVars=numScaleVars,
@@ -38,10 +39,10 @@ vsConstants <- list(N=nrow(dat),
                     sampleID=ids) # Random intercepts
 
 vsDataBundle <- list(ncomp=ncomp, # response
-                     covars=covars, # covariates (no scale)
+                     # covars=covars, # covariates (no scale)
                      scale_covars=scale_covars,
                      age=dat$Age,
-                     age2=dat$age2) # covariates (scale)
+                     age2=dat$age2) 
 
 vsInits <- list( sigma.eta=1, mu.eta=1, nu=1.5, 
                  beta=rnorm(vsConstants$numVars), 
@@ -72,7 +73,6 @@ var_scale_code <- nimbleCode({
   ## Priors
   nu ~ dunif(1,2.5) # prior for CMP dispersion parameter
   # V ~ dgamma(3.29, 7.8) # total beta variance
-  # 
   # beta_var <- V/numVars
   
   # beta coefficient priors
@@ -80,17 +80,14 @@ var_scale_code <- nimbleCode({
   beta_age2 ~ dnorm(0, sd=10)
   for (k in 1:2) {
     beta_sex[k] ~ dnorm(0, sd=10)
+    beta_mast[k] ~ dnorm(0, sd=10)
   }
   
-  for (k in 1:numVars) {
-    beta[k] ~ dnorm(0, sd=10)
-    z[k] ~ dbern(0.5) # indicator for each coefficient
-  }
+  beta ~ dnorm(0, sd=10)
+  z ~ dbern(0.5) # indicator for each coefficient  
   
   cat_prob[1:3] <- c(1/3, 1/3, 1/3)
-  for (k in 1:numScaleVars) {
-    x_scale[k] ~ dcat(cat_prob[1:3])
-  }
+  x_scale ~ dcat(cat_prob[1:3])
   
   # sample
   for (k in 1:nsamples) {
@@ -103,9 +100,8 @@ var_scale_code <- nimbleCode({
   for (i in 1:N) {
     
     lambda[i] <- exp(beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + 
-                       eta[sampleID[i]] + 
-                       z[1]*beta[1]*covars[i,1] + 
-                       z[2]*beta[2]*scale_covars[i, x_scale[1], 1])
+                       eta[sampleID[i]] + beta_mast[mast[i]] +
+                       z*beta*scale_covars[i, x_scale, 1])
     
     ncomp[i] ~ dCOMP(lambda[i], nu)
     
@@ -143,30 +139,30 @@ saveRDS(samplesIndicator, file = "results/ncomp_indicators.rds")
 
 ## Looking at results
 par(mfrow = c(2, 1))
-plot(samplesIndicator[,'beta[3]'], pch = 16, cex = 0.4, main = "beta[3] traceplot")
-plot(samplesIndicator[,'z[3]'], pch = 16, cex = 0.4, main = "z[3] traceplot")
+plot(samplesIndicator[,'beta'], pch = 16, cex = 0.4, main = "beta[3] traceplot")
+plot(samplesIndicator[,'z'], pch = 16, cex = 0.4, main = "z[3] traceplot")
 
 # Individual inclusion probabilities
 par(mfrow = c(1, 1))
-zCols <- grep("z\\[", colnames(samplesIndicator))
-posterior_inclusion_prob <- colMeans(samplesIndicator[, zCols])
-plot(1:3, posterior_inclusion_prob, ylim=c(0,1),
+zCols <- grep("z", colnames(samplesIndicator))
+posterior_inclusion_prob <- mean(samplesIndicator[,12])
+plot(1, posterior_inclusion_prob, ylim=c(0,1),
      xlab = "beta", ylab = "inclusion probability",
      main = "Inclusion probabilities for each beta")
 
 ## Plot scale probabilities
-sCols <- grep("x_scale\\[", colnames(samplesIndicator))
+sCols <- grep("x_scale", colnames(samplesIndicator))
 posterior_scales <- samplesIndicator[, sCols]
 
 posterior_scales <- as.data.frame(posterior_scales)
 
-names(posterior_scales) <- c("pct_decid", "pct_evrgrn", "nbuildings", "stand_mean", "stand_sd")
+names(posterior_scales) <- c("nbuildings")
 
-posterior_scales <- posterior_scales %>% pivot_longer(1:5, names_to="covar", values_to="scale")
+posterior_scales <- posterior_scales %>% pivot_longer(1, names_to="covar", values_to="scale")
 
 
 ggplot(posterior_scales) +
   geom_bar(aes(x=scale)) +
   facet_wrap(vars(covar))
   
-
+posterior_scales %>% group_by(scale) %>% count()

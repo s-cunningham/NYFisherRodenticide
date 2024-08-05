@@ -139,7 +139,7 @@ plot(samplesIndicator[,'z[1]'], pch = 16, cex = 0.4, main = "z[1] traceplot")
 par(mfrow = c(1, 1))
 zCols <- grep("z\\[", colnames(samplesIndicator))
 posterior_inclusion_prob <- colMeans(samplesIndicator[, zCols])
-plot(1:5, posterior_inclusion_prob, ylim=c(0,1),
+plot(1:6, posterior_inclusion_prob, ylim=c(0,1),
      xlab = "beta", ylab = "inclusion probability",
      main = "Inclusion probabilities for each beta")
 posterior_inclusion_prob
@@ -150,9 +150,9 @@ posterior_scales <- samplesIndicator[, sCols]
 
 posterior_scales <- as.data.frame(posterior_scales)
 
-names(posterior_scales) <- c("pct_decid",  "nbuildings", "stand_mean", "stand_sd")
+names(posterior_scales) <- c("pct_evergrn", "pct_decid", "nbuildings", "stand_mean", "stand_sd")
 
-posterior_scales <- posterior_scales %>% pivot_longer(1:4, names_to="covar", values_to="scale")
+posterior_scales <- posterior_scales %>% pivot_longer(1:5, names_to="covar", values_to="scale")
 
 ggplot(posterior_scales) +
   geom_bar(aes(x=scale)) +
