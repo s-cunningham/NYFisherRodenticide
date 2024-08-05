@@ -2,12 +2,13 @@ library(tidyverse)
 library(nimble)
 library(COMPoissonReg)
 
+# https://r-nimble.org/html_manual/cha-mcmc.html#sec:rjmcmc
 
 ## Read data, remove some columns we don't want to test
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") %>%
   mutate(age2=Age^2) %>%
   dplyr::select(-edge_density_15, -edge_density_30, -edge_density_45, -build_cat_15, -build_cat_30,-build_cat_45) %>%
-  mutate(mast_year=if_else(year==2019, 1, 0), # failure years are reference
+  mutate(mast_year=if_else(year==2019, 1, 2), # failure years are reference
          Sex=if_else(Sex=='F',1,2)) # Females are reference
 
 # Scale variables
@@ -78,10 +79,11 @@ var_scale_code <- nimbleCode({
   # beta coefficient priors
   beta_age ~ dnorm(0, sd=10)
   beta_age2 ~ dnorm(0, sd=10)
-  for (k in 1:2) {
-    beta_sex[k] ~ dnorm(0, sd=10)
-    beta_mast[k] ~ dnorm(0, sd=10)
-  }
+  beta_sex[1] <- 0
+  beta_sex[2] ~ dnorm(0, sd=10)
+  beta_mast[1] <- 0
+  beta_mast[2] ~ dnorm(0, sd=10)
+  beta0 ~ dnorm(0, sd=10) 
   
   beta ~ dnorm(0, sd=10)
   z ~ dbern(0.5) # indicator for each coefficient  
@@ -99,9 +101,8 @@ var_scale_code <- nimbleCode({
   ## Likelihood
   for (i in 1:N) {
     
-    lambda[i] <- exp(beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + 
-                       eta[sampleID[i]] + beta_mast[mast[i]] +
-                       z*beta*scale_covars[i, x_scale, 1])
+    lambda[i] <- exp(beta0 + beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + 
+                       eta[sampleID[i]] + beta_mast[mast[i]] + z*beta*scale_covars[i, x_scale, 1])
     
     ncomp[i] ~ dCOMP(lambda[i], nu)
     
@@ -139,8 +140,8 @@ saveRDS(samplesIndicator, file = "results/ncomp_indicators.rds")
 
 ## Looking at results
 par(mfrow = c(2, 1))
-plot(samplesIndicator[,'beta'], pch = 16, cex = 0.4, main = "beta[3] traceplot")
-plot(samplesIndicator[,'z'], pch = 16, cex = 0.4, main = "z[3] traceplot")
+plot(samplesIndicator[,'beta'], pch = 16, cex = 0.4, main = "beta traceplot")
+plot(samplesIndicator[,'z'], pch = 16, cex = 0.4, main = "z traceplot")
 
 # Individual inclusion probabilities
 par(mfrow = c(1, 1))

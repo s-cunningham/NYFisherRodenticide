@@ -10,7 +10,7 @@ library(HDInterval)
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") %>%
   mutate(age2=Age^2) %>%
   dplyr::select(-edge_density_15, -edge_density_30, -edge_density_45, -build_cat_15, -build_cat_30,-build_cat_45) %>%
-  mutate(mast_year=if_else(year==2019, 2, 1), # failure years are reference
+  mutate(mast_year=if_else(year==2019, 1, 2), # mast years are reference
          Sex=if_else(Sex=='F',1,2)) # Females are reference
 
 # Scale variables
@@ -43,13 +43,11 @@ ncompounds_code <- nimbleCode({
   beta0 ~ dnorm(0, sd=10)
   beta_age ~ dnorm(0, sd=10)
   beta_age2 ~ dnorm(0, sd=10)
-  # for (k in 1:2) {
-  #   beta_sex[k] ~ dnorm(0, sd=10)
-  # }
-  for (k in 1:2) {
-    beta_mast[k] ~ dnorm(0, sd=10)
-  }
-  # beta_build ~ dnorm(0, sd=10)
+  beta_build ~ dnorm(0, sd=10)
+  beta_sex[1] <- 0
+  beta_sex[2] ~ dnorm(0, sd=10)
+  beta_mast[1] <- 0
+  beta_mast[2] ~ dnorm(0, sd=10)
 
   ## random intercepts
   # WMU
@@ -62,8 +60,7 @@ ncompounds_code <- nimbleCode({
   ## Likelihood
   for (i in 1:N) {
     
-    log(lambda[i]) <- beta0 + beta_age*age[i] + beta_age2*age2[i] + alpha[WMU[i]] + beta_build*covars[i,1] 
-                          beta_mast[mast[i]]#+ beta_sex[sex[i]]
+    log(lambda[i]) <- beta0 + beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + beta_build*covars[i,1] + beta_mast[mast[i]] + alpha[WMU[i]] 
     
     ncomp[i] ~ dCOMP(lambda[i], nu)
     
@@ -72,13 +69,13 @@ ncompounds_code <- nimbleCode({
 })
 
 # parameters to monitor
-params <- c("beta0", "beta_age","beta_age2","beta_mast",#"beta_sex","beta_build",
+params <- c("beta0","beta_age","beta_age2","beta_mast","beta_sex","beta_build",
             "nu", "alpha", "mu.alpha", "sigma.alpha")  
 
 # MCMC options
 nt <- 1
-ni <- 20000
-nb <- 8000
+ni <- 50000
+nb <- 20000
 nc <- 3
 
 set.seed(1)
@@ -100,7 +97,7 @@ covars1[1:nrow(dat1),1] <- dat1$nbuildings_15
 
 ## prep fof nimble model
 Constants1 <- list(N=nrow(dat1),
-                  # sex=dat1$Sex,
+                  sex=dat1$Sex,
                   mast=dat1$mast_year,
                    WMU=wmu1, # random intercept
                    nWMU=length(unique(dat1$WMU)))
