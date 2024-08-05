@@ -118,7 +118,7 @@ system.time(
 
 ncomp.sum1 <- MCMCsummary(ncomp.out1)
 ncomp.sum1 <- rownames_to_column(ncomp.sum1, "parameter")
-range(ncomp.sum1$Rhat)
+range(ncomp.sum1$Rhat, na.rm=TRUE)
 
 MCMCtrace(ncomp.out1, 
           params = c('beta_mast[1]', 'beta_mast[2]'), 
