@@ -40,27 +40,26 @@ ncompounds_code <- nimbleCode({
   nu ~ dunif(1,2.5) # prior for CMP dispersion parameter
   
   # beta coefficient priors
-  beta0 ~ dnorm(0, sd=10)
-  beta_age ~ dnorm(0, sd=10)
-  beta_age2 ~ dnorm(0, sd=10)
-  beta_build ~ dnorm(0, sd=10)
+  beta_age ~ dnorm(0, 0.001)
+  beta_age2 ~ dnorm(0, 0.001)
+  beta_build ~ dnorm(0, 0.001)
   beta_sex[1] <- 0
-  beta_sex[2] ~ dnorm(0, sd=10)
-  beta_mast[1] <- 0
-  beta_mast[2] ~ dnorm(0, sd=10)
+  beta_sex[2] ~ dnorm(0, 0.001)
+  beta_mast ~ dnorm(0, 0.001)
 
-  ## random intercepts
-  # WMU
-  for (k in 1:nWMU) {
-    alpha[k] ~ dnorm(mu.alpha, sd=sigma.alpha)
+  ## random intercepts - WMUA
+  for (k in 1:nWMUA) {
+    alpha[k] ~ dnorm(mu.alpha, tau.alpha)
   }
-  mu.alpha ~ dnorm(0, 0.01)
-  sigma.alpha ~ dunif(0, 100)
+  mu.alpha ~ dnorm(0, 0.001)
+  sigma.alpha ~ dunif(0, 10)
+  tau.alpha <- 1/(sigma.alpha*sigma.alpha)
   
   ## Likelihood
   for (i in 1:N) {
     
-    log(lambda[i]) <- beta0 + beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + beta_build*covars[i,1] + beta_mast[mast[i]] + alpha[WMU[i]] 
+    log(lambda[i]) <- alpha[WMUA[i]] + beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + 
+                          beta_build*buildings[i] + beta_mast*beechnuts[i] 
     
     ncomp[i] ~ dCOMP(lambda[i], nu)
     
@@ -69,19 +68,18 @@ ncompounds_code <- nimbleCode({
 })
 
 # parameters to monitor
-params <- c("beta0","beta_age","beta_age2","beta_mast","beta_sex","beta_build",
-            "nu", "alpha", "mu.alpha", "sigma.alpha")  
+params <- c("beta_age","beta_age2","beta_sex","beta_build",
+            "beta_mast", "nu", "alpha", "mu.alpha", "sigma.alpha")  #
 
 # MCMC options
 nt <- 1
 ni <- 50000
-nb <- 20000
+nb <- 25000
 nc <- 3
 
 set.seed(1)
-Inits <- list(sigma.alpha=1, mu.alpha=1, nu=1.5, beta0=rnorm(1), beta_age=1,beta_build=1,beta_mast=rep(1,2), beta_age2=1)
-              # 
-              #  beta_sex=rep(1,2),
+Inits <- list(nu=1.5, sigma.alpha=1, alpha=rnorm(18), mu.alpha=rnorm(1),
+              beta_sex=rnorm(2), beta_age=rnorm(1),beta_build=rnorm(1), beta_age2=rnorm(1), beta_mast=rnorm(1))
 
 #### Loop over random locations ####
 ## Iteration 1
@@ -89,36 +87,29 @@ dat1 <- dat %>% filter(pt_index==1)
 
 ## Set up data
 ncomp1 <- dat1$ncomp
-wmu1 <- as.numeric(factor(dat1$WMU, labels=1:55))
-
-# create array for covariate data (column for each covariate)
-covars1 <- matrix(NA, nrow=nrow(dat1),ncol=1)
-covars1[1:nrow(dat1),1] <- dat1$nbuildings_15
+wmua1 <- as.numeric(factor(dat1$WMUA_code, labels=1:18))
 
 ## prep fof nimble model
 Constants1 <- list(N=nrow(dat1),
                   sex=dat1$Sex,
-                  mast=dat1$mast_year,
-                   WMU=wmu1, # random intercept
-                   nWMU=length(unique(dat1$WMU)))
+                   WMUA=wmua1, # random intercept
+                   nWMUA=length(unique(dat1$WMUA_code)))
 
 DataBundle1 <- list(ncomp=ncomp1, # response
-                    covars=covars1, # covariates
+                    buildings=dat1$nbuildings_15, # covariates (buildings)
+                    beechnuts=dat1$lag_beechnuts,   
                     age=dat1$Age,
                     age2=dat1$age2) 
 
 set.seed(1)
-system.time(
   ncomp.out1 <- nimbleMCMC(code=ncompounds_code, constants=Constants1, data=DataBundle1, 
                            inits=Inits, monitors=params,thin=nt, niter=ni, nburnin=nb, 
                            nchains=nc, check=FALSE, samples=TRUE,
                            samplesAsCodaMCMC=TRUE, summary=FALSE, WAIC=FALSE)
-)
-
 
 ncomp.sum1 <- MCMCsummary(ncomp.out1)
 ncomp.sum1 <- rownames_to_column(ncomp.sum1, "parameter")
-range(ncomp.sum1$Rhat)
+range(ncomp.sum1$Rhat, na.rm=TRUE)
 
 MCMCtrace(ncomp.out1, 
           params = c('beta_mast[1]', 'beta_mast[2]'), 
@@ -131,54 +122,46 @@ dat2 <- dat %>% filter(pt_index==2)
 
 ## Set up data
 ncomp2 <- dat2$ncomp
-wmu2 <- as.numeric(factor(dat2$WMU, labels=1:55))
-
-# create array for covariate data (column for each covariate)
-covars2 <- matrix(NA, nrow=nrow(dat2),ncol=1)
-covars2[1:nrow(dat2),1] <- dat2$nbuildings_15
+wmua2 <- as.numeric(factor(dat2$WMUA_code, labels=1:18))
 
 ## prep fof nimble model
 Constants2 <- list(N=nrow(dat2),
                    sex=dat2$Sex,
-                   mast=dat2$mast_year,
-                   WMU=wmu2, # random intercept
-                   nWMU=length(unique(dat2$WMU)))
+                   WMUA=wmua2, # random intercept
+                   nWMUA=length(unique(dat2$WMUA_code)))
 
 DataBundle2 <- list(ncomp=ncomp2, # response
-                    covars=covars2, # covariates 
+                    buildings=dat2$nbuildings_15, # covariates (buildings)
+                    beechnuts=dat2$lag_beechnuts,   
                     age=dat2$Age,
                     age2=dat2$age2) 
 
 set.seed(1)
 ncomp.out2 <- nimbleMCMC(code=ncompounds_code, constants=Constants2, data=DataBundle2, 
-                         inits=Inits, monitors=params, thin=nt, niter=ni, nburnin=nb, 
+                         inits=Inits, monitors=params,thin=nt, niter=ni, nburnin=nb, 
                          nchains=nc, check=FALSE, samples=TRUE,
                          samplesAsCodaMCMC=TRUE, summary=FALSE, WAIC=FALSE)
 
 ncomp.sum2 <- MCMCsummary(ncomp.out2)
 ncomp.sum2 <- rownames_to_column(ncomp.sum2, "parameter")
-range(ncomp.sum2$Rhat)
+range(ncomp.sum2$Rhat, na.rm=TRUE)
 
 ## Iteration 3
 dat3 <- dat %>% filter(pt_index==3)
 
 ## Set up data
 ncomp3 <- dat3$ncomp
-wmu3 <- as.numeric(factor(dat3$WMU, labels=1:55))
-
-# create array for covariate data (column for each covariate)
-covars3 <- matrix(NA, nrow=nrow(dat3),ncol=1)
-covars3[1:nrow(dat3),1] <- dat3$nbuildings_15
+wmua3 <- as.numeric(factor(dat3$WMUA_code, labels=1:18))
 
 ## prep fof nimble model
 Constants3 <- list(N=nrow(dat3),
                    sex=dat3$Sex,
-                   mast=dat3$mast_year,
-                   WMU=wmu3, # random intercept
-                   nWMU=length(unique(dat3$WMU)))
+                   WMUA=wmua3, # random intercept
+                   nWMUA=length(unique(dat3$WMUA_code)))
 
 DataBundle3 <- list(ncomp=ncomp3, # response
-                    covars=covars3, # covariates 
+                    buildings=dat3$nbuildings_15, 
+                    beechnuts=dat3$lag_beechnuts,   
                     age=dat3$Age,
                     age2=dat3$age2) 
 
@@ -190,28 +173,24 @@ ncomp.out3 <- nimbleMCMC(code=ncompounds_code, constants=Constants3, data=DataBu
 
 ncomp.sum3 <- MCMCsummary(ncomp.out3)
 ncomp.sum3 <- rownames_to_column(ncomp.sum3, "parameter")
-range(ncomp.sum3$Rhat)
+range(ncomp.sum3$Rhat, na.rm=TRUE)
 
 ## Iteration 4
 dat4 <- dat %>% filter(pt_index==4)
 
 ## Set up data
 ncomp4 <- dat4$ncomp
-wmu4 <- as.numeric(factor(dat4$WMU, labels=1:55))
-
-# create array for covariate data (column for each covariate)
-covars4 <- matrix(NA, nrow=nrow(dat4),ncol=1)
-covars4[1:nrow(dat4),1] <- dat4$nbuildings_15
+wmua4 <- as.numeric(factor(dat4$WMUA_code, labels=1:18))
 
 ## prep fof nimble model
 Constants4 <- list(N=nrow(dat4),
                    sex=dat4$Sex,
-                   mast=dat4$mast_year,
-                   WMU=wmu4, # random intercept
-                   nWMU=length(unique(dat4$WMU)))
+                   WMUA=wmua4, # random intercept
+                   nWMUA=length(unique(dat4$WMUA_code)))
 
 DataBundle4 <- list(ncomp=ncomp4, # response
-                    covars=covars4, # covariates 
+                    buildings=dat4$nbuildings_15, 
+                    beechnuts=dat4$lag_beechnuts,   
                     age=dat4$Age,
                     age2=dat4$age2) 
 
@@ -223,28 +202,24 @@ ncomp.out4 <- nimbleMCMC(code=ncompounds_code, constants=Constants4, data=DataBu
 
 ncomp.sum4 <- MCMCsummary(ncomp.out4)
 ncomp.sum4 <- rownames_to_column(ncomp.sum4, "parameter")
-range(ncomp.sum4$Rhat)
+range(ncomp.sum4$Rhat, na.rm=TRUE)
 
 ## Iteration 5
 dat5 <- dat %>% filter(pt_index==5)
 
 ## Set up data
 ncomp5 <- dat5$ncomp
-wmu5 <- as.numeric(factor(dat5$WMU, labels=1:55))
-
-# create array for covariate data (column for each covariate)
-covars5 <- matrix(NA, nrow=nrow(dat5),ncol=1)
-covars5[1:nrow(dat5),1] <- dat5$nbuildings_15
+wmua5 <- as.numeric(factor(dat5$WMUA_code, labels=1:18))
 
 ## prep fof nimble model
 Constants5 <- list(N=nrow(dat5),
                    sex=dat5$Sex,
-                   mast=dat5$mast_year,
-                   WMU=wmu5, # random intercept
-                   nWMU=length(unique(dat5$WMU)))
+                   WMUA=wmua5, # random intercept
+                   nWMUA=length(unique(dat5$WMUA_code)))
 
 DataBundle5 <- list(ncomp=ncomp5, # response
-                    covars=covars5, # covariates 
+                    buildings=dat5$nbuildings_15, 
+                    beechnuts=dat5$lag_beechnuts,   
                     age=dat5$Age,
                     age2=dat5$age2) 
 
@@ -256,28 +231,24 @@ ncomp.out5 <- nimbleMCMC(code=ncompounds_code, constants=Constants5, data=DataBu
 
 ncomp.sum5 <- MCMCsummary(ncomp.out5)
 ncomp.sum5 <- rownames_to_column(ncomp.sum5, "parameter")
-range(ncomp.sum5$Rhat)
+range(ncomp.sum5$Rhat, na.rm=TRUE)
 
 ## Iteration 6
 dat6 <- dat %>% filter(pt_index==6)
 
 ## Set up data
 ncomp6 <- dat6$ncomp
-wmu6 <- as.numeric(factor(dat6$WMU, labels=1:55))
-
-# create array for covariate data (column for each covariate)
-covars6 <- matrix(NA, nrow=nrow(dat6),ncol=1)
-covars6[1:nrow(dat6),1] <- dat6$nbuildings_15
+wmua6 <- as.numeric(factor(dat6$WMUA_code, labels=1:18))
 
 ## prep fof nimble model
 Constants6 <- list(N=nrow(dat6),
                    sex=dat6$Sex,
-                   mast=dat6$mast_year,
-                   WMU=wmu6, # random intercept
-                   nWMU=length(unique(dat6$WMU)))
+                   WMUA=wmua6, # random intercept
+                   nWMUA=length(unique(dat6$WMUA_code)))
 
 DataBundle6 <- list(ncomp=ncomp6, # response
-                    covars=covars6, # covariates 
+                    buildings=dat6$nbuildings_15, 
+                    beechnuts=dat6$lag_beechnuts,   
                     age=dat6$Age,
                     age2=dat6$age2) 
 
@@ -289,28 +260,24 @@ ncomp.out6 <- nimbleMCMC(code=ncompounds_code, constants=Constants6, data=DataBu
 
 ncomp.sum6 <- MCMCsummary(ncomp.out6)
 ncomp.sum6 <- rownames_to_column(ncomp.sum6, "parameter")
-range(ncomp.sum6$Rhat)
+range(ncomp.sum6$Rhat, na.rm=TRUE)
 
 ## Iteration 7
 dat7 <- dat %>% filter(pt_index==7)
 
 ## Set up data
 ncomp7 <- dat7$ncomp
-wmu7 <- as.numeric(factor(dat7$WMU, labels=1:55))
-
-# create array for covariate data (column for each covariate)
-covars7 <- matrix(NA, nrow=nrow(dat7),ncol=1)
-covars7[1:nrow(dat7),1] <- dat7$nbuildings_15
+wmua7 <- as.numeric(factor(dat7$WMUA_code, labels=1:18))
 
 ## prep fof nimble model
 Constants7 <- list(N=nrow(dat7),
                    sex=dat7$Sex,
-                   mast=dat7$mast_year,
-                   WMU=wmu7, # random intercept
-                   nWMU=length(unique(dat7$WMU)))
+                   WMUA=wmua7, # random intercept
+                   nWMUA=length(unique(dat7$WMUA_code)))
 
 DataBundle7 <- list(ncomp=ncomp7, # response
-                    covars=covars7, # covariates 
+                    buildings=dat7$nbuildings_15, 
+                    beechnuts=dat7$lag_beechnuts,   
                     age=dat7$Age,
                     age2=dat7$age2) 
 
@@ -322,28 +289,24 @@ ncomp.out7 <- nimbleMCMC(code=ncompounds_code, constants=Constants7, data=DataBu
 
 ncomp.sum7 <- MCMCsummary(ncomp.out7)
 ncomp.sum7 <- rownames_to_column(ncomp.sum7, "parameter")
-range(ncomp.sum7$Rhat)
+range(ncomp.sum7$Rhat, na.rm=TRUE)
 
 ## Iteration 8
 dat8 <- dat %>% filter(pt_index==8)
 
 ## Set up data
 ncomp8 <- dat8$ncomp
-wmu8 <- as.numeric(factor(dat8$WMU, labels=1:55))
-
-# create array for covariate data (column for each covariate)
-covars8 <- matrix(NA, nrow=nrow(dat8),ncol=1)
-covars8[1:nrow(dat8),1] <- dat8$nbuildings_15
+wmua8 <- as.numeric(factor(dat8$WMUA_code, labels=1:18))
 
 ## prep fof nimble model
 Constants8 <- list(N=nrow(dat8),
                    sex=dat8$Sex,
-                   mast=dat8$mast_year,
-                   WMU=wmu8, # random intercept
-                   nWMU=length(unique(dat8$WMU)))
+                   WMUA=wmua8, # random intercept
+                   nWMUA=length(unique(dat8$WMUA_code)))
 
 DataBundle8 <- list(ncomp=ncomp8, # response
-                    covars=covars8, # covariates 
+                    buildings=dat8$nbuildings_15, 
+                    beechnuts=dat8$lag_beechnuts,   
                     age=dat8$Age,
                     age2=dat8$age2) 
 
@@ -355,28 +318,24 @@ ncomp.out8 <- nimbleMCMC(code=ncompounds_code, constants=Constants8, data=DataBu
 
 ncomp.sum8 <- MCMCsummary(ncomp.out8)
 ncomp.sum8 <- rownames_to_column(ncomp.sum8, "parameter")
-range(ncomp.sum8$Rhat)
+range(ncomp.sum8$Rhat, na.rm=TRUE)
 
 ## Iteration 9
 dat9 <- dat %>% filter(pt_index==9)
 
 ## Set up data
 ncomp9 <- dat9$ncomp
-wmu9 <- as.numeric(factor(dat9$WMU, labels=1:55))
-
-# create array for covariate data (column for each covariate)
-covars9 <- matrix(NA, nrow=nrow(dat9),ncol=1)
-covars9[1:nrow(dat9),1] <- dat9$nbuildings_15
+wmua9 <- as.numeric(factor(dat9$WMUA_code, labels=1:18))
 
 ## prep fof nimble model
 Constants9 <- list(N=nrow(dat9),
                    sex=dat9$Sex,
-                   mast=dat9$mast_year,
-                   WMU=wmu9, # random intercept
-                   nWMU=length(unique(dat9$WMU)))
+                   WMUA=wmua9, # random intercept
+                   nWMUA=length(unique(dat9$WMUA_code)))
 
 DataBundle9 <- list(ncomp=ncomp9, # response
-                    covars=covars9, # covariates 
+                    buildings=dat9$nbuildings_15, 
+                    beechnuts=dat9$lag_beechnuts,   
                     age=dat9$Age,
                     age2=dat9$age2) 
 
@@ -388,28 +347,24 @@ ncomp.out9 <- nimbleMCMC(code=ncompounds_code, constants=Constants9, data=DataBu
 
 ncomp.sum9 <- MCMCsummary(ncomp.out9)
 ncomp.sum9 <- rownames_to_column(ncomp.sum9, "parameter")
-range(ncomp.sum9$Rhat)
+range(ncomp.sum9$Rhat, na.rm=TRUE)
 
 ## Iteration 10
 dat10 <- dat %>% filter(pt_index==10)
 
 ## Set up data
-ncomp10 <- dat1$ncomp
-wmu10 <- as.numeric(factor(dat10$WMU, labels=1:55))
-
-# create array for covariate data (column for each covariate)
-covars10 <- matrix(NA, nrow=nrow(dat10),ncol=1)
-covars10[1:nrow(dat10),1] <- dat10$nbuildings_15
+ncomp10 <- dat10$ncomp
+wmua10 <- as.numeric(factor(dat10$WMUA_code, labels=1:18))
 
 ## prep fof nimble model
 Constants10 <- list(N=nrow(dat10),
                    sex=dat10$Sex,
-                   mast=dat10$mast_year,
-                   WMU=wmu10, # random intercept
-                   nWMU=length(unique(dat10$WMU)))
+                   WMUA=wmua10, # random intercept
+                   nWMUA=length(unique(dat10$WMUA_code)))
 
 DataBundle10 <- list(ncomp=ncomp10, # response
-                    covars=covars10, # covariates 
+                    buildings=dat10$nbuildings_15, 
+                    beechnuts=dat10$lag_beechnuts,   
                     age=dat10$Age,
                     age2=dat10$age2) 
 
@@ -421,8 +376,7 @@ ncomp.out10 <- nimbleMCMC(code=ncompounds_code, constants=Constants10, data=Data
 
 ncomp.sum10 <- MCMCsummary(ncomp.out10)
 ncomp.sum10 <- rownames_to_column(ncomp.sum10, "parameter")
-range(ncomp.sum10$Rhat)
-
+range(ncomp.sum10$Rhat, na.rm=TRUE)
 
 # Combine samples (still need to check column numbers)
 
