@@ -69,12 +69,12 @@ ncompounds_code <- nimbleCode({
 
 # parameters to monitor
 params <- c("beta_age","beta_age2","beta_sex","beta_build",
-            "beta_mast", "nu", "alpha", "mu.alpha", "sigma.alpha")  #
+            "beta_mast", "nu", "alpha", "mu.alpha", "sigma.alpha")  
 
 # MCMC options
 nt <- 1
-ni <- 50000
-nb <- 25000
+ni <- 40000
+nb <- 20000
 nc <- 3
 
 set.seed(1)
@@ -378,115 +378,110 @@ ncomp.sum10 <- MCMCsummary(ncomp.out10)
 ncomp.sum10 <- rownames_to_column(ncomp.sum10, "parameter")
 range(ncomp.sum10$Rhat, na.rm=TRUE)
 
+### save the output data
+
+saveRDS(ncomp.sum1, "output/model_output/ncomp.sum1.rds")
+saveRDS(ncomp.out1, "output/model_output/ncomp.out1.rds")
+
+saveRDS(ncomp.sum2, "output/model_output/ncomp.sum2.rds")
+saveRDS(ncomp.out3, "output/model_output/ncomp.out2.rds")
+
+saveRDS(ncomp.sum3, "output/model_output/ncomp.sum3.rds")
+saveRDS(ncomp.out3, "output/model_output/ncomp.out3.rds")
+
+saveRDS(ncomp.sum4, "output/model_output/ncomp.sum4.rds")
+saveRDS(ncomp.out4, "output/model_output/ncomp.out4.rds")
+
+saveRDS(ncomp.sum5, "output/model_output/ncomp.sum5.rds")
+saveRDS(ncomp.out5, "output/model_output/ncomp.out5.rds")
+
+saveRDS(ncomp.sum6, "output/model_output/ncomp.sum6.rds")
+saveRDS(ncomp.out6, "output/model_output/ncomp.out6.rds")
+
+saveRDS(ncomp.sum7, "output/model_output/ncomp.sum7.rds")
+saveRDS(ncomp.out7, "output/model_output/ncomp.out7.rds")
+
+saveRDS(ncomp.sum8, "output/model_output/ncomp.sum8.rds")
+saveRDS(ncomp.out8, "output/model_output/ncomp.out8.rds")
+
+saveRDS(ncomp.sum9, "output/model_output/ncomp.sum9.rds")
+saveRDS(ncomp.out9, "output/model_output/ncomp.out9.rds")
+
+saveRDS(ncomp.sum10, "output/model_output/ncomp.sum10.rds")
+saveRDS(ncomp.out10, "output/model_output/ncomp.out10.rds")
+
 # Combine samples (still need to check column numbers)
 
-age <- c(ncomp.out1$chain1[,56],ncomp.out2$chain1[,56],ncomp.out3$chain1[,56],ncomp.out4$chain1[,56],ncomp.out5$chain1[,56],
-         ncomp.out6$chain1[,56],ncomp.out7$chain1[,56],ncomp.out8$chain1[,56],ncomp.out9$chain1[,56],ncomp.out10$chain1[,56],
-         ncomp.out1$chain2[,56],ncomp.out2$chain2[,56],ncomp.out3$chain2[,56],ncomp.out4$chain2[,56],ncomp.out5$chain2[,56],
-         ncomp.out6$chain2[,56],ncomp.out7$chain2[,56],ncomp.out8$chain2[,56],ncomp.out9$chain2[,56],ncomp.out10$chain2[,56],
-         ncomp.out1$chain3[,56],ncomp.out2$chain3[,56],ncomp.out3$chain3[,56],ncomp.out4$chain3[,56],ncomp.out5$chain3[,56],
-         ncomp.out6$chain3[,56],ncomp.out7$chain3[,56],ncomp.out8$chain3[,56],ncomp.out9$chain3[,56],ncomp.out10$chain3[,56])
+age <- c(ncomp.out1$chain1[,19],ncomp.out2$chain1[,19],ncomp.out3$chain1[,19],ncomp.out4$chain1[,19],ncomp.out5$chain1[,19],
+         ncomp.out6$chain1[,19],ncomp.out7$chain1[,19],ncomp.out8$chain1[,19],ncomp.out9$chain1[,19],ncomp.out10$chain1[,19],
+         ncomp.out1$chain2[,19],ncomp.out2$chain2[,19],ncomp.out3$chain2[,19],ncomp.out4$chain2[,19],ncomp.out5$chain2[,19],
+         ncomp.out6$chain2[,19],ncomp.out7$chain2[,19],ncomp.out8$chain2[,19],ncomp.out9$chain2[,19],ncomp.out10$chain2[,19],
+         ncomp.out1$chain3[,19],ncomp.out2$chain3[,19],ncomp.out3$chain3[,19],ncomp.out4$chain3[,19],ncomp.out5$chain3[,19],
+         ncomp.out6$chain3[,19],ncomp.out7$chain3[,19],ncomp.out8$chain3[,19],ncomp.out9$chain3[,19],ncomp.out10$chain3[,19])
 
 # Calculate HDI and quantiles
 hdi(age)
 quantile(age, probs=c(0.5,0.025,0.975))
 
 
-age2 <- c(ncomp.out1$chain1[,57],ncomp.out2$chain1[,57],ncomp.out3$chain1[,57],ncomp.out4$chain1[,57],ncomp.out5$chain1[,57],
-          ncomp.out6$chain1[,57],ncomp.out7$chain1[,57],ncomp.out8$chain1[,57],ncomp.out9$chain1[,57],ncomp.out10$chain1[,57],
-          ncomp.out1$chain2[,57],ncomp.out2$chain2[,57],ncomp.out3$chain2[,57],ncomp.out4$chain2[,57],ncomp.out5$chain2[,57],
-          ncomp.out6$chain2[,57],ncomp.out7$chain2[,57],ncomp.out8$chain2[,57],ncomp.out9$chain2[,57],ncomp.out10$chain2[,57],
-          ncomp.out1$chain3[,57],ncomp.out2$chain3[,57],ncomp.out3$chain3[,57],ncomp.out4$chain3[,57],ncomp.out5$chain3[,57],
-          ncomp.out6$chain3[,57],ncomp.out7$chain3[,57],ncomp.out8$chain3[,57],ncomp.out9$chain3[,57],ncomp.out10$chain3[,57])
+age2 <- c(ncomp.out1$chain1[,20],ncomp.out2$chain1[,20],ncomp.out3$chain1[,20],ncomp.out4$chain1[,20],ncomp.out5$chain1[,20],
+          ncomp.out6$chain1[,20],ncomp.out7$chain1[,20],ncomp.out8$chain1[,20],ncomp.out9$chain1[,20],ncomp.out10$chain1[,20],
+          ncomp.out1$chain2[,20],ncomp.out2$chain2[,20],ncomp.out3$chain2[,20],ncomp.out4$chain2[,20],ncomp.out5$chain2[,20],
+          ncomp.out6$chain2[,20],ncomp.out7$chain2[,20],ncomp.out8$chain2[,20],ncomp.out9$chain2[,20],ncomp.out10$chain2[,20],
+          ncomp.out1$chain3[,20],ncomp.out2$chain3[,20],ncomp.out3$chain3[,20],ncomp.out4$chain3[,20],ncomp.out5$chain3[,20],
+          ncomp.out6$chain3[,20],ncomp.out7$chain3[,20],ncomp.out8$chain3[,20],ncomp.out9$chain3[,20],ncomp.out10$chain3[,20])
 
 # Calculate HDI and quantiles
 hdi(age2)
 quantile(age2, probs=c(0.5,0.025,0.975))
 
-build <- c(ncomp.out1$chain1[,58],ncomp.out2$chain1[,58],ncomp.out3$chain1[,58],ncomp.out4$chain1[,58],ncomp.out5$chain1[,58],
-           ncomp.out6$chain1[,58],ncomp.out7$chain1[,58],ncomp.out8$chain1[,58],ncomp.out9$chain1[,58],ncomp.out10$chain1[,58],
-           ncomp.out1$chain2[,58],ncomp.out2$chain2[,58],ncomp.out3$chain2[,58],ncomp.out4$chain2[,58],ncomp.out5$chain2[,58],
-           ncomp.out6$chain2[,58],ncomp.out7$chain2[,58],ncomp.out8$chain2[,58],ncomp.out9$chain2[,58],ncomp.out10$chain2[,58],
-           ncomp.out1$chain3[,58],ncomp.out2$chain3[,58],ncomp.out3$chain3[,58],ncomp.out4$chain3[,58],ncomp.out5$chain3[,58],
-           ncomp.out6$chain3[,58],ncomp.out7$chain3[,58],ncomp.out8$chain3[,58],ncomp.out9$chain3[,58],ncomp.out10$chain3[,58])
+build <- c(ncomp.out1$chain1[,21],ncomp.out2$chain1[,21],ncomp.out3$chain1[,21],ncomp.out4$chain1[,21],ncomp.out5$chain1[,21],
+           ncomp.out6$chain1[,21],ncomp.out7$chain1[,21],ncomp.out8$chain1[,21],ncomp.out9$chain1[,21],ncomp.out10$chain1[,21],
+           ncomp.out1$chain2[,21],ncomp.out2$chain2[,21],ncomp.out3$chain2[,21],ncomp.out4$chain2[,21],ncomp.out5$chain2[,21],
+           ncomp.out6$chain2[,21],ncomp.out7$chain2[,21],ncomp.out8$chain2[,21],ncomp.out9$chain2[,21],ncomp.out10$chain2[,21],
+           ncomp.out1$chain3[,21],ncomp.out2$chain3[,21],ncomp.out3$chain3[,21],ncomp.out4$chain3[,21],ncomp.out5$chain3[,21],
+           ncomp.out6$chain3[,21],ncomp.out7$chain3[,21],ncomp.out8$chain3[,21],ncomp.out9$chain3[,21],ncomp.out10$chain3[,21])
 
 # Calculate HDI and quantiles
 hdi(build)
 quantile(build, probs=c(0.5,0.025,0.975))
 
-decid <- c(ncomp.out1$chain1[,59],ncomp.out2$chain1[,59],ncomp.out3$chain1[,59],ncomp.out4$chain1[,59],ncomp.out5$chain1[,59],
-           ncomp.out6$chain1[,59],ncomp.out7$chain1[,59],ncomp.out8$chain1[,59],ncomp.out9$chain1[,59],ncomp.out10$chain1[,59],
-           ncomp.out1$chain2[,59],ncomp.out2$chain2[,59],ncomp.out3$chain2[,59],ncomp.out4$chain2[,59],ncomp.out5$chain2[,59],
-           ncomp.out6$chain2[,59],ncomp.out7$chain2[,59],ncomp.out8$chain2[,59],ncomp.out9$chain2[,59],ncomp.out10$chain2[,59],
-           ncomp.out1$chain3[,59],ncomp.out2$chain3[,59],ncomp.out3$chain3[,59],ncomp.out4$chain3[,59],ncomp.out5$chain3[,59],
-           ncomp.out6$chain3[,59],ncomp.out7$chain3[,59],ncomp.out8$chain3[,59],ncomp.out9$chain3[,59],ncomp.out10$chain3[,59])
-
-# Calculate HDI and quantiles
-hdi(decid)
-quantile(decid, probs=c(0.5,0.025,0.975))
-
-evrgrn <- c(ncomp.out1$chain1[,60],ncomp.out2$chain1[,60],ncomp.out3$chain1[,60],ncomp.out4$chain1[,60],ncomp.out5$chain1[,60],
-            ncomp.out6$chain1[,60],ncomp.out7$chain1[,60],ncomp.out8$chain1[,60],ncomp.out9$chain1[,60],ncomp.out10$chain1[,60],
-            ncomp.out1$chain2[,60],ncomp.out2$chain2[,60],ncomp.out3$chain2[,60],ncomp.out4$chain2[,60],ncomp.out5$chain2[,60],
-            ncomp.out6$chain2[,60],ncomp.out7$chain2[,60],ncomp.out8$chain2[,60],ncomp.out9$chain2[,60],ncomp.out10$chain2[,60],
-            ncomp.out1$chain3[,60],ncomp.out2$chain3[,60],ncomp.out3$chain3[,60],ncomp.out4$chain3[,60],ncomp.out5$chain3[,60],
-            ncomp.out6$chain3[,60],ncomp.out7$chain3[,60],ncomp.out8$chain3[,60],ncomp.out9$chain3[,60],ncomp.out10$chain3[,60])
-
-# Calculate HDI and quantiles
-hdi(evrgrn)
-quantile(evrgrn, probs=c(0.5,0.025,0.975))
-
-mast <- c(ncomp.out1$chain1[,61],ncomp.out2$chain1[,61],ncomp.out3$chain1[,61],ncomp.out4$chain1[,61],ncomp.out5$chain1[,61],
-          ncomp.out6$chain1[,61],ncomp.out7$chain1[,61],ncomp.out8$chain1[,61],ncomp.out9$chain1[,61],ncomp.out10$chain1[,61],
-          ncomp.out1$chain2[,61],ncomp.out2$chain2[,61],ncomp.out3$chain2[,61],ncomp.out4$chain2[,61],ncomp.out5$chain2[,61],
-          ncomp.out6$chain2[,61],ncomp.out7$chain2[,61],ncomp.out8$chain2[,61],ncomp.out9$chain2[,61],ncomp.out10$chain2[,61],
-          ncomp.out1$chain3[,61],ncomp.out2$chain3[,61],ncomp.out3$chain3[,61],ncomp.out4$chain3[,61],ncomp.out5$chain3[,61],
-          ncomp.out6$chain3[,61],ncomp.out7$chain3[,61],ncomp.out8$chain3[,61],ncomp.out9$chain3[,61],ncomp.out10$chain3[,61])
+mast <- c(ncomp.out1$chain1[,22],ncomp.out2$chain1[,22],ncomp.out3$chain1[,22],ncomp.out4$chain1[,22],ncomp.out5$chain1[,22],
+          ncomp.out6$chain1[,22],ncomp.out7$chain1[,22],ncomp.out8$chain1[,22],ncomp.out9$chain1[,22],ncomp.out10$chain1[,22],
+          ncomp.out1$chain2[,22],ncomp.out2$chain2[,22],ncomp.out3$chain2[,22],ncomp.out4$chain2[,22],ncomp.out5$chain2[,22],
+          ncomp.out6$chain2[,22],ncomp.out7$chain2[,22],ncomp.out8$chain2[,22],ncomp.out9$chain2[,22],ncomp.out10$chain2[,22],
+          ncomp.out1$chain3[,22],ncomp.out2$chain3[,22],ncomp.out3$chain3[,22],ncomp.out4$chain3[,22],ncomp.out5$chain3[,22],
+          ncomp.out6$chain3[,22],ncomp.out7$chain3[,22],ncomp.out8$chain3[,22],ncomp.out9$chain3[,22],ncomp.out10$chain3[,22])
 
 # Calculate HDI and quantiles
 hdi(mast)
 quantile(mast, probs=c(0.5,0.025,0.975))
 
-sex1 <- c(ncomp.out1$chain1[,62],ncomp.out2$chain1[,62],ncomp.out3$chain1[,62],ncomp.out4$chain1[,62],ncomp.out5$chain1[,62],
-          ncomp.out6$chain1[,62],ncomp.out7$chain1[,62],ncomp.out8$chain1[,62],ncomp.out9$chain1[,62],ncomp.out10$chain1[,62],
-          ncomp.out1$chain2[,62],ncomp.out2$chain2[,62],ncomp.out3$chain2[,62],ncomp.out4$chain2[,62],ncomp.out5$chain2[,62],
-          ncomp.out6$chain2[,62],ncomp.out7$chain2[,62],ncomp.out8$chain2[,62],ncomp.out9$chain2[,62],ncomp.out10$chain2[,62],
-          ncomp.out1$chain3[,62],ncomp.out2$chain3[,62],ncomp.out3$chain3[,62],ncomp.out4$chain3[,62],ncomp.out5$chain3[,62],
-          ncomp.out6$chain3[,62],ncomp.out7$chain3[,62],ncomp.out8$chain3[,62],ncomp.out9$chain3[,62],ncomp.out10$chain3[,62])
+sex1 <- c(ncomp.out1$chain1[,23],ncomp.out2$chain1[,23],ncomp.out3$chain1[,23],ncomp.out4$chain1[,23],ncomp.out5$chain1[,23],
+          ncomp.out6$chain1[,23],ncomp.out7$chain1[,23],ncomp.out8$chain1[,23],ncomp.out9$chain1[,23],ncomp.out10$chain1[,23],
+          ncomp.out1$chain2[,23],ncomp.out2$chain2[,23],ncomp.out3$chain2[,23],ncomp.out4$chain2[,23],ncomp.out5$chain2[,23],
+          ncomp.out6$chain2[,23],ncomp.out7$chain2[,23],ncomp.out8$chain2[,23],ncomp.out9$chain2[,23],ncomp.out10$chain2[,23],
+          ncomp.out1$chain3[,23],ncomp.out2$chain3[,23],ncomp.out3$chain3[,23],ncomp.out4$chain3[,23],ncomp.out5$chain3[,23],
+          ncomp.out6$chain3[,23],ncomp.out7$chain3[,23],ncomp.out8$chain3[,23],ncomp.out9$chain3[,23],ncomp.out10$chain3[,23])
 
 # Calculate HDI and quantiles
 hdi(sex1)
 quantile(sex1, probs=c(0.5,0.025,0.975))
 
-sex2 <- c(ncomp.out1$chain1[,63],ncomp.out2$chain1[,63],ncomp.out3$chain1[,63],ncomp.out4$chain1[,63],ncomp.out5$chain1[,63],
-          ncomp.out6$chain1[,63],ncomp.out7$chain1[,63],ncomp.out8$chain1[,63],ncomp.out9$chain1[,63],ncomp.out10$chain1[,63],
-          ncomp.out1$chain2[,63],ncomp.out2$chain2[,63],ncomp.out3$chain2[,63],ncomp.out4$chain2[,63],ncomp.out5$chain2[,63],
-          ncomp.out6$chain2[,63],ncomp.out7$chain2[,63],ncomp.out8$chain2[,63],ncomp.out9$chain2[,63],ncomp.out10$chain2[,63],
-          ncomp.out1$chain3[,63],ncomp.out2$chain3[,63],ncomp.out3$chain3[,63],ncomp.out4$chain3[,63],ncomp.out5$chain3[,63],
-          ncomp.out6$chain3[,63],ncomp.out7$chain3[,63],ncomp.out8$chain3[,63],ncomp.out9$chain3[,63],ncomp.out10$chain3[,63])
+sex2 <- c(ncomp.out1$chain1[,24],ncomp.out2$chain1[,24],ncomp.out3$chain1[,24],ncomp.out4$chain1[,24],ncomp.out5$chain1[,24],
+          ncomp.out6$chain1[,24],ncomp.out7$chain1[,24],ncomp.out8$chain1[,24],ncomp.out9$chain1[,24],ncomp.out10$chain1[,24],
+          ncomp.out1$chain2[,24],ncomp.out2$chain2[,24],ncomp.out3$chain2[,24],ncomp.out4$chain2[,24],ncomp.out5$chain2[,24],
+          ncomp.out6$chain2[,24],ncomp.out7$chain2[,24],ncomp.out8$chain2[,24],ncomp.out9$chain2[,24],ncomp.out10$chain2[,24],
+          ncomp.out1$chain3[,24],ncomp.out2$chain3[,24],ncomp.out3$chain3[,24],ncomp.out4$chain3[,24],ncomp.out5$chain3[,24],
+          ncomp.out6$chain3[,24],ncomp.out7$chain3[,24],ncomp.out8$chain3[,24],ncomp.out9$chain3[,24],ncomp.out10$chain3[,24])
 
 # Calculate HDI and quantiles
 hdi(sex2)
 quantile(sex2, probs=c(0.5,0.025,0.975))
 
-standmn <- c(ncomp.out1$chain1[,64],ncomp.out2$chain1[,64],ncomp.out3$chain1[,64],ncomp.out4$chain1[,64],ncomp.out5$chain1[,64],
-             ncomp.out6$chain1[,64],ncomp.out7$chain1[,64],ncomp.out8$chain1[,64],ncomp.out9$chain1[,64],ncomp.out10$chain1[,64],
-             ncomp.out1$chain2[,64],ncomp.out2$chain2[,64],ncomp.out3$chain2[,64],ncomp.out4$chain2[,64],ncomp.out5$chain2[,64],
-             ncomp.out6$chain2[,64],ncomp.out7$chain2[,64],ncomp.out8$chain2[,64],ncomp.out9$chain2[,64],ncomp.out10$chain2[,64],
-             ncomp.out1$chain3[,64],ncomp.out2$chain3[,64],ncomp.out3$chain3[,64],ncomp.out4$chain3[,64],ncomp.out5$chain3[,64],
-             ncomp.out6$chain3[,64],ncomp.out7$chain3[,64],ncomp.out8$chain3[,64],ncomp.out9$chain3[,64],ncomp.out10$chain3[,64])
 
-# Calculate HDI and quantiles
-hdi(standmn)
-quantile(standmn, probs=c(0.5,0.025,0.975))
 
-standsd <- c(ncomp.out1$chain1[,65],ncomp.out2$chain1[,65],ncomp.out3$chain1[,65],ncomp.out4$chain1[,65],ncomp.out5$chain1[,65],
-             ncomp.out6$chain1[,65],ncomp.out7$chain1[,65],ncomp.out8$chain1[,65],ncomp.out9$chain1[,65],ncomp.out10$chain1[,65],
-             ncomp.out1$chain2[,65],ncomp.out2$chain2[,65],ncomp.out3$chain2[,65],ncomp.out4$chain2[,65],ncomp.out5$chain2[,65],
-             ncomp.out6$chain2[,65],ncomp.out7$chain2[,65],ncomp.out8$chain2[,65],ncomp.out9$chain2[,65],ncomp.out10$chain2[,65],
-             ncomp.out1$chain3[,65],ncomp.out2$chain3[,65],ncomp.out3$chain3[,65],ncomp.out4$chain3[,65],ncomp.out5$chain3[,65],
-             ncomp.out6$chain3[,65],ncomp.out7$chain3[,65],ncomp.out8$chain3[,65],ncomp.out9$chain3[,65],ncomp.out10$chain3[,65])
+#### 
 
-# Calculate HDI and quantiles
-hdi(standsd)
-quantile(standsd, probs=c(0.5,0.025,0.975))
+
+
