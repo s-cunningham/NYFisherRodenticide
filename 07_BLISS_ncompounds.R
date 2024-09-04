@@ -32,11 +32,10 @@ scale_covars[1:nrow(dat),1:3,1] <- as.matrix(dat[1:nrow(dat),28:30]) # number of
 # prep fof nimble model
 vsConstants <- list(N=nrow(dat),
                     sex=dat$Sex,
-                    mast=(dat$mast_year+1),
+                    mast=(dat$mast_year),
                     nsamples=length(unique(dat$RegionalID)), 
-                    numVars=numScaleVars + nonScaleVars, 
+                    numVars=numScaleVars + nonScaleVars,
                     numScaleVars=numScaleVars,
-                    # nonScaleVars=nonScaleVars,
                     sampleID=ids) # Random intercepts
 
 vsDataBundle <- list(ncomp=ncomp, # response
@@ -48,7 +47,7 @@ vsDataBundle <- list(ncomp=ncomp, # response
 vsInits <- list( sigma.eta=1, mu.eta=1, nu=1.5, 
                  beta=rnorm(vsConstants$numVars), 
                  x_scale=rep(1, numScaleVars),
-                 beta_age=rnorm(1), beta_age2=rnorm(1), beta_sex=rnorm(2), #beta_mast=rnorm(2),
+                 beta_age=rnorm(1), beta_age2=rnorm(1), beta_sex=rnorm(2), beta_mast=rnorm(2),
                  z=sample(0:1,(vsConstants$numVars), 0.5), cat_prob=rep(1/3,3)) 
 
 ## Nimble-ize Conway-Maxwell Poisson functions
@@ -133,20 +132,20 @@ cIndicatorModel <- compileNimble(vsModel)
 CMCMCIndicatorRJ <- compileNimble(mcmcIndicatorRJ, project = vsModel)
 
 set.seed(1)
-system.time(samplesIndicator <- runMCMC(CMCMCIndicatorRJ, thin=1, niter=100000, nburnin=50000))
+system.time(samplesIndicator <- runMCMC(CMCMCIndicatorRJ, thin=1, niter=50000, nburnin=20000))
 
 saveRDS(samplesIndicator, file = "results/ncomp_indicators.rds")
 # samplesIndicator <- readRDS("results/ncomp_indicators.rds")
 
 ## Looking at results
 par(mfrow = c(2, 1))
-plot(samplesIndicator[,'beta'], pch = 16, cex = 0.4, main = "beta traceplot")
-plot(samplesIndicator[,'z'], pch = 16, cex = 0.4, main = "z traceplot")
+plot(samplesIndicator[,'beta'], type="l", cex = 0.4, main = "beta traceplot")
+plot(samplesIndicator[,'z'], type="l", cex = 0.4, main = "z traceplot")
 
 # Individual inclusion probabilities
 par(mfrow = c(1, 1))
 zCols <- grep("z", colnames(samplesIndicator))
-posterior_inclusion_prob <- mean(samplesIndicator[,12])
+posterior_inclusion_prob <- mean(samplesIndicator[,13])
 plot(1, posterior_inclusion_prob, ylim=c(0,1),
      xlab = "beta", ylab = "inclusion probability",
      main = "Inclusion probabilities for each beta")

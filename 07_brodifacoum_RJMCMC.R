@@ -22,7 +22,7 @@ numScaleVars <- 5
 nScales <- 3
 nonScaleVars <- 1
 brod <- dat$bin.exp
-wmu <- as.numeric(factor(dat$WMU, labels=1:55))
+wmua <- as.numeric(factor(dat$WMUA_code, labels=1:18))
 ids <- as.numeric(factor(dat$RegionalID, labels=1:length(unique(dat$RegionalID))))
 
 # create array for covariate data (slice for each covariate)
