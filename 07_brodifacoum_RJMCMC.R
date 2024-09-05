@@ -144,6 +144,7 @@ posterior_inclusion_prob <- colMeans(samplesIndicator[, zCols])
 plot(1:6, posterior_inclusion_prob, ylim=c(0,1),
      xlab = "beta", ylab = "inclusion probability",
      main = "Inclusion probabilities for each beta")
+abline(h=0.5)
 
 ## Plot scale probabilities
 sCols <- grep("x_scale\\[", colnames(samplesIndicator))
