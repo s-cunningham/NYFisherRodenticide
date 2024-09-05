@@ -8,9 +8,9 @@ dat <- read_csv("output/summarized_AR_results.csv")
 trace_y <- read_csv("output/ncompounds_trace.csv") %>% 
   select(RegionalID, n.compounds) %>%
   rename(n.compounds.T=n.compounds)
-trace_n <- read_csv("output/ncompounds_notrace.csv") %>% 
-  select(RegionalID, n.compounds) %>%
-  rename(n.compounds.MO=n.compounds)
+# trace_n <- read_csv("output/ncompounds_notrace.csv") %>% 
+#   select(RegionalID, n.compounds) %>%
+#   rename(n.compounds.MO=n.compounds)
 nlcd <- read_csv("data/analysis-ready/nlcd_pct.csv")
 bmi <- read_csv("data/analysis-ready/baa_sum.csv")
 baa <- read_csv("data/analysis-ready/baa_sum_single_raster.csv")

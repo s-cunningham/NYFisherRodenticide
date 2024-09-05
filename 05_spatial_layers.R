@@ -278,7 +278,7 @@ stnd_stdev <- bind_rows(stnd_stdev15, stnd_stdev30, stnd_stdev45)
 write_csv(stnd_stdev, "data/analysis-ready/stand-age_stdev.csv")
 
 #### Existing vegetation cover
-evt <- rast("data/rasters/LANDFIRE/ny_lf2020_evt_220.tif")
+evt <- rast("data/rasters/LANDFIRE/ny10kmbuff_lf2020_evt_220.tif")
 evt <- as.factor(evt)
 
 evt_count15 <- exact_extract(evt, buff15, function(df) {
@@ -302,7 +302,22 @@ evt_count45 <- exact_extract(evt, buff45, function(df) {
     summarize(freq = sum(frac_total))
 }, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
 
+evt_count15 <- evt_count15 %>% filter(freq>0.03) %>% filter(!is.na(value))
 
+evt_tab <- read_csv("output/EVT_LF220_table.csv")
+
+un.val <- unique(evt_count15$value)
+for (i in 1:length(un.val)) {
+  
+  lev <- evt_count15 %>% filter(value==un.val[i])
+  
+  p <- ggplot(lev) +
+    coord_cartesian(xlim=c(0,1)) +
+    geom_density(aes(x=freq), fill="gray70") +
+    ggtitle(unique(lev$value)) +
+    theme_bw()
+  print(p)
+}
 
 
 #### Landscape metrics for forest cover ####
