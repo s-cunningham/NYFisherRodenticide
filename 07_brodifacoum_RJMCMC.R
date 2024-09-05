@@ -127,7 +127,7 @@ cIndicatorModel <- compileNimble(vsModel)
 CMCMCIndicatorRJ <- compileNimble(mcmcIndicatorRJ, project = vsModel)
 
 set.seed(1)
-system.time(samplesIndicator <- runMCMC(CMCMCIndicatorRJ, niter=100000, nburnin=50000))
+system.time(samplesIndicator <- runMCMC(CMCMCIndicatorRJ, niter=50000, nburnin=25000))
 
 saveRDS(samplesIndicator, file = "results/brodifacoum_indicators.rds")
 # samplesIndicator <- readRDS("results/brodifacoum_indicators.rds")

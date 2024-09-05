@@ -106,10 +106,10 @@ buff45 <- st_buffer(samples, 3784.6988)
 # buff45 <- st_buffer(samples, 4370.194)
 
 # Plot and example to see what 
-# ggplot() + 
+# ggplot() +
 #   geom_sf(data=twmu, aes(color=key, fill=key)) +
 #   geom_sf(data=samples, shape=20, color="blue", size=3) +
-#   geom_sf(data=buff10, fill=NA, color="blue") +
+#   geom_sf(data=buff15, fill=NA, color="blue") +
 #   geom_sf(data=buff45, fill=NA, color="green") +
 #   # coord_sf(xlim=c(1583308.486, 1625741.123), ylim=c(861590.893, 888677.666)) +
 #   coord_sf(xlim=c(1668479, 1719120), ylim=c(819906, 894757)) +
@@ -276,6 +276,31 @@ stnd_stdev45 <- data.frame(name=buff45$name, stand_age_sd=stnd_stdev45, buffsize
 
 stnd_stdev <- bind_rows(stnd_stdev15, stnd_stdev30, stnd_stdev45)
 write_csv(stnd_stdev, "data/analysis-ready/stand-age_stdev.csv")
+
+#### Existing vegetation cover
+evt <- rast("data/rasters/LANDFIRE/ny_lf2020_evt_220.tif")
+evt <- as.factor(evt)
+
+evt_count15 <- exact_extract(evt, buff15, function(df) {
+  df %>%
+    mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
+    group_by(name, value) %>%
+    summarize(freq = sum(frac_total))
+}, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
+
+evt_count30 <- exact_extract(evt, buff30, function(df) {
+  df %>%
+    mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
+    group_by(name, value) %>%
+    summarize(freq = sum(frac_total))
+}, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
+
+evt_count45 <- exact_extract(evt, buff45, function(df) {
+  df %>%
+    mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
+    group_by(name, value) %>%
+    summarize(freq = sum(frac_total))
+}, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
 
 
 

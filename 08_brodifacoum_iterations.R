@@ -47,7 +47,7 @@ brodifacoum_code <- nimbleCode({
   ## Likelihood
   for (i in 1:N) {
     
-    logit(p[i]) <- alpha[WMU[i]] + beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + 
+    logit(p[i]) <- alpha[WMUA[i]] + beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + 
                         beta_mast*covars[i,1] + beta_decid*covars[i,2] + beta_evrgrn*covars[i,3] +
                         beta_build*covars[i,4] + beta_standm*covars[i,5] + beta_standsd*covars[i,6]
     
@@ -68,7 +68,7 @@ nb <- 35000
 nc <- 3
 
 set.seed(1)
-Inits <- list(sigma.alpha=1, mu.alpha=1,
+Inits <- list(sigma.alpha=1, mu.alpha=1, alpha=rnorm(18),
                beta_mast=rnorm(1), beta_decid=rnorm(1), beta_evrgrn=rnorm(1), 
                beta_build=rnorm(1), beta_standm=rnorm(1), beta_standsd=rnorm(1), 
                beta_age=rnorm(1), beta_age2=rnorm(1), beta_sex=rnorm(2)) 
@@ -79,7 +79,7 @@ dat1 <- dat %>% filter(pt_index==1)
 
 ## Set up data
 brod1 <- dat1$bin.exp
-wmu1 <- as.numeric(factor(dat1$WMU, labels=1:55))
+wmua1 <- as.numeric(factor(dat1$WMUA_code, labels=1:18))
 
 # create array for covariate data (column for each covariate)
 covars1 <- matrix(NA, nrow=nrow(dat1),ncol=6)
@@ -93,8 +93,8 @@ covars1[1:nrow(dat1),6] <- dat1$stand_age_sd_45
 ## prep fof nimble model
 Constants1 <- list(N=nrow(dat1),
                   sex=dat1$Sex,
-                  WMU=wmu1, # random intercept
-                  nWMU=length(unique(dat1$WMU)))
+                  WMU=wmua1, # random intercept
+                  nWMUA=length(unique(dat1$WMUA)))
 
 DataBundle1 <- list(y=brod1, # response
                    covars=covars1, # covariates 
@@ -115,7 +115,7 @@ range(brod.sum1$Rhat)
 dat2 <- dat %>% filter(pt_index==2)
 
 brod2 <- dat2$bin.exp
-wmu2 <- as.numeric(factor(dat2$WMU, labels=1:55))
+wmua2 <- as.numeric(factor(dat2$WMUA_code, labels=1:18))
 
 # create array for covariate data (column for each covariate)
 covars2 <- matrix(NA, nrow=nrow(dat2),ncol=6)
@@ -129,8 +129,8 @@ covars2[1:nrow(dat2),6] <- dat2$stand_age_sd_45
 ## prep fof nimble model
 Constants2 <- list(N=nrow(dat2),
                    sex=dat2$Sex,
-                   WMU=wmu2, # random intercept
-                   nWMU=length(unique(dat2$WMU)))
+                   WMUA=wmua2, # random intercept
+                   nWMUA=length(unique(dat2$WMUA)))
 
 DataBundle2 <- list(y=brod2, # response
                     covars=covars2, # covariates 
@@ -151,7 +151,7 @@ range(brod.sum2$Rhat)
 dat3 <- dat %>% filter(pt_index==3)
 
 brod3 <- dat3$bin.exp
-wmu3 <- as.numeric(factor(dat3$WMU, labels=1:55))
+wmua3 <- as.numeric(factor(dat3$WMUA_code, labels=1:18))
 
 # create array for covariate data (column for each covariate)
 covars3 <- matrix(NA, nrow=nrow(dat3),ncol=6)
@@ -165,8 +165,8 @@ covars3[1:nrow(dat3),6] <- dat3$stand_age_sd_45
 ## prep fof nimble model
 Constants3 <- list(N=nrow(dat3),
                    sex=dat3$Sex,
-                   WMU=wmu3, # random intercept
-                   nWMU=length(unique(dat3$WMU)))
+                   WMUA=wmua3, # random intercept
+                   nWMUA=length(unique(dat3$WMUA)))
 
 DataBundle3 <- list(y=brod3, # response
                     covars=covars3, # covariates 
@@ -187,7 +187,7 @@ range(brod.sum3$Rhat)
 dat4 <- dat %>% filter(pt_index==4)
 
 brod4 <- dat4$bin.exp
-wmu4 <- as.numeric(factor(dat4$WMU, labels=1:55))
+wmua4 <- as.numeric(factor(dat4$WMUA_code, labels=1:18))
 
 # create array for covariate data (column for each covariate)
 covars4 <- matrix(NA, nrow=nrow(dat4),ncol=6)
@@ -201,8 +201,8 @@ covars4[1:nrow(dat4),6] <- dat4$stand_age_sd_45
 ## prep fof nimble model
 Constants4 <- list(N=nrow(dat4),
                    sex=dat4$Sex,
-                   WMU=wmu4, # random intercept
-                   nWMU=length(unique(dat4$WMU)))
+                   WMUA=wmua4, # random intercept
+                   nWMUA=length(unique(dat4$WMUA)))
 
 DataBundle4 <- list(y=brod4, # response
                     covars=covars4, # covariates 
@@ -236,8 +236,8 @@ covars5[1:nrow(dat5),6] <- dat5$stand_age_sd_45
 ## prep fof nimble model
 Constants5 <- list(N=nrow(dat5),
                    sex=dat5$Sex,
-                   WMU=as.numeric(factor(dat5$WMU, labels=1:55)), # random intercept
-                   nWMU=length(unique(dat5$WMU)))
+                   WMUA=as.numeric(factor(dat5$WMUA_code, labels=1:18)), # random intercept
+                   nWMUA=length(unique(dat5$WMUA)))
 
 DataBundle5 <- list(y=brod5, # response
                     covars=covars5, # covariates 
@@ -271,8 +271,8 @@ covars6[1:nrow(dat6),6] <- dat6$stand_age_sd_45
 ## prep fof nimble model
 Constants6 <- list(N=nrow(dat6),
                    sex=dat6$Sex,
-                   WMU=as.numeric(factor(dat6$WMU, labels=1:55)), # random intercept
-                   nWMU=length(unique(dat6$WMU)))
+                   WMUA=as.numeric(factor(dat6$WMUA_code, labels=1:18)), # random intercept
+                   nWMUA=length(unique(dat6$WMUA)))
 
 DataBundle6 <- list(y=brod6, # response
                     covars=covars6, # covariates 
@@ -306,8 +306,8 @@ covars7[1:nrow(dat7),6] <- dat7$stand_age_sd_45
 ## prep fof nimble model
 Constants7 <- list(N=nrow(dat7),
                    sex=dat7$Sex,
-                   WMU=as.numeric(factor(dat7$WMU, labels=1:55)), # random intercept
-                   nWMU=length(unique(dat7$WMU)))
+                   WMUA=as.numeric(factor(dat7$WMUA_code, labels=1:18)), # random intercept
+                   nWMUA=length(unique(dat7$WMUA)))
 
 DataBundle7 <- list(y=brod7, # response
                     covars=covars7, # covariates 
@@ -342,8 +342,8 @@ covars8[1:nrow(dat8),6] <- dat8$stand_age_sd_45
 ## prep fof nimble model
 Constants8 <- list(N=nrow(dat8),
                    sex=dat8$Sex,
-                   WMU=as.numeric(factor(dat8$WMU, labels=1:55)), # random intercept
-                   nWMU=length(unique(dat8$WMU)))
+                   WMUA=as.numeric(factor(dat8$WMUA_code, labels=1:18)), # random intercept
+                   nWMUA=length(unique(dat8$WMUA)))
 
 DataBundle8 <- list(y=brod8, # response
                     covars=covars8, # covariates 
@@ -377,8 +377,8 @@ covars9[1:nrow(dat9),6] <- dat9$stand_age_sd_45
 ## prep fof nimble model
 Constants9 <- list(N=nrow(dat9),
                    sex=dat9$Sex,
-                   WMU=as.numeric(factor(dat9$WMU, labels=1:55)), # random intercept
-                   nWMU=length(unique(dat9$WMU)))
+                   WMUA=as.numeric(factor(dat9$WMUA_code, labels=1:18)), # random intercept
+                   nWMUA=length(unique(dat9$WMU)))
 
 DataBundle9 <- list(y=brod9, # response
                     covars=covars9, # covariates 
@@ -412,8 +412,8 @@ covars10[1:nrow(dat10),6] <- dat10$stand_age_sd_45
 ## prep fof nimble model
 Constants10 <- list(N=nrow(dat10),
                    sex=dat10$Sex,
-                   WMU=as.numeric(factor(dat10$WMU, labels=1:55)), # random intercept
-                   nWMU=length(unique(dat10$WMU)))
+                   WMUA=as.numeric(factor(dat10$WMUA_code, labels=1:18)), # random intercept
+                   nWMUA=length(unique(dat10$WMUA)))
 
 DataBundle10 <- list(y=brod10, # response
                     covars=covars10, # covariates 
@@ -429,6 +429,40 @@ brod.out10 <- nimbleMCMC(code=brodifacoum_code, constants=Constants10, data=Data
 brod.sum10 <- MCMCsummary(brod.out10)
 brod.sum10 <- rownames_to_column(brod.sum10, "parameter")
 range(brod.sum10$Rhat)
+
+
+## Save model results
+saveRDS(brod.sum1, "output/model_output/brod.sum1.rds")
+saveRDS(brod.out1, "output/model_output/brod.out1.rds")
+
+saveRDS(brod.sum2, "output/model_output/brod.sum2.rds")
+saveRDS(brod.out2, "output/model_output/brod.out2.rds")
+
+saveRDS(brod.sum3, "output/model_output/brod.sum3.rds")
+saveRDS(brod.out3, "output/model_output/brod.out3.rds")
+
+saveRDS(brod.sum4, "output/model_output/brod.sum4.rds")
+saveRDS(brod.out4, "output/model_output/brod.out4.rds")
+
+saveRDS(brod.sum5, "output/model_output/brod.sum5.rds")
+saveRDS(brod.out5, "output/model_output/brod.out5.rds")
+
+saveRDS(brod.sum6, "output/model_output/brod.sum6.rds")
+saveRDS(brod.out6, "output/model_output/brod.out6.rds")
+
+saveRDS(brod.sum7, "output/model_output/brod.sum7.rds")
+saveRDS(brod.out7, "output/model_output/brod.out7.rds")
+
+saveRDS(brod.sum8, "output/model_output/brod.sum8.rds")
+saveRDS(brod.out8, "output/model_output/brod.out8.rds")
+
+saveRDS(brod.sum9, "output/model_output/brod.sum9.rds")
+saveRDS(brod.out9, "output/model_output/brod.out9.rds")
+
+saveRDS(brod.sum10, "output/model_output/brod.sum10.rds")
+saveRDS(brod.out10, "output/model_output/brod.out10.rds")
+
+
 
 
 # Combine samples

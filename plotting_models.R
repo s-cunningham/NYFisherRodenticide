@@ -9,6 +9,9 @@ dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") %>%
   mutate(mast_year=if_else(year==2019, 1, 2), # mast years are reference
          Sex=if_else(Sex=='F',1,2)) # Females are reference
 
+beech <- dat %>% select(lag_beechnuts, ncomp)
+structures <- dat %>% select(nbuildings_15, ncomp)
+
 # Scale variables
 dat$Age <- scale(dat$Age)
 dat$nbuildings_15 <- scale(dat$nbuildings_15)
@@ -116,8 +119,8 @@ mean_mast <- mean(dat$lag_beechnuts)
 age.ncompM <- matrix(, nmcmc, pred_length)
 age.ncompF <- matrix(, nmcmc, pred_length)
 for (j in 1:pred_length) {
-  age.ncompF[,j] <- (exp(alpha + beta_sex1*1 + beta_sex2*0 + beta_age*age_pred[j] + beta_age2*(age_pred2[j]) + beta_build*mean_build + beta_mast*mean_mast)^(1/nu)) + (1/(2*nu)) - (0.5)# males
-  age.ncompM[,j] <- (exp(alpha + beta_sex1*0 + beta_sex2*1 + beta_age*age_pred[j] + beta_age2*(age_pred2[j]) + beta_build*mean_build + beta_mast*mean_mast)^(1/nu)) + (1/(2*nu)) - (0.5) # females
+  age.ncompF[,j] <- (exp(alpha + beta_sex1*1 + beta_sex2*0 + beta_age*age_pred[j] + beta_age2*(age_pred2[j]) + beta_build*mean_build + beta_mast*mean_mast)) #^(1/nu)) + (1/(2*nu)) #- (0.5)# males
+  age.ncompM[,j] <- (exp(alpha + beta_sex1*0 + beta_sex2*1 + beta_age*age_pred[j] + beta_age2*(age_pred2[j]) + beta_build*mean_build + beta_mast*mean_mast)) #^(1/nu)) + (1/(2*nu)) #- (0.5) # females
 }
 
 # Calculate quantiles
@@ -132,8 +135,16 @@ age_pred <- age_pred * attr(dat$Age, 'scaled:scale') + attr(dat$Age, 'scaled:cen
 age.qt <- age.qt %>% mutate(Age=rep(age_pred, 2))
 
 ggplot(age.qt) +
+  coord_cartesian(ylim=c(0, 6)) +
+  geom_hline(yintercept=0) +
   geom_ribbon(aes(x=Age, ymin=lci, ymax=uci, color=Sex, fill=Sex), alpha=.4) +
-  geom_line(aes(x=Age, y=median, color=Sex))
+  geom_line(aes(x=Age, y=median, color=Sex), linewidth=1) +
+  scale_color_manual(values=c("#1b7837", "#762a83"), name="Sex") +
+  scale_fill_manual(values=c("#1b7837", "#762a83"), name="Sex") +
+  theme(panel.border=element_rect(fill=NA, color="black"), 
+        legend.position = c(1,1),
+        legend.justification=c(1,1), 
+        legend.background = element_rect(fill=NA))
 
 
 ## Predicting number of compounds by beechnut count (and sex)
@@ -150,8 +161,8 @@ mean_age2 <- mean_age^2
 mast.ncompM <- matrix(, nmcmc, pred_length)
 mast.ncompF <- matrix(, nmcmc, pred_length)
 for (j in 1:pred_length) {
-  mast.ncompF[,j] <- (exp(alpha + beta_sex1*1 + beta_sex2*0 + beta_age*mean_age + beta_age2*mean_age2 + beta_build*mean_build + beta_mast*mast_pred[j])^(1/nu)) + (1/(2*nu)) - (0.5) # males
-  mast.ncompM[,j] <- (exp(alpha + beta_sex1*0 + beta_sex2*1 + beta_age*mean_age + beta_age2*mean_age2 + beta_build*mean_build + beta_mast*mast_pred[j])^(1/nu)) + (1/(2*nu)) - (0.5) # females
+  mast.ncompF[,j] <- (exp(alpha + beta_sex1*1 + beta_sex2*0 + beta_age*mean_age + beta_age2*mean_age2 + beta_build*mean_build + beta_mast*mast_pred[j])) #^(1/nu)) + (1/(2*nu)) - (0.5) # males
+  mast.ncompM[,j] <- (exp(alpha + beta_sex1*0 + beta_sex2*1 + beta_age*mean_age + beta_age2*mean_age2 + beta_build*mean_build + beta_mast*mast_pred[j])) #^(1/nu)) + (1/(2*nu)) - (0.5) # females
 }
 
 # Calculate quantiles
@@ -166,8 +177,13 @@ mast_pred <- mast_pred * attr(dat$lag_beechnuts, 'scaled:scale') + attr(dat$lag_
 mast.qt <- mast.qt %>% mutate(Beechnuts=rep(mast_pred, 2))
 
 ggplot(mast.qt) +
+  coord_cartesian(ylim=c(0,6)) +
   geom_ribbon(aes(x=Beechnuts, ymin=lci, ymax=uci, color=Sex, fill=Sex), alpha=.4) +
-  geom_line(aes(x=Beechnuts, y=median, color=Sex))
+  geom_line(aes(x=Beechnuts, y=median, color=Sex), linewidth=1) +
+  scale_color_manual(values=c("#1b7837", "#762a83"), name="Sex") +
+  scale_fill_manual(values=c("#1b7837", "#762a83"), name="Sex") +
+  theme(panel.border=element_rect(fill=NA, color="black"), 
+        legend.position = "none") 
 
 
 

@@ -49,7 +49,7 @@ diphacinone_code <- nimbleCode({
   ## Likelihood
   for (i in 1:N) {
     
-    logit(p[i]) <- alpha[WMU[i]] + beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + 
+    logit(p[i]) <- alpha[WMUA[i]] + beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + 
       beta_mast[mast[i]] + beta_decid*covars[i,1] + beta_evrgrn*covars[i,2] +
       beta_build*covars[i,3] + beta_standm*covars[i,4] + beta_standsd*covars[i,5]
     
@@ -70,7 +70,7 @@ nb <- 75000
 nc <- 3
 
 set.seed(1)
-Inits <- list(sigma.alpha=1, mu.alpha=1,
+Inits <- list(sigma.alpha=1, mu.alpha=1, alpha=rnorm(18),
               beta_mast=rnorm(2), beta_decid=rnorm(1), beta_evrgrn=rnorm(1), 
               beta_build=rnorm(1), beta_standm=rnorm(1), beta_standsd=rnorm(1), 
               beta_age=rnorm(1), beta_age2=rnorm(1), beta_sex=rnorm(2)) 
@@ -81,7 +81,7 @@ dat1 <- dat %>% filter(pt_index==1)
 
 ## Set up data
 diph1 <- dat1$bin.exp
-wmu1 <- as.numeric(factor(dat1$WMU, labels=1:55))
+wmua1 <- as.numeric(factor(dat1$WMUA_code, labels=1:18))
 
 # create array for covariate data (column for each covariate)
 covars1 <- matrix(NA, nrow=nrow(dat1),ncol=6)
@@ -95,8 +95,8 @@ covars1[1:nrow(dat1),5] <- dat1$stand_age_sd_45
 Constants1 <- list(N=nrow(dat1),
                    sex=dat1$Sex,
                    mast=dat1$mast_year,
-                   WMU=wmu1, # random intercept
-                   nWMU=length(unique(dat1$WMU)))
+                   WMUA=wmua1, # random intercept
+                   nWMUA=length(unique(dat1$WMUA_code)))
 
 DataBundle1 <- list(y=diph1, # response
                     covars=covars1, # covariates 
@@ -117,7 +117,7 @@ range(diph.sum1$Rhat)
 dat2 <- dat %>% filter(pt_index==2)
 
 diph2 <- dat2$bin.exp
-wmu2 <- as.numeric(factor(dat2$WMU, labels=1:55))
+wmua2 <- as.numeric(factor(dat2$WMUA_code, labels=1:18))
 
 # create array for covariate data (column for each covariate)
 covars2 <- matrix(NA, nrow=nrow(dat2),ncol=6)
@@ -131,8 +131,8 @@ covars2[1:nrow(dat2),5] <- dat2$stand_age_sd_45
 Constants2 <- list(N=nrow(dat2),
                    sex=dat2$Sex,
                    mast=dat2$mast_year,
-                   WMU=wmu2, # random intercept
-                   nWMU=length(unique(dat2$WMU)))
+                   WMUA=wmua2, # random intercept
+                   nWMUA=length(unique(dat2$WMUA_code)))
 
 DataBundle2 <- list(y=diph2, # response
                     covars=covars2, # covariates 
@@ -153,7 +153,7 @@ range(diph.sum2$Rhat)
 dat3 <- dat %>% filter(pt_index==3)
 
 diph3 <- dat3$bin.exp
-wmu3 <- as.numeric(factor(dat3$WMU, labels=1:55))
+wmua3 <- as.numeric(factor(dat3$WMUA_code, labels=1:18))
 
 # create array for covariate data (column for each covariate)
 covars3 <- matrix(NA, nrow=nrow(dat3),ncol=6)
@@ -167,8 +167,8 @@ covars3[1:nrow(dat3),5] <- dat3$stand_age_sd_45
 Constants3 <- list(N=nrow(dat3),
                    sex=dat3$Sex,
                    mast=dat3$mast_year,
-                   WMU=wmu3, # random intercept
-                   nWMU=length(unique(dat3$WMU)))
+                   WMUA=wmua3, # random intercept
+                   nWMUA=length(unique(dat3$WMUA_code)))
 
 DataBundle3 <- list(y=diph3, # response
                     covars=covars3, # covariates 
@@ -189,7 +189,7 @@ range(diph.sum3$Rhat)
 dat4 <- dat %>% filter(pt_index==4)
 
 diph4 <- dat4$bin.exp
-wmu4 <- as.numeric(factor(dat4$WMU, labels=1:55))
+wmua4 <- as.numeric(factor(dat1$WMUA_code, labels=1:18))
 
 # create array for covariate data (column for each covariate)
 covars4 <- matrix(NA, nrow=nrow(dat4),ncol=6)
@@ -203,8 +203,8 @@ covars4[1:nrow(dat4),5] <- dat4$stand_age_sd_45
 Constants4 <- list(N=nrow(dat4),
                    sex=dat4$Sex,
                    mast=dat4$mast_year,
-                   WMU=wmu4, # random intercept
-                   nWMU=length(unique(dat4$WMU)))
+                   WMUA=wmua4, # random intercept
+                   nWMUA=length(unique(dat4$WMUA_code)))
 
 DataBundle4 <- list(y=diph4, # response
                     covars=covars4, # covariates 
@@ -225,7 +225,7 @@ range(diph.sum4$Rhat)
 dat5 <- dat %>% filter(pt_index==5)
 
 diph5 <- dat5$bin.exp
-wmu5 <- as.numeric(factor(dat5$WMU, labels=1:55))
+wmua5 <- as.numeric(factor(dat1$WMUA_code, labels=1:18))
 
 # create array for covariate data (column for each covariate)
 covars5 <- matrix(NA, nrow=nrow(dat5),ncol=6)
@@ -239,8 +239,8 @@ covars5[1:nrow(dat5),5] <- dat5$stand_age_sd_45
 Constants5 <- list(N=nrow(dat5),
                    sex=dat5$Sex,
                    mast=dat5$mast_year,
-                   WMU=wmu5, # random intercept
-                   nWMU=length(unique(dat5$WMU)))
+                   WMUA=wmua5, # random intercept
+                   nWMUA=length(unique(dat5$WMUA_code)))
 
 DataBundle5 <- list(y=diph5, # response
                     covars=covars5, # covariates 
@@ -261,7 +261,7 @@ range(diph.sum5$Rhat)
 dat6<- dat %>% filter(pt_index==6)
 
 diph6 <- dat6$bin.exp
-wmu6 <- as.numeric(factor(dat6$WMU, labels=1:55))
+wmua6 <- as.numeric(factor(dat6$WMUA_code, labels=1:18))
 
 # create array for covariate data (column for each covariate)
 covars6 <- matrix(NA, nrow=nrow(dat6),ncol=6)
@@ -275,8 +275,8 @@ covars6[1:nrow(dat6),5] <- dat6$stand_age_sd_45
 Constants6 <- list(N=nrow(dat6),
                    sex=dat6$Sex,
                    mast=dat6$mast_year,
-                   WMU=wmu6, # random intercept
-                   nWMU=length(unique(dat6$WMU)))
+                   WMUA=wmu6, # random intercept
+                   nWMUA=length(unique(dat6$WMUA_code)))
 
 DataBundle6 <- list(y=diph6, # response
                     covars=covars6, # covariates 
@@ -297,7 +297,7 @@ range(diph.sum6$Rhat)
 dat7 <- dat %>% filter(pt_index==7)
 
 diph7 <- dat7$bin.exp
-wmu7 <- as.numeric(factor(dat7$WMU, labels=1:55))
+wmua7 <- as.numeric(factor(dat7$WMUA_code, labels=1:18))
 
 # create array for covariate data (column for each covariate)
 covars7 <- matrix(NA, nrow=nrow(dat7),ncol=6)
@@ -311,8 +311,8 @@ covars7[1:nrow(dat7),5] <- dat7$stand_age_sd_45
 Constants7 <- list(N=nrow(dat7),
                    sex=dat7$Sex,
                    mast=dat7$mast_year,
-                   WMU=wmu7, # random intercept
-                   nWMU=length(unique(dat7$WMU)))
+                   WMUA=wmua7, # random intercept
+                   nWMUA=length(unique(dat7$WMUA_code)))
 
 DataBundle7 <- list(y=diph7, # response
                     covars=covars7, # covariates 
@@ -334,7 +334,7 @@ range(diph.sum7$Rhat)
 dat8 <- dat %>% filter(pt_index==8)
 
 diph8 <- dat8$bin.exp
-wmu8 <- as.numeric(factor(dat8$WMU, labels=1:55))
+wmua8 <- as.numeric(factor(dat8$WMUA_code, labels=1:18))
 
 # create array for covariate data (column for each covariate)
 covars8 <- matrix(NA, nrow=nrow(dat8),ncol=6)
@@ -348,8 +348,8 @@ covars8[1:nrow(dat8),5] <- dat8$stand_age_sd_45
 Constants8 <- list(N=nrow(dat8),
                    sex=dat8$Sex,
                    mast=dat8$mast_year,
-                   WMU=wmu8, # random intercept
-                   nWMU=length(unique(dat8$WMU)))
+                   WMUA=wmua8, # random intercept
+                   nWMUA=length(unique(dat8$WMUA_code)))
 
 DataBundle8 <- list(y=diph8, # response
                     covars=covars8, # covariates 
@@ -370,7 +370,7 @@ range(diph.sum8$Rhat)
 dat9 <- dat %>% filter(pt_index==9)
 
 diph9 <- dat9$bin.exp
-wmu9 <- as.numeric(factor(dat9$WMU, labels=1:55))
+wmua9 <- as.numeric(factor(dat9$WMUA_code, labels=1:18))
 
 # create array for covariate data (column for each covariate)
 covars9 <- matrix(NA, nrow=nrow(dat9),ncol=6)
@@ -384,8 +384,8 @@ covars9[1:nrow(dat9),5] <- dat9$stand_age_sd_45
 Constants9 <- list(N=nrow(dat9),
                     sex=dat9$Sex,
                     mast=dat9$mast_year,
-                    WMU=wmu9, # random intercept
-                    nWMU=length(unique(dat9$WMU)))
+                    WMUA=wmua9, # random intercept
+                    nWMUA=length(unique(dat9$WMUA_code)))
 
 DataBundle9 <- list(y=diph9, # response
                     covars=covars9, # covariates 
@@ -406,7 +406,7 @@ range(diph.sum9$Rhat)
 dat10 <- dat %>% filter(pt_index==10)
 
 diph10 <- dat10$bin.exp
-wmu10 <- as.numeric(factor(dat10$WMU, labels=1:55))
+wmua10 <- as.numeric(factor(dat1$WMUA_code, labels=1:18))
 
 # create array for covariate data (column for each covariate)
 covars10 <- matrix(NA, nrow=nrow(dat10),ncol=6)
@@ -420,8 +420,8 @@ covars10[1:nrow(dat10),5] <- dat10$stand_age_sd_45
 Constants10 <- list(N=nrow(dat10),
                    sex=dat10$Sex,
                    mast=dat10$mast_year,
-                   WMU=wmu10, # random intercept
-                   nWMU=length(unique(dat10$WMU)))
+                   WMUA=wmua10, # random intercept
+                   nWMUA=length(unique(dat10$WMUA_code)))
 
 DataBundle10 <- list(y=diph10, # response
                      covars=covars10, # covariates 
@@ -439,127 +439,37 @@ diph.sum10 <- rownames_to_column(diph.sum10, "parameter")
 range(diph.sum10$Rhat)
 
 
-# Combine samples
-age <- c(diph.out1$chain1[,56],diph.out2$chain1[,56],diph.out3$chain1[,56],diph.out4$chain1[,56],diph.out5$chain1[,56],
-         diph.out6$chain1[,56],diph.out7$chain1[,56],diph.out8$chain1[,56],diph.out9$chain1[,56],diph.out10$chain1[,56],
-         diph.out1$chain2[,56],diph.out2$chain2[,56],diph.out3$chain2[,56],diph.out4$chain2[,56],diph.out5$chain2[,56],
-         diph.out6$chain2[,56],diph.out7$chain2[,56],diph.out8$chain2[,56],diph.out9$chain2[,56],diph.out10$chain2[,56],
-         diph.out1$chain3[,56],diph.out2$chain3[,56],diph.out3$chain3[,56],diph.out4$chain3[,56],diph.out5$chain3[,56],
-         diph.out6$chain3[,56],diph.out7$chain3[,56],diph.out8$chain3[,56],diph.out9$chain3[,56],diph.out10$chain3[,56])
 
-# Calculate HDI and quantiles
-hdi(age)
-quantile(age, probs=c(0.5,0.025,0.975))
+## Save model results
+saveRDS(diph.sum1, "output/model_output/diph.sum1.rds")
+saveRDS(diph.out1, "output/model_output/diph.out1.rds")
 
+saveRDS(diph.sum2, "output/model_output/diph.sum2.rds")
+saveRDS(diph.out2, "output/model_output/diph.out2.rds")
 
-age2 <- c(diph.out1$chain1[,57],diph.out2$chain1[,57],diph.out3$chain1[,57],diph.out4$chain1[,57],diph.out5$chain1[,57],
-          diph.out6$chain1[,57],diph.out7$chain1[,57],diph.out8$chain1[,57],diph.out9$chain1[,57],diph.out10$chain1[,57],
-          diph.out1$chain2[,57],diph.out2$chain2[,57],diph.out3$chain2[,57],diph.out4$chain2[,57],diph.out5$chain2[,57],
-          diph.out6$chain2[,57],diph.out7$chain2[,57],diph.out8$chain2[,57],diph.out9$chain2[,57],diph.out10$chain2[,57],
-          diph.out1$chain3[,57],diph.out2$chain3[,57],diph.out3$chain3[,57],diph.out4$chain3[,57],diph.out5$chain3[,57],
-          diph.out6$chain3[,57],diph.out7$chain3[,57],diph.out8$chain3[,57],diph.out9$chain3[,57],diph.out10$chain3[,57])
+saveRDS(diph.sum3, "output/model_output/diph.sum3.rds")
+saveRDS(diph.out3, "output/model_output/diph.out3.rds")
 
-# Calculate HDI and quantiles
-hdi(age2)
-quantile(age2, probs=c(0.5,0.025,0.975))
+saveRDS(diph.sum4, "output/model_output/diph.sum4.rds")
+saveRDS(diph.out4, "output/model_output/diph.out4.rds")
 
-build <- c(diph.out1$chain1[,58],diph.out2$chain1[,58],diph.out3$chain1[,58],diph.out4$chain1[,58],diph.out5$chain1[,58],
-           diph.out6$chain1[,58],diph.out7$chain1[,58],diph.out8$chain1[,58],diph.out9$chain1[,58],diph.out10$chain1[,58],
-           diph.out1$chain2[,58],diph.out2$chain2[,58],diph.out3$chain2[,58],diph.out4$chain2[,58],diph.out5$chain2[,58],
-           diph.out6$chain2[,58],diph.out7$chain2[,58],diph.out8$chain2[,58],diph.out9$chain2[,58],diph.out10$chain2[,58],
-           diph.out1$chain3[,58],diph.out2$chain3[,58],diph.out3$chain3[,58],diph.out4$chain3[,58],diph.out5$chain3[,58],
-           diph.out6$chain3[,58],diph.out7$chain3[,58],diph.out8$chain3[,58],diph.out9$chain3[,58],diph.out10$chain3[,58])
+saveRDS(diph.sum5, "output/model_output/diph.sum5.rds")
+saveRDS(diph.out5, "output/model_output/diph.out5.rds")
 
-# Calculate HDI and quantiles
-hdi(build)
-quantile(build, probs=c(0.5,0.025,0.975))
+saveRDS(diph.sum6, "output/model_output/diph.sum6.rds")
+saveRDS(diph.out6, "output/model_output/diph.out6.rds")
 
-decid <- c(diph.out1$chain1[,59],diph.out2$chain1[,59],diph.out3$chain1[,59],diph.out4$chain1[,59],diph.out5$chain1[,59],
-           diph.out6$chain1[,59],diph.out7$chain1[,59],diph.out8$chain1[,59],diph.out9$chain1[,59],diph.out10$chain1[,59],
-           diph.out1$chain2[,59],diph.out2$chain2[,59],diph.out3$chain2[,59],diph.out4$chain2[,59],diph.out5$chain2[,59],
-           diph.out6$chain2[,59],diph.out7$chain2[,59],diph.out8$chain2[,59],diph.out9$chain2[,59],diph.out10$chain2[,59],
-           diph.out1$chain3[,59],diph.out2$chain3[,59],diph.out3$chain3[,59],diph.out4$chain3[,59],diph.out5$chain3[,59],
-           diph.out6$chain3[,59],diph.out7$chain3[,59],diph.out8$chain3[,59],diph.out9$chain3[,59],diph.out10$chain3[,59])
+saveRDS(diph.sum7, "output/model_output/diph.sum7.rds")
+saveRDS(diph.out7, "output/model_output/diph.out7.rds")
 
-# Calculate HDI and quantiles
-hdi(decid)
-quantile(decid, probs=c(0.5,0.025,0.975))
+saveRDS(diph.sum8, "output/model_output/diph.sum8.rds")
+saveRDS(diph.out8, "output/model_output/diph.out8.rds")
 
-evrgrn <- c(diph.out1$chain1[,60],diph.out2$chain1[,60],diph.out3$chain1[,60],diph.out4$chain1[,60],diph.out5$chain1[,60],
-            diph.out6$chain1[,60],diph.out7$chain1[,60],diph.out8$chain1[,60],diph.out9$chain1[,60],diph.out10$chain1[,60],
-            diph.out1$chain2[,60],diph.out2$chain2[,60],diph.out3$chain2[,60],diph.out4$chain2[,60],diph.out5$chain2[,60],
-            diph.out6$chain2[,60],diph.out7$chain2[,60],diph.out8$chain2[,60],diph.out9$chain2[,60],diph.out10$chain2[,60],
-            diph.out1$chain3[,60],diph.out2$chain3[,60],diph.out3$chain3[,60],diph.out4$chain3[,60],diph.out5$chain3[,60],
-            diph.out6$chain3[,60],diph.out7$chain3[,60],diph.out8$chain3[,60],diph.out9$chain3[,60],diph.out10$chain3[,60])
+saveRDS(diph.sum9, "output/model_output/diph.sum9.rds")
+saveRDS(diph.out9, "output/model_output/diph.out9.rds")
 
-# Calculate HDI and quantiles
-hdi(evrgrn)
-quantile(evrgrn, probs=c(0.5,0.025,0.975))
-
-mast1 <- c(diph.out1$chain1[,61],diph.out2$chain1[,61],diph.out3$chain1[,61],diph.out4$chain1[,61],diph.out5$chain1[,61],
-          diph.out6$chain1[,61],diph.out7$chain1[,61],diph.out8$chain1[,61],diph.out9$chain1[,61],diph.out10$chain1[,61],
-          diph.out1$chain2[,61],diph.out2$chain2[,61],diph.out3$chain2[,61],diph.out4$chain2[,61],diph.out5$chain2[,61],
-          diph.out6$chain2[,61],diph.out7$chain2[,61],diph.out8$chain2[,61],diph.out9$chain2[,61],diph.out10$chain2[,61],
-          diph.out1$chain3[,61],diph.out2$chain3[,61],diph.out3$chain3[,61],diph.out4$chain3[,61],diph.out5$chain3[,61],
-          diph.out6$chain3[,61],diph.out7$chain3[,61],diph.out8$chain3[,61],diph.out9$chain3[,61],diph.out10$chain3[,61])
-
-# Calculate HDI and quantiles
-hdi(mast1)
-quantile(mast1, probs=c(0.5,0.025,0.975))
-
-mast2 <- c(diph.out1$chain1[,62],diph.out2$chain1[,62],diph.out3$chain1[,62],diph.out4$chain1[,62],diph.out5$chain1[,62],
-           diph.out6$chain1[,62],diph.out7$chain1[,62],diph.out8$chain1[,62],diph.out9$chain1[,62],diph.out10$chain1[,62],
-           diph.out1$chain2[,62],diph.out2$chain2[,62],diph.out3$chain2[,62],diph.out4$chain2[,62],diph.out5$chain2[,62],
-           diph.out6$chain2[,62],diph.out7$chain2[,62],diph.out8$chain2[,62],diph.out9$chain2[,62],diph.out10$chain2[,62],
-           diph.out1$chain3[,62],diph.out2$chain3[,62],diph.out3$chain3[,62],diph.out4$chain3[,62],diph.out5$chain3[,62],
-           diph.out6$chain3[,62],diph.out7$chain3[,62],diph.out8$chain3[,62],diph.out9$chain3[,62],diph.out10$chain3[,62])
-
-# Calculate HDI and quantiles
-hdi(mast2)
-quantile(mast2, probs=c(0.5,0.025,0.975))
+saveRDS(diph.sum10, "output/model_output/diph.sum10.rds")
+saveRDS(diph.out10, "output/model_output/diph.out10.rds")
 
 
-sex1 <- c(diph.out1$chain1[,63],diph.out2$chain1[,63],diph.out3$chain1[,63],diph.out4$chain1[,63],diph.out5$chain1[,63],
-          diph.out6$chain1[,63],diph.out7$chain1[,63],diph.out8$chain1[,63],diph.out9$chain1[,63],diph.out10$chain1[,63],
-          diph.out1$chain2[,63],diph.out2$chain2[,63],diph.out3$chain2[,63],diph.out4$chain2[,63],diph.out5$chain2[,63],
-          diph.out6$chain2[,63],diph.out7$chain2[,63],diph.out8$chain2[,63],diph.out9$chain2[,63],diph.out10$chain2[,63],
-          diph.out1$chain3[,63],diph.out2$chain3[,63],diph.out3$chain3[,63],diph.out4$chain3[,63],diph.out5$chain3[,63],
-          diph.out6$chain3[,63],diph.out7$chain3[,63],diph.out8$chain3[,63],diph.out9$chain3[,63],diph.out10$chain3[,63])
-
-# Calculate HDI and quantiles
-hdi(sex1)
-quantile(sex1, probs=c(0.5,0.025,0.975))
-
-sex2 <- c(diph.out1$chain1[,64],diph.out2$chain1[,64],diph.out3$chain1[,64],diph.out4$chain1[,64],diph.out5$chain1[,64],
-          diph.out6$chain1[,64],diph.out7$chain1[,64],diph.out8$chain1[,64],diph.out9$chain1[,64],diph.out10$chain1[,64],
-          diph.out1$chain2[,64],diph.out2$chain2[,64],diph.out3$chain2[,64],diph.out4$chain2[,64],diph.out5$chain2[,64],
-          diph.out6$chain2[,64],diph.out7$chain2[,64],diph.out8$chain2[,64],diph.out9$chain2[,64],diph.out10$chain2[,64],
-          diph.out1$chain3[,64],diph.out2$chain3[,64],diph.out3$chain3[,64],diph.out4$chain3[,64],diph.out5$chain3[,64],
-          diph.out6$chain3[,64],diph.out7$chain3[,64],diph.out8$chain3[,64],diph.out9$chain3[,64],diph.out10$chain3[,64])
-
-# Calculate HDI and quantiles
-hdi(sex2)
-quantile(sex2, probs=c(0.5,0.025,0.975))
-
-standmn <- c(diph.out1$chain1[,65],diph.out2$chain1[,65],diph.out3$chain1[,65],diph.out4$chain1[,65],diph.out5$chain1[,65],
-             diph.out6$chain1[,65],diph.out7$chain1[,65],diph.out8$chain1[,65],diph.out9$chain1[,65],diph.out10$chain1[,65],
-             diph.out1$chain2[,65],diph.out2$chain2[,65],diph.out3$chain2[,65],diph.out4$chain2[,65],diph.out5$chain2[,65],
-             diph.out6$chain2[,65],diph.out7$chain2[,65],diph.out8$chain2[,65],diph.out9$chain2[,65],diph.out10$chain2[,65],
-             diph.out1$chain3[,65],diph.out2$chain3[,65],diph.out3$chain3[,65],diph.out4$chain3[,65],diph.out5$chain3[,65],
-             diph.out6$chain3[,65],diph.out7$chain3[,65],diph.out8$chain3[,65],diph.out9$chain3[,65],diph.out10$chain3[,65])
-
-# Calculate HDI and quantiles
-hdi(standmn)
-quantile(standmn, probs=c(0.5,0.025,0.975))
-
-standsd <- c(diph.out1$chain1[,66],diph.out2$chain1[,66],diph.out3$chain1[,66],diph.out4$chain1[,66],diph.out5$chain1[,66],
-             diph.out6$chain1[,66],diph.out7$chain1[,66],diph.out8$chain1[,66],diph.out9$chain1[,66],diph.out10$chain1[,66],
-             diph.out1$chain2[,66],diph.out2$chain2[,66],diph.out3$chain2[,66],diph.out4$chain2[,66],diph.out5$chain2[,66],
-             diph.out6$chain2[,66],diph.out7$chain2[,66],diph.out8$chain2[,66],diph.out9$chain2[,66],diph.out10$chain2[,66],
-             diph.out1$chain3[,66],diph.out2$chain3[,66],diph.out3$chain3[,66],diph.out4$chain3[,66],diph.out5$chain3[,66],
-             diph.out6$chain3[,66],diph.out7$chain3[,66],diph.out8$chain3[,66],diph.out9$chain3[,66],diph.out10$chain3[,66])
-
-# Calculate HDI and quantiles
-hdi(standsd)
-quantile(standsd, probs=c(0.5,0.025,0.975))
 
