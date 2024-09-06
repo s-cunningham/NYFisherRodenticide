@@ -4,12 +4,12 @@ library(nimble)
 ## Read data, remove some columns we don't want to test
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") %>%
   mutate(age2=Age^2) %>%
-  dplyr::select(-edge_density_15, -edge_density_30, -edge_density_45, -build_cat_15, -build_cat_30,-build_cat_45) %>%
+  dplyr::select(-build_cat_15, -build_cat_30,-build_cat_45) %>%
   mutate(mast_year=if_else(year==2019, 2, 1), # failure years are reference
          Sex=if_else(Sex=='F',1,2)) # Females are reference
 
 # Scale variables
-dat[,c(8,16:42)] <- scale(dat[,c(8,16:42)])
+dat[,c(8,16:61)] <- scale(dat[,c(8,16:61)])
 
 # read data for individual compounds
 brod <- read_csv("output/summarized_AR_results.csv") %>% filter(compound=="Brodifacoum") %>%
@@ -18,45 +18,43 @@ dat <- left_join(dat, brod, by="RegionalID")
 dat <- dat %>% select(RegionalID:Town,bin.exp,deciduous_15:mast_year)
 
 ## Set up data
-numScaleVars <- 5
+numScaleVars <- 9
 nScales <- 3
-nonScaleVars <- 1
+nonScaleVars <- 4
 brod <- dat$bin.exp
 wmua <- as.numeric(factor(dat$WMUA_code, labels=1:18))
 ids <- as.numeric(factor(dat$RegionalID, labels=1:length(unique(dat$RegionalID))))
 
 # create array for covariate data (slice for each covariate)
 scale_covars <- array(NA, dim=c(nrow(dat), nScales, numScaleVars))
-scale_covars[1:nrow(dat),1:3,1] <- as.matrix(dat[1:nrow(dat),16:18]) # % deciduous
-scale_covars[1:nrow(dat),1:3,2] <- as.matrix(dat[1:nrow(dat),19:21]) # % evergreen
-scale_covars[1:nrow(dat),1:3,3] <- as.matrix(dat[1:nrow(dat),28:30]) # number of buildings
-scale_covars[1:nrow(dat),1:3,4] <- as.matrix(dat[1:nrow(dat),34:36]) # stand age mean
-scale_covars[1:nrow(dat),1:3,5] <- as.matrix(dat[1:nrow(dat),37:39]) # stand age standard deviation
-
-covars <- matrix(NA, nrow=nrow(dat),ncol=nonScaleVars)
-covars[1:nrow(dat),1] <- dat$lag_beechnuts
-# covars[1:nrow(dat),2] <- dat$lag_beechnuts
-# covars[1:nrow(dat),3] <- as.numeric(dat$mast_year)
+scale_covars[1:nrow(dat),1:3,1] <- as.matrix(dat[1:nrow(dat),16:18]) # edge density
+scale_covars[1:nrow(dat),1:3,2] <- as.matrix(dat[1:nrow(dat),28:30]) # number of buildings
+scale_covars[1:nrow(dat),1:3,3] <- as.matrix(dat[1:nrow(dat),34:36]) # stand age mean
+scale_covars[1:nrow(dat),1:3,4] <- as.matrix(dat[1:nrow(dat),37:39]) # stand age standard deviation
+scale_covars[1:nrow(dat),1:3,5] <- as.matrix(dat[1:nrow(dat),43:45]) # LaurentianAcadianNorthernHardwoods
+scale_covars[1:nrow(dat),1:3,6] <- as.matrix(dat[1:nrow(dat),46:48]) # LaurentianAcadianPinesHemlock
+scale_covars[1:nrow(dat),1:3,7] <- as.matrix(dat[1:nrow(dat),49:51]) # NortheasternNATemperatePlantation
+scale_covars[1:nrow(dat),1:3,8] <- as.matrix(dat[1:nrow(dat),52:54]) # NorthCentralRuderalForest
+scale_covars[1:nrow(dat),1:3,9] <- as.matrix(dat[1:nrow(dat),55:57]) # AcadianLowElevationSpruceFir
 
 ## prep fof nimble model
 vsConstants <- list(N=nrow(dat),
                     sex=dat$Sex,
                     nsamples=length(unique(dat$RegionalID)), 
-                    numVars=nonScaleVars+numScaleVars, 
                     numScaleVars=numScaleVars,
                     sampleID=ids) # random intercept
 
 vsDataBundle <- list(y=brod, # response
-                     covars=covars, # covariates (no scale)
+                     beechnuts=dat$lag_beechnuts, 
                      scale_covars=scale_covars,
                      age=dat$Age,
                      age2=dat$age2) # covariates (scale)
 
-vsInits <- list(sigma.eta=1, mu.eta=1, #sigma.alpha=1, mu.alpha=1,
-                beta=rnorm(vsConstants$numVars), 
+vsInits <- list(sigma.eta=1, mu.eta=1, eta=rnorm(length(unique(ids))), 
+                beta=rnorm(vsConstants$numScaleVars), 
                 x_scale=rep(1, numScaleVars),
-                beta_age=rnorm(1), beta_age2=rnorm(1), beta_sex=rnorm(2), #beta_mast=rnorm(2),
-                z=sample(0:1,(vsConstants$numVars), 0.5), cat_prob=rep(1/3,3)) 
+                beta_age=rnorm(1), beta_age2=rnorm(1), beta_sex=rnorm(2), beta_mast=rnorm(1),
+                z=sample(0:1,(vsConstants$numScaleVars), 0.5), cat_prob=rep(1/3,3)) 
 
 # Build model in BUGS language
 var_scale_code <- nimbleCode({
@@ -71,7 +69,7 @@ var_scale_code <- nimbleCode({
   }
   
   # Indicator betas
-  for (k in 1:numVars) {
+  for (k in 1:numScaleVars) {
     beta[k] ~ dnorm(0, sd=1.4)
     z[k] ~ dbern(0.5) # indicator for each coefficient
   }
@@ -92,12 +90,12 @@ var_scale_code <- nimbleCode({
   ## Likelihood
   for (i in 1:N) {
     
-    logit(p[i]) <- beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + eta[sampleID[i]] +
-      z[1]*beta[1]*covars[i,1] + #z[2]*beta[2]*covars[i,2] + z[3]*beta[3]*covars[i,3] +
-      z[2]*beta[2]*scale_covars[i, x_scale[1], 1] + z[3]*beta[3]*scale_covars[i, x_scale[2], 2] +
-      z[4]*beta[4]*scale_covars[i, x_scale[3], 3] + z[5]*beta[5]*scale_covars[i, x_scale[4], 4] +
-      z[6]*beta[6]*scale_covars[i, x_scale[5], 5] 
-    
+    logit(p[i]) <- eta[sampleID[i]] + beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + beta_mast*beechnuts[i] +
+                          z[1]*beta[1]*scale_covars[i, x_scale[1], 1] + z[2]*beta[2]*scale_covars[i, x_scale[2], 2] +
+                          z[3]*beta[3]*scale_covars[i, x_scale[3], 3] + z[4]*beta[4]*scale_covars[i, x_scale[4], 4] +
+                          z[5]*beta[5]*scale_covars[i, x_scale[5], 5] + z[6]*beta[6]*scale_covars[i, x_scale[6], 6] +
+                          z[7]*beta[7]*scale_covars[i, x_scale[7], 7] + z[8]*beta[8]*scale_covars[i, x_scale[8], 8] +
+                          z[9]*beta[9]*scale_covars[i, x_scale[9], 9]
     y[i] ~ dbern(p[i])
     
   }
@@ -141,7 +139,7 @@ plot(samplesIndicator[,'z[3]'], pch = 16, cex = 0.4, main = "z[3] traceplot")
 par(mfrow = c(1, 1))
 zCols <- grep("z\\[", colnames(samplesIndicator))
 posterior_inclusion_prob <- colMeans(samplesIndicator[, zCols])
-plot(1:6, posterior_inclusion_prob, ylim=c(0,1),
+plot(1:9, posterior_inclusion_prob, ylim=c(0,1),
      xlab = "beta", ylab = "inclusion probability",
      main = "Inclusion probabilities for each beta")
 abline(h=0.5)
@@ -152,10 +150,10 @@ posterior_scales <- samplesIndicator[, sCols]
 
 posterior_scales <- as.data.frame(posterior_scales)
 
-names(posterior_scales) <- c("pct_decid", "pct_evrgrn", "nbuildings", "stand_mean", "stand_sd")
+names(posterior_scales) <- c("edge_density", "nbuildings", "stand_mean", "stand_sd", "LaurentianAcadianNorthernHardwoods", 
+                             "LaurentianAcadianPinesHemlock", "NortheasternNATemperatePlantation", "NorthCentralRuderalForest", "AcadianLowElevationSpruceFir")
 
-posterior_scales <- posterior_scales %>% pivot_longer(1:5, names_to="covar", values_to="scale")
-
+posterior_scales <- posterior_scales %>% pivot_longer(1:9, names_to="covar", values_to="scale")
 
 ggplot(posterior_scales) +
   geom_bar(aes(x=scale)) +

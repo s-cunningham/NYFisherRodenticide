@@ -127,6 +127,9 @@ buff30 <- st_as_sf(buff30)%>%
 buff45 <- st_as_sf(buff45)%>% 
   st_transform(crs=crs(nlcd))
 
+# st_write(buff45, "data/spatial/AR_locations_45km_buffer.shp")
+
+
 # Reclassify 0 (unclassified) and 128 (?) to no data
 m <- rbind(c(0, NA), c(128, NA))
 nlcd <- classify(nlcd, m)
@@ -248,7 +251,7 @@ write_csv(build_sum, "data/analysis-ready/building-centroid_sum.csv")
 
 
 #### Stand age ####
-stnd <- rast("data/rasters/NYstandage_forest.tif")
+stnd <- rast("data/rasters/stand_age_buffer10km.tif")
 stnd <- project(stnd, nlcd) # Match projection to nlcd
 
 # mean
@@ -285,39 +288,85 @@ evt_count15 <- exact_extract(evt, buff15, function(df) {
   df %>%
     mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
     group_by(name, value) %>%
-    summarize(freq = sum(frac_total))
+    reframe(freq = sum(frac_total))
 }, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
+# evt_count15 <- evt_count15 %>% mutate(freq=freq/min(freq)) %>%
+#                 group_by(name) %>% slice_max(freq,n=2) %>%
+#                 group_by(value) %>% count() %>%
+#                 arrange(desc(n))
+
 
 evt_count30 <- exact_extract(evt, buff30, function(df) {
   df %>%
     mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
     group_by(name, value) %>%
-    summarize(freq = sum(frac_total))
+    reframe(freq = sum(frac_total))
 }, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
+# evt_count30 <- evt_count30 %>% mutate(freq=freq/min(freq)) %>%
+#   group_by(name) %>% slice_max(freq,n=2) %>%
+#   group_by(value) %>% count() %>%
+#   arrange(desc(n))
 
 evt_count45 <- exact_extract(evt, buff45, function(df) {
   df %>%
     mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
     group_by(name, value) %>%
-    summarize(freq = sum(frac_total))
+    reframe(freq = sum(frac_total))
 }, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
+# evt_count45 <- evt_count45 %>% mutate(freq=freq/min(freq)) %>%
+#   group_by(name) %>% slice_max(freq,n=2) %>%
+#   group_by(value) %>% count() %>%
+#   arrange(desc(n))
 
-evt_count15 <- evt_count15 %>% filter(freq>0.03) %>% filter(!is.na(value))
+# evt_tab <- read_csv("output/EVT_LF220_table.csv")
 
-evt_tab <- read_csv("output/EVT_LF220_table.csv")
+evt_count15 <- evt_count15 %>% filter(value==7302 | value==7511 | value==7977 | value==9312 | value==7512 |
+                                        value==7366 | value==9315 | value==7373) %>% mutate(buffsize=15)
+evt_count30 <- evt_count30 %>% filter(value==7302 | value==7511 | value==7977 | value==9312 | value==7512 |
+                                        value==7366 | value==9315 | value==7373) %>% mutate(buffsize=30)
+evt_count45 <- evt_count45 %>% filter(value==7302 | value==7511 | value==7977 | value==9312 | value==7512 |
+                                        value==7366 | value==9315 | value==7373) %>% mutate(buffsize=45)
 
-un.val <- unique(evt_count15$value)
-for (i in 1:length(un.val)) {
-  
-  lev <- evt_count15 %>% filter(value==un.val[i])
-  
-  p <- ggplot(lev) +
-    coord_cartesian(xlim=c(0,1)) +
-    geom_density(aes(x=freq), fill="gray70") +
-    ggtitle(unique(lev$value)) +
-    theme_bw()
-  print(p)
-}
+evt_count <- bind_rows(evt_count15, evt_count30, evt_count45)
+write_csv(evt_count, "data/analysis-ready/evt_pct_filtered.csv")
+
+## Canopy cover
+cc <- rast("data/rasters/nlcd21_tcc_ny10kbuff.tif")
+cc <- as.numeric(cc)
+
+# convert buffers to sf objects
+buff15 <- st_as_sf(buff15)%>% 
+  st_transform(crs=crs(cc))
+buff30 <- st_as_sf(buff30)%>% 
+  st_transform(crs=crs(cc))
+buff45 <- st_as_sf(buff45)%>% 
+  st_transform(crs=crs(cc))
+
+# mean
+cc_mean15 <- exact_extract(cc, buff15, 'mean')
+cc_mean15 <- data.frame(name=buff15$name,cc_mean=cc_mean15, buffsize=15)
+
+cc_mean30 <- exact_extract(cc, buff30, 'mean')
+cc_mean30 <- data.frame(name=buff30$name, cc_mean=cc_mean30, buffsize=30)
+
+cc_mean45 <- exact_extract(cc, buff45, 'mean')
+cc_mean45 <- data.frame(name=buff45$name, cc_mean=cc_mean45, buffsize=45)
+
+cc_mean <- bind_rows(cc_mean15, cc_mean30, cc_mean45)
+write_csv(cc_mean, "data/analysis-ready/canopy-cover_mean.csv")
+
+# standard deviation
+cc_stdev15 <- exact_extract(cc, buff15, 'stdev')
+cc_stdev15 <- data.frame(name=buff15$name, cc_sd=cc_stdev15, buffsize=15)
+
+cc_stdev30 <- exact_extract(cc, buff30, 'stdev')
+cc_stdev30 <- data.frame(name=buff30$name, cc_sd=cc_stdev30, buffsize=30)
+
+cc_stdev45 <- exact_extract(cc, buff45, 'stdev')
+cc_stdev45 <- data.frame(name=buff45$name, cc_sd=cc_stdev45, buffsize=45)
+
+cc_stdev <- bind_rows(cc_stdev15, cc_stdev30, cc_stdev45)
+write_csv(cc_stdev, "data/analysis-ready/canopy-cover_stdev.csv")
 
 
 #### Landscape metrics for forest cover ####

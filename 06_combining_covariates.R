@@ -19,12 +19,11 @@ wmua <- read_csv("data/analysis-ready/wmuas.csv")
 build <- read_csv("data/analysis-ready/building-centroid_sum.csv") %>%
             rename(pt_name=name) 
 mast <- read_csv("data/analysis-ready/ALTEMP26_beech-data.csv")
-
 stand_mn <- read_csv("data/analysis-ready/stand-age_mean.csv") %>%
                   rename(pt_name=name) 
-
 stand_sd <- read_csv("data/analysis-ready/stand-age_stdev.csv") %>%
   rename(pt_name=name) 
+evt <- read_csv("data/analysis-ready/evt_pct_filtered.csv")
 
 lsm <- read_csv("data/analysis-ready/forest_edge_density.csv") %>%
             mutate(buffsize=case_when(buffer==2185.0969 ~ 15,
@@ -40,6 +39,30 @@ lsm <- read_csv("data/analysis-ready/forest_edge_density.csv") %>%
 
 ## Save details of each sample
 dets <- dat %>% select(RegionalID:WMU,Town) %>% distinct()
+
+## Reorganize EVT (landfire)
+evt$value <- factor(evt$value, levels=c(7302, 7511, 7977, 9312, 7512, 7366, 9315, 7373), 
+                    labels=c("LaurentianAcadianNorthernHardwoods", "AppalachianNorthernHardwoods", "EasterCoolTemperatePasture",
+                             "NortheasternNATemperatePlantation", "AppalachainHemlockHardwoods", "LaurentianAcadianPinesHemlocks",
+                             "NorthCentralRuderalForest", "AcadianLowElevationSpruceFir"))
+evt <- evt %>% select(name,buffsize,value,freq) %>%
+  pivot_wider(names_from=value, values_from=freq) %>%
+  rename(pt_name=name) %>%
+  mutate(LaurentianAcadianNorthernHardwoods=coalesce(LaurentianAcadianNorthernHardwoods, 0),
+         AppalachianNorthernHardwoods=coalesce(AppalachianNorthernHardwoods, 0),
+         EasterCoolTemperatePasture=coalesce(EasterCoolTemperatePasture, 0),
+         NortheasternNATemperatePlantation=coalesce(NortheasternNATemperatePlantation, 0),
+         AppalachainHemlockHardwoods=coalesce(AppalachainHemlockHardwoods, 0),
+         LaurentianAcadianPinesHemlocks=coalesce(LaurentianAcadianPinesHemlocks, 0),
+         NorthCentralRuderalForest=coalesce(NorthCentralRuderalForest, 0),
+         AcadianLowElevationSpruceFir=coalesce(AcadianLowElevationSpruceFir, 0)) %>%
+  mutate(AppalachianHardwoodsHemlocks=AppalachianNorthernHardwoods+AppalachainHemlockHardwoods) %>%
+  select(-AppalachianNorthernHardwoods,-AppalachainHemlockHardwoods, -EasterCoolTemperatePasture)
+
+
+# ggplot(evt) +
+#   geom_histogram(aes(x=freq)) +
+#   facet_wrap(vars(value))
 
 ## Add a column to points with just sample ID
 pts <- pts %>% select(RegionalID,name,x,y) %>%
@@ -106,6 +129,7 @@ dat <- dat %>% left_join(baa, by=c("pt_name", "buffsize"))
 dat <- dat %>% left_join(lsm, by=c("pt_name", "buffsize"))
 dat <- dat %>% left_join(stand_mn, by=c("pt_name", "buffsize"))
 dat <- dat %>% left_join(stand_sd, by=c("pt_name", "buffsize"))
+dat <- dat %>% left_join(evt, by=c("pt_name", "buffsize"))
 
 ## Add beech mast index
 dat <- left_join(dat, bmi, by=c("pt_name", "buffsize", "year")) %>%
@@ -116,7 +140,7 @@ bmi$year <- bmi$year + 1
 dat <- left_join(dat, bmi, by=c("pt_name", "buffsize", "year")) %>%
   rename(laggedBMI=bmi)
 
-## Fill in 0 for missing values (WUI)
+## Fill in 0 for missing values 
 dat <- dat %>% mutate(evergreen = coalesce(evergreen, 0),
                       mixed = coalesce(mixed, 0),
                       totalforest = coalesce(totalforest, 0),
@@ -129,7 +153,7 @@ dat <- left_join(dat, wmua, by="WMU")
 dat <- dat %>% select(RegionalID:AgeClass,key,Region,WMUA_code,WMU,Town:laggedBMI) %>% 
   rename(ncomp=n.compounds.T) %>%
   select(-BMI, -laggedBMI) %>%
-  pivot_wider(id_cols=c(RegionalID:ncomp), names_from=buffsize, values_from=deciduous:stand_age_sd)
+  pivot_wider(id_cols=c(RegionalID:ncomp), names_from=buffsize, values_from=deciduous:AcadianLowElevationSpruceFir)
 
 # Add beechnut counts
 dat <- dat %>% mutate(beechnuts=case_when(
@@ -145,8 +169,9 @@ dat <- dat %>% mutate(beechnuts=case_when(
 write_csv(dat, "data/analysis-ready/combined_AR_covars.csv")
 
 
-cor(dat[,c(16:21,28:30,40:45)])
-
+# cor_mat <- cor(dat[,c(16:21,28:30,37:60)])
+# cor_mat <- as.data.frame(cor_mat) %>% rownames_to_column(var="variable")
+# write_csv(cor_mat, "output/correlation_matrix_20240906.csv")
 
 # check <- dat %>% filter(pt_index==1)
 # mean(check$ncomp)
