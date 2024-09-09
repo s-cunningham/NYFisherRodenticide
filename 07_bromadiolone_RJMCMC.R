@@ -62,6 +62,9 @@ var_scale_code <- nimbleCode({
   
   ## Priors
   
+  # V ~ dgamma(3.29, 7.8) # total beta variance
+  # beta_var <- V/numVars
+  
   # beta coefficient priors
   beta_age ~ dnorm(0, sd=1.4)
   beta_age2 ~ dnorm(0, sd=1.4)

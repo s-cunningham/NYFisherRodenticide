@@ -1,5 +1,5 @@
 ## Set up rodenticide covariates
-## 2022-06-27, updated 2023-01-12
+## 2022-06-27, updated 2023-01-12, 2024-09-09
 
 library(tidyverse)
 
@@ -8,9 +8,6 @@ dat <- read_csv("output/summarized_AR_results.csv")
 trace_y <- read_csv("output/ncompounds_trace.csv") %>% 
   select(RegionalID, n.compounds) %>%
   rename(n.compounds.T=n.compounds)
-# trace_n <- read_csv("output/ncompounds_notrace.csv") %>% 
-#   select(RegionalID, n.compounds) %>%
-#   rename(n.compounds.MO=n.compounds)
 nlcd <- read_csv("data/analysis-ready/nlcd_pct.csv")
 bmi <- read_csv("data/analysis-ready/baa_sum.csv")
 baa <- read_csv("data/analysis-ready/baa_sum_single_raster.csv")
@@ -24,6 +21,18 @@ stand_mn <- read_csv("data/analysis-ready/stand-age_mean.csv") %>%
 stand_sd <- read_csv("data/analysis-ready/stand-age_stdev.csv") %>%
   rename(pt_name=name) 
 evt <- read_csv("data/analysis-ready/evt_pct_filtered.csv")
+cc_mean <- read_csv("data/analysis-ready/canopy-cover_mean.csv") %>%
+  rename(pt_name=name) 
+wui <- read_csv("data/analysis-ready/wui500_frac15.csv") %>%
+          mutate(value=case_when(value==0 ~ "notWUI",
+                                 value==1 ~ "intermix",
+                                 value==2 ~ "interface")) %>%
+          pivot_wider(names_from="value", values_from = "freq") %>%
+          mutate(intermix=coalesce(intermix, 0),
+                 interface=coalesce(interface, 0),
+                 totalWUI=intermix+interface) %>%
+          select(-`NA`) %>%
+          rename(pt_name=name)
 
 lsm <- read_csv("data/analysis-ready/forest_edge_density.csv") %>%
             mutate(buffsize=case_when(buffer==2185.0969 ~ 15,
@@ -58,11 +67,6 @@ evt <- evt %>% select(name,buffsize,value,freq) %>%
          AcadianLowElevationSpruceFir=coalesce(AcadianLowElevationSpruceFir, 0)) %>%
   mutate(AppalachianHardwoodsHemlocks=AppalachianNorthernHardwoods+AppalachainHemlockHardwoods) %>%
   select(-AppalachianNorthernHardwoods,-AppalachainHemlockHardwoods, -EasterCoolTemperatePasture)
-
-
-# ggplot(evt) +
-#   geom_histogram(aes(x=freq)) +
-#   facet_wrap(vars(value))
 
 ## Add a column to points with just sample ID
 pts <- pts %>% select(RegionalID,name,x,y) %>%
@@ -129,7 +133,9 @@ dat <- dat %>% left_join(baa, by=c("pt_name", "buffsize"))
 dat <- dat %>% left_join(lsm, by=c("pt_name", "buffsize"))
 dat <- dat %>% left_join(stand_mn, by=c("pt_name", "buffsize"))
 dat <- dat %>% left_join(stand_sd, by=c("pt_name", "buffsize"))
+dat <- dat %>% left_join(cc_mean, by=c("pt_name", "buffsize"))
 dat <- dat %>% left_join(evt, by=c("pt_name", "buffsize"))
+dat <- dat %>% left_join(wui, by=c("pt_name", "buffsize"))
 
 ## Add beech mast index
 dat <- left_join(dat, bmi, by=c("pt_name", "buffsize", "year")) %>%
@@ -152,8 +158,9 @@ dat <- left_join(dat, wmua, by="WMU")
 # Reorder columns
 dat <- dat %>% select(RegionalID:AgeClass,key,Region,WMUA_code,WMU,Town:laggedBMI) %>% 
   rename(ncomp=n.compounds.T) %>%
-  select(-BMI, -laggedBMI) %>%
-  pivot_wider(id_cols=c(RegionalID:ncomp), names_from=buffsize, values_from=deciduous:AppalachianHardwoodsHemlocks)
+  # select(-BMI, -laggedBMI) %>%
+  filter(buffsize==15)
+  # pivot_wider(id_cols=c(RegionalID:ncomp), names_from=buffsize, values_from=deciduous:AppalachianHardwoodsHemlocks)
 
 # Add beechnut counts
 dat <- dat %>% mutate(beechnuts=case_when(
@@ -169,9 +176,9 @@ dat <- dat %>% mutate(beechnuts=case_when(
 write_csv(dat, "data/analysis-ready/combined_AR_covars.csv")
 
 
-# cor_mat <- cor(dat[,c(16:21,28:30,37:60)])
+# cor_mat <- cor(dat[,c(16:30,34:63)])
 # cor_mat <- as.data.frame(cor_mat) %>% rownames_to_column(var="variable")
-# write_csv(cor_mat, "output/correlation_matrix_20240906.csv")
+# write_csv(cor_mat, "output/correlation_matrix_20240909.csv")
 
 # check <- dat %>% filter(pt_index==1)
 # mean(check$ncomp)

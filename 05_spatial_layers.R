@@ -181,6 +181,32 @@ landcov_frac <- landcov_frac[landcov_frac$value %in% keep_cov,]
 
 write_csv(landcov_frac, "data/analysis-ready/nlcd_pct.csv")
 
+#### WUI layer ####
+
+#### Read in WUI layers to calculate ####
+wui500 <- rast("data/rasters/WUI500mNY.tif")
+wui500 <- project(wui500, nlcd) # Match projection to nlcd
+
+# Set up WUI classes and values
+wui_values <- c(0, 1, 2)
+wui_class <- c("not WUI", "intermix WUI", "interface WUI")
+
+levels(wui500) <- list(data.frame(ID = wui_values,
+                                  landcov = wui_class))
+
+## Extract WUI 
+## 15 km2
+wui500_fracs15 <- exact_extract(wui500, buff15, function(df) {
+  df %>%
+    mutate(frac_total = coverage_fraction / sum(coverage_fraction)) %>%
+    group_by(name, value) %>%
+    summarize(freq = sum(frac_total))
+}, summarize_df = TRUE, include_cols = 'name', progress = FALSE)
+wui500_fracs15$buffsize <- 15
+
+# Save to csv
+write_csv(wui500_fracs15, "data/analysis-ready/wui500_frac15.csv")
+
 #### Read in predicted beech layer ####
 
 ## Load raster layers

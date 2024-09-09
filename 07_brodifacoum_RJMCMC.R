@@ -55,12 +55,13 @@ vsInits <- list(sigma.eta=1, mu.eta=1, eta=rnorm(length(unique(ids))),
                 beta=rnorm(vsConstants$numScaleVars), 
                 x_scale=rep(1, numScaleVars),
                 beta_age=rnorm(1), beta_age2=rnorm(1), beta_sex=rnorm(2), beta_mast=rnorm(1),
-                z=sample(0:1,(vsConstants$numScaleVars), 0.5), cat_prob=rep(1/3,3)) 
+                psi=0.5, cat_prob=rep(1/3,3)) #z=sample(0:1,(vsConstants$numScaleVars), 0.5),
 
 # Build model in BUGS language
 var_scale_code <- nimbleCode({
   
   ## Priors
+  psi ~ dunif(0,1)   ## prior on inclusion probability
   
   # beta coefficient priors
   beta_age ~ dnorm(0, sd=1.4)
@@ -72,7 +73,7 @@ var_scale_code <- nimbleCode({
   # Indicator betas
   for (k in 1:numScaleVars) {
     beta[k] ~ dnorm(0, sd=1.4)
-    z[k] ~ dbern(0.5) # indicator for each coefficient
+    z[k] ~ dbern(psi) # indicator for each coefficient
   }
   
   # Scale variables

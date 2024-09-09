@@ -12,7 +12,7 @@ dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") %>%
          Sex=if_else(Sex=='F',1,2)) # Females are reference
 
 # Scale variables
-dat[,c(8,16:42)] <- scale(dat[,c(8,16:42)])
+dat[,c(8,16:(ncol(dat)-1))] <- scale(dat[,c(8,16:(ncol(dat)-1))])
 
 ## Set up data
 numScaleVars <- 1
