@@ -153,7 +153,7 @@ dat <- left_join(dat, wmua, by="WMU")
 dat <- dat %>% select(RegionalID:AgeClass,key,Region,WMUA_code,WMU,Town:laggedBMI) %>% 
   rename(ncomp=n.compounds.T) %>%
   select(-BMI, -laggedBMI) %>%
-  pivot_wider(id_cols=c(RegionalID:ncomp), names_from=buffsize, values_from=deciduous:AcadianLowElevationSpruceFir)
+  pivot_wider(id_cols=c(RegionalID:ncomp), names_from=buffsize, values_from=deciduous:AppalachianHardwoodsHemlocks)
 
 # Add beechnut counts
 dat <- dat %>% mutate(beechnuts=case_when(
