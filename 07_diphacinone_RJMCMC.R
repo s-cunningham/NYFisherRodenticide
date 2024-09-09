@@ -4,83 +4,76 @@ library(nimble)
 ## Read data, remove some columns we don't want to test
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") %>%
   mutate(age2=Age^2) %>%
-  dplyr::select(-build_cat_15, -build_cat_30,-build_cat_45) %>%
+  dplyr::select(-build_cat) %>%
   mutate(mast_year=if_else(year==2019, 2, 1), # failure years are reference
-         Sex=if_else(Sex=='F',1,2)) # Females are reference
+         Sex=if_else(Sex=='F',0,1)) # Females are reference
 
 # Scale variables
-dat[,c(8,16:(ncol(dat)-1))] <- scale(dat[,c(8,16:(ncol(dat)-1))])
+dat[,c(8,17:41)] <- scale(dat[,c(8,17:41)])
 
 # read data for individual compounds
-diph <- read_csv("output/summarized_AR_results.csv") %>% filter(compound=="diphacinone") %>%
+diph <- read_csv("output/summarized_AR_results.csv") %>% filter(compound=="Diphacinone") %>%
   select(RegionalID,bin.exp)
 dat <- left_join(dat, diph, by="RegionalID")
-dat <- dat %>% select(RegionalID:Town,bin.exp,deciduous_15:mast_year)
+dat <- dat %>% select(RegionalID:Town,bin.exp,deciduous:mast_year)
 
 ## Set up data
-numScaleVars <- 10
-nScales <- 3
-nonScaleVars <- 4
+numScaleVars <- 4
+nVars <- 7
 diph <- dat$bin.exp
 wmua <- as.numeric(factor(dat$WMUA_code, labels=1:18))
 ids <- as.numeric(factor(dat$RegionalID, labels=1:length(unique(dat$RegionalID))))
 
 # create array for covariate data (slice for each covariate)
-scale_covars <- array(NA, dim=c(nrow(dat), nScales, numScaleVars))
-scale_covars[1:nrow(dat),1:3,1] <- as.matrix(dat[1:nrow(dat),34:36]) # edge density
-scale_covars[1:nrow(dat),1:3,2] <- as.matrix(dat[1:nrow(dat),28:30]) # number of buildings
-scale_covars[1:nrow(dat),1:3,3] <- as.matrix(dat[1:nrow(dat),37:39]) # stand age mean
-scale_covars[1:nrow(dat),1:3,4] <- as.matrix(dat[1:nrow(dat),40:42]) # stand age standard deviation
-scale_covars[1:nrow(dat),1:3,5] <- as.matrix(dat[1:nrow(dat),43:45]) # LaurentianAcadianNorthernHardwoods
-scale_covars[1:nrow(dat),1:3,6] <- as.matrix(dat[1:nrow(dat),46:48]) # LaurentianAcadianPinesHemlock
-scale_covars[1:nrow(dat),1:3,7] <- as.matrix(dat[1:nrow(dat),49:51]) # NortheasternNATemperatePlantation
-scale_covars[1:nrow(dat),1:3,8] <- as.matrix(dat[1:nrow(dat),52:54]) # NorthCentralRuderalForest
-scale_covars[1:nrow(dat),1:3,9] <- as.matrix(dat[1:nrow(dat),55:57]) # AcadianLowElevationSpruceFir
-scale_covars[1:nrow(dat),1:3,10] <- as.matrix(dat[1:nrow(dat),58:60]) # AppalachianHardwoodsHemlocks
+scale_covars1 <- array(NA, dim=c(nrow(dat), 4, 3))
+scale_covars1[1:nrow(dat),1:4,1] <- as.matrix(dat[1:nrow(dat),36:39]) # mast
+scale_covars1[1:nrow(dat),1:4,2] <- as.matrix(dat[1:nrow(dat),c(20,33,34,35)]) # WUI
+scale_covars1[1:nrow(dat),1:4,3] <- as.matrix(dat[1:nrow(dat),22:25]) # forest structure
+
+scale_covars2 <- array(NA, dim=c(nrow(dat), 6, 1))
+scale_covars2[1:nrow(dat),1:6,1] <- as.matrix(dat[1:nrow(dat),26:31]) # EVT
 
 ## prep fof nimble model
 vsConstants <- list(N=nrow(dat),
                     sex=dat$Sex,
                     nsamples=length(unique(dat$RegionalID)), 
-                    numScaleVars=numScaleVars,
-                    sampleID=ids) # random intercept
+                    nWMUA=length(unique(wmua)),
+                    nVars=nVars,
+                    sampleID=ids,
+                    WMUA=wmua) # random intercept
 
 vsDataBundle <- list(y=diph, # response
-                     beechnuts=dat$lag_beechnuts, 
-                     scale_covars=scale_covars,
+                     scale_covars1=scale_covars1,
+                     scale_covars2=scale_covars2,
                      age=dat$Age,
                      age2=dat$age2) # covariates (scale)
 
+set.seed(1)
 vsInits <- list(sigma.eta=1, mu.eta=1, eta=rnorm(length(unique(ids))), 
-                beta=rnorm(vsConstants$numScaleVars), 
-                x_scale=rep(1, numScaleVars),
-                beta_age=rnorm(1), beta_age2=rnorm(1), beta_sex=rnorm(2), beta_mast=rnorm(1),
-                z=sample(0:1,(vsConstants$numScaleVars), 0.5), cat_prob=rep(1/3,3)) 
-
+                sigma.eps=1, mu.eps=1, eps=rnorm(length(unique(wmua))), 
+                beta=rnorm(nVars), cat_prob1=rep(1/4,4), cat_prob2=rep(1/6,6), 
+                psi=0.5, mast_scale=1, wui_scale=1, 
+                fstruct_scale=1, evt_scale=1) 
 
 # Build model in BUGS language
 var_scale_code <- nimbleCode({
   
   ## Priors
-  
-  # beta coefficient priors
-  beta_age ~ dnorm(0, sd=1.4)
-  beta_age2 ~ dnorm(0, sd=1.4)
-  for (k in 1:2) {
-    beta_sex[k] ~ dnorm(0, sd=1.4)
-  }
+  psi ~ dunif(0,1)   ## prior on inclusion probability
   
   # Indicator betas
-  for (k in 1:numScaleVars) {
+  for (k in 1:nVars) {
     beta[k] ~ dnorm(0, sd=1.4)
-    z[k] ~ dbern(0.5) # indicator for each coefficient
+    z[k] ~ dbern(psi) # indicator for each coefficient
   }
   
   # Scale variables
-  cat_prob[1:3] <- c(1/3, 1/3, 1/3)
-  for (k in 1:numScaleVars) {
-    x_scale[k] ~ dcat(cat_prob[1:3])
-  }
+  cat_prob1[1:4] <- c(1/4, 1/4, 1/4, 1/4)
+  mast_scale ~ dcat(cat_prob1[1:4])
+  wui_scale ~ dcat(cat_prob1[1:4])
+  fstruct_scale ~ dcat(cat_prob1[1:4])
+  cat_prob2[1:6] <- c(1/6,1/6,1/6,1/6,1/6,1/6)
+  evt_scale ~ dcat(cat_prob2[1:6])
   
   # random intercept for sample
   for (k in 1:nsamples) {
@@ -89,15 +82,24 @@ var_scale_code <- nimbleCode({
   mu.eta ~ dnorm(0, 0.001)
   sigma.eta ~ dunif(0, 100)
   
+  # random intercept for WMUA
+  for (j in 1:nWMUA) {
+    eps[j] ~ dnorm(mu.eps, sd=sigma.eps)
+  }
+  mu.eps ~ dnorm(0, 0.001)
+  sigma.eps ~ dunif(0, 100)
+  
   ## Likelihood
   for (i in 1:N) {
     
-    logit(p[i]) <- eta[sampleID[i]] + beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + beta_mast*beechnuts[i] +
-      z[1]*beta[1]*scale_covars[i, x_scale[1], 1] + z[2]*beta[2]*scale_covars[i, x_scale[2], 2] +
-      z[3]*beta[3]*scale_covars[i, x_scale[3], 3] + z[4]*beta[4]*scale_covars[i, x_scale[4], 4] +
-      z[5]*beta[5]*scale_covars[i, x_scale[5], 5] + z[6]*beta[6]*scale_covars[i, x_scale[6], 6] +
-      z[7]*beta[7]*scale_covars[i, x_scale[7], 7] + z[8]*beta[8]*scale_covars[i, x_scale[8], 8] +
-      z[9]*beta[9]*scale_covars[i, x_scale[9], 9] + z[10]*beta[10]*scale_covars[i, x_scale[10], 10]
+    logit(p[i]) <- eta[sampleID[i]] + eps[WMUA[i]] +
+      z[1]*beta[1]*age[i] +
+      z[2]*beta[2]*age2[i] +
+      z[3]*beta[3]*sex[i] +
+      z[4]*beta[4]*scale_covars1[i, mast_scale, 1] +
+      z[5]*beta[5]*scale_covars1[i, wui_scale, 2] +
+      z[6]*beta[6]*scale_covars1[i, fstruct_scale, 3] +
+      z[7]*beta[7]*scale_covars2[i, evt_scale, 1]
     
     y[i] ~ dbern(p[i])
     
@@ -128,34 +130,34 @@ cIndicatorModel <- compileNimble(vsModel)
 CMCMCIndicatorRJ <- compileNimble(mcmcIndicatorRJ, project = vsModel)
 
 set.seed(1)
-system.time(samplesIndicator <- runMCMC(CMCMCIndicatorRJ, niter=50000, nburnin=25000))
+system.time(samplesIndicator <- runMCMC(CMCMCIndicatorRJ, niter=25000, nburnin=12000))
 
 saveRDS(samplesIndicator, file = "results/diphacinone_indicators.rds")
 # samplesIndicator <- readRDS("results/diphacinone_indicators.rds")
 
 ## Looking at results
 par(mfrow = c(2, 1))
-plot(samplesIndicator[,'beta[1]'], pch = 16, cex = 0.4, main = "beta[1] traceplot")
-plot(samplesIndicator[,'z[1]'], pch = 16, cex = 0.4, main = "z[1] traceplot")
+plot(samplesIndicator[,'beta[3]'], pch = 16, cex = 0.4, main = "beta[3] traceplot")
+plot(samplesIndicator[,'z[3]'], pch = 16, cex = 0.4, main = "z[3] traceplot")
 
 # Individual inclusion probabilities
 par(mfrow = c(1, 1))
 zCols <- grep("z\\[", colnames(samplesIndicator))
 posterior_inclusion_prob <- colMeans(samplesIndicator[, zCols])
-plot(1:10, posterior_inclusion_prob, ylim=c(0,1),
+plot(1:7, posterior_inclusion_prob, ylim=c(0,1),
      xlab = "beta", ylab = "inclusion probability",
      main = "Inclusion probabilities for each beta")
-posterior_inclusion_prob
+abline(h=0.5)
 
 ## Plot scale probabilities
-sCols <- grep("x_scale\\[", colnames(samplesIndicator))
+sCols <- grep("_scale", colnames(samplesIndicator))
 posterior_scales <- samplesIndicator[, sCols]
 
 posterior_scales <- as.data.frame(posterior_scales)
 
-names(posterior_scales) <- c("pct_evergrn", "pct_decid", "nbuildings", "stand_mean", "stand_sd")
+names(posterior_scales) <- c("evt_vars", "fstruct_vars", "mast_vars", "wui_vars")
 
-posterior_scales <- posterior_scales %>% pivot_longer(1:10, names_to="covar", values_to="scale")
+posterior_scales <- posterior_scales %>% pivot_longer(1:4, names_to="covar", values_to="scale")
 
 ggplot(posterior_scales) +
   geom_bar(aes(x=scale)) +
