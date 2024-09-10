@@ -58,7 +58,7 @@ var_scale_code <- nimbleCode({
   psi ~ dunif(0,1)   ## prior on inclusion probability
   
   beta0 ~ dnorm(0, 0.001)
-  
+
   # Indicator betas
   for (k in 1:nVars) {
     beta[k] ~ dnorm(0, sd=1.4)
