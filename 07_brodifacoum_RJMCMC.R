@@ -47,8 +47,8 @@ vsDataBundle <- list(y=brod, # response
 set.seed(1)
 vsInits <- list(sigma.eta=1, mu.eta=1, eta=rnorm(length(unique(ids))), 
                 sigma.eps=1, mu.eps=1, eps=rnorm(length(unique(wmua))), 
-                beta=rnorm(nVars), cat_prob1=rep(1/4,4), 
-                psi=0.5, mast_scale=1, wui_scale=1, 
+                beta=rnorm(nVars), cat_prob1=rep(1/4,4), beta0=rnorm(1),
+                psi=0.75, mast_scale=1, wui_scale=1, 
                 fstruct_scale=1) 
 
 # Build model in BUGS language
@@ -56,7 +56,9 @@ var_scale_code <- nimbleCode({
   
   ## Priors
   psi ~ dunif(0,1)   ## prior on inclusion probability
-
+  
+  beta0 ~ dnorm(0, 0.001)
+  
   # Indicator betas
   for (k in 1:nVars) {
     beta[k] ~ dnorm(0, sd=1.4)
@@ -86,7 +88,7 @@ var_scale_code <- nimbleCode({
   ## Likelihood
   for (i in 1:N) {
     
-    logit(p[i]) <- eta[sampleID[i]] + eps[WMUA[i]] +
+    logit(p[i]) <- beta0 + eta[sampleID[i]] + eps[WMUA[i]] +
                     z[1]*beta[1]*age[i] +
                     z[2]*beta[2]*age2[i] +
                     z[3]*beta[3]*sex[i] +
@@ -137,7 +139,7 @@ plot(samplesIndicator[,'z[3]'], pch = 16, cex = 0.4, main = "z[3] traceplot")
 par(mfrow = c(1, 1))
 zCols <- grep("z\\[", colnames(samplesIndicator))
 posterior_inclusion_prob <- colMeans(samplesIndicator[, zCols])
-plot(1:7, posterior_inclusion_prob, ylim=c(0,1),
+plot(1:6, posterior_inclusion_prob, ylim=c(0,1),
      xlab = "beta", ylab = "inclusion probability",
      main = "Inclusion probabilities for each beta")
 abline(h=0.5)
@@ -150,7 +152,7 @@ posterior_scales <- as.data.frame(posterior_scales)
 
 names(posterior_scales) <- c( "fstruct_vars", "mast_vars", "wui_vars")
 
-posterior_scales <- posterior_scales %>% pivot_longer(1:4, names_to="covar", values_to="scale")
+posterior_scales <- posterior_scales %>% pivot_longer(1:3, names_to="covar", values_to="scale")
 
 ggplot(posterior_scales) +
   geom_bar(aes(x=scale)) +

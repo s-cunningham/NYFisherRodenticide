@@ -6,49 +6,50 @@ library(COMPoissonReg)
 
 ## Read data, remove some columns we don't want to test
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") %>%
+  select(-build_cat) %>%
   mutate(age2=Age^2) %>%
-  dplyr::select(-edge_density_15, -edge_density_30, -edge_density_45, -build_cat_15, -build_cat_30,-build_cat_45) %>%
   mutate(mast_year=if_else(year==2019, 1, 2), # failure years are reference
          Sex=if_else(Sex=='F',1,2)) # Females are reference
 
 # Scale variables
-dat[,c(8,16:(ncol(dat)-1))] <- scale(dat[,c(8,16:(ncol(dat)-1))])
+dat[,c(8,17:(ncol(dat)-1))] <- scale(dat[,c(8,17:(ncol(dat)-1))])
 
 ## Set up data
-numScaleVars <- 1
-nScales <- 3
-nonScaleVars <- 0
+numScaleVars <- 4
+nVars <- 6
 ncomp <- dat$ncomp
-wmu <- as.numeric(factor(dat$WMU, labels=1:55))
+wmua <- as.numeric(factor(dat$WMUA_code, labels=1:18))
 ids <- as.numeric(factor(dat$RegionalID, labels=1:length(unique(dat$RegionalID))))
 
 # create array for covariate data (slice for each covariate)
-scale_covars <- array(NA, dim=c(nrow(dat), nScales, numScaleVars))
-scale_covars[1:nrow(dat),1:3,1] <- as.matrix(dat[1:nrow(dat),28:30]) # number of buildings
+scale_covars <- array(NA, dim=c(nrow(dat), 4, 2))
+scale_covars[1:nrow(dat),1:4,1] <- as.matrix(dat[1:nrow(dat),36:39]) # mast
+scale_covars[1:nrow(dat),1:4,2] <- as.matrix(dat[1:nrow(dat),c(20,33,34,35)]) # WUI
 
-# covars <- matrix(NA, nrow=nrow(dat),ncol=nonScaleVars)
-# covars[1:nrow(dat),1] <- dat$lag_beechnuts
+scale_covars2 <- array(NA, dim=c(nrow(dat), 5, 1))
+scale_covars2[1:nrow(dat),1:5,1] <- as.matrix(dat[1:nrow(dat),c(18,22:25)]) # forest structure
 
 # prep fof nimble model
 vsConstants <- list(N=nrow(dat),
                     sex=dat$Sex,
-                    mast=(dat$mast_year),
                     nsamples=length(unique(dat$RegionalID)), 
-                    numVars=numScaleVars + nonScaleVars,
-                    numScaleVars=numScaleVars,
+                    nVars=nVars,
+                    nWMUA=length(unique(wmua)),
+                    WMUA=wmua,
                     sampleID=ids) # Random intercepts
 
 vsDataBundle <- list(ncomp=ncomp, # response
-                     # covars=covars, # covariates (no scale)
                      scale_covars=scale_covars,
+                     scale_covars2=scale_covars2,
                      age=dat$Age,
                      age2=dat$age2) 
 
-vsInits <- list( sigma.eta=1, mu.eta=1, nu=1.5, 
-                 beta=rnorm(vsConstants$numVars), 
-                 x_scale=rep(1, numScaleVars),
-                 beta_age=rnorm(1), beta_age2=rnorm(1), beta_sex=rnorm(2), beta_mast=rnorm(2),
-                 z=sample(0:1,(vsConstants$numVars), 0.5), cat_prob=rep(1/3,3)) 
+vsInits <- list(sigma.eta=1, mu.eta=1, eta=rnorm(length(unique(ids))), 
+                sigma.eps=1, mu.eps=1, eps=rnorm(length(unique(wmua))), 
+                nu=1.5, mast_scale=1, wui_scale=1, fstruct_scale=1,
+                beta=rnorm(vsConstants$nVars), #beta0=rnorm(1),
+                beta_age=rnorm(1), beta_age2=rnorm(1),
+                beta_sex=rnorm(2), cat_prob=rep(1/4,4), cat_prob2=rep(1/5,5)) 
 
 ## Nimble-ize Conway-Maxwell Poisson functions
 # Random values function
@@ -72,23 +73,24 @@ var_scale_code <- nimbleCode({
   
   ## Priors
   nu ~ dunif(1,2.5) # prior for CMP dispersion parameter
-  # V ~ dgamma(3.29, 7.8) # total beta variance
-  # beta_var <- V/numVars
-  
+
   # beta coefficient priors
   beta_age ~ dnorm(0, sd=10)
   beta_age2 ~ dnorm(0, sd=10)
   beta_sex[1] <- 0
   beta_sex[2] ~ dnorm(0, sd=10)
-  beta_mast[1] <- 0
-  beta_mast[2] ~ dnorm(0, sd=10)
-  beta0 ~ dnorm(0, sd=10) 
+  # beta0 ~ dnorm(0, sd=10) 
   
-  beta ~ dnorm(0, sd=10)
-  z ~ dbern(0.5) # indicator for each coefficient  
+  for (j in 1:nVars) {
+    beta[j] ~ dnorm(0, sd=10)
+  }
   
-  cat_prob[1:3] <- c(1/3, 1/3, 1/3)
-  x_scale ~ dcat(cat_prob[1:3])
+  # Scale variables
+  cat_prob[1:4] <- c(1/4, 1/4, 1/4, 1/4)
+  mast_scale ~ dcat(cat_prob[1:4])
+  wui_scale ~ dcat(cat_prob[1:4])
+  cat_prob2[1:5] <- c(1/5, 1/5, 1/5, 1/5, 1/5)
+  fstruct_scale ~ dcat(cat_prob2[1:5])
   
   # sample
   for (k in 1:nsamples) {
@@ -97,11 +99,21 @@ var_scale_code <- nimbleCode({
   mu.eta ~ dnorm(0, 0.001)
   sigma.eta ~ dunif(0, 100)
   
+  # random intercept for WMUA
+  for (j in 1:nWMUA) {
+    eps[j] ~ dnorm(mu.eps, sd=sigma.eps)
+  }
+  mu.eps ~ dnorm(0, 0.001)
+  sigma.eps ~ dunif(0, 100)
+  
   ## Likelihood
   for (i in 1:N) {
     
-    lambda[i] <- exp(beta0 + beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + 
-                       eta[sampleID[i]] + beta_mast[mast[i]] + z*beta*scale_covars[i, x_scale, 1])
+    lambda[i] <- exp(eta[sampleID[i]] + eps[WMUA[i]] + 
+                       beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + 
+                       beta[1]*scale_covars[i, mast_scale, 1] +
+                       beta[2]*scale_covars[i, wui_scale, 2] +
+                       beta[3]*scale_covars2[i, fstruct_scale, 1])
     
     ncomp[i] ~ dCOMP(lambda[i], nu)
     
@@ -109,27 +121,18 @@ var_scale_code <- nimbleCode({
   
 })
 
-## Set up the model.
-vsModel <- nimbleModel(code=var_scale_code, constants=vsConstants,
-                       inits=vsInits, data=vsDataBundle)
+params <- c("beta_age", "beta_age2", "beta_sex", "beta", "eta", "eps", "mast_scale", "wui_scale", "fstruct_scale")
 
-vsIndicatorConf <- configureMCMC(vsModel)
-vsIndicatorConf$addMonitors('z')
+samples <- nimbleMCMC(
+  code = var_scale_code,
+  constants = vsConstants, 
+  data =vsDataBundle, 
+  inits = vsInits,
+  monitors = params,
+  niter = 12000,
+  nburnin = 6000,
+  thin = 1)
 
-configureRJ(vsIndicatorConf,
-            targetNodes = 'beta',
-            indicatorNodes = 'z',  
-            control = list(mean = 0, scale = .2))
-
-## Check the assigned samplers
-vsIndicatorConf$printSamplers(c("z[1]", "beta[1]"))
-
-## Build and run MCMC
-mcmcIndicatorRJ <- buildMCMC(vsIndicatorConf)
-
-cIndicatorModel <- compileNimble(vsModel)
-
-CMCMCIndicatorRJ <- compileNimble(mcmcIndicatorRJ, project = vsModel)
 
 set.seed(1)
 system.time(samplesIndicator <- runMCMC(CMCMCIndicatorRJ, thin=1, niter=50000, nburnin=20000))
