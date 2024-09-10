@@ -250,7 +250,7 @@ covars6[1:nrow(dat6),3] <- dat6$stand_age_mean
 ## prep fof nimble model
 Constants6 <- list(N=nrow(dat6),
                    sex=dat6$Sex,
-                   WMUA=wmu6, # random intercept
+                   WMUA=wmua6, # random intercept
                    nWMUA=length(unique(dat6$WMUA_code)))
 
 DataBundle6 <- list(y=brod6, # response
