@@ -53,7 +53,7 @@ Bromadiolone_code <- nimbleCode({
 
 # parameters to monitor
 params <- c("beta_age","beta_age2","beta_sex","beta_mast",
-            "beta_build","beta_standm",  "alpha", "mu.alpha", "sigma.alpha")  
+            "beta_build","beta_standm", "alpha", "mu.alpha", "sigma.alpha")  
 
 # MCMC options
 nt <- 1

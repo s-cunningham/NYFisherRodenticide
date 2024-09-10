@@ -15,8 +15,7 @@ dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") %>%
 dat[,c(8,17:(ncol(dat)-1))] <- scale(dat[,c(8,17:(ncol(dat)-1))])
 
 ## Set up data
-numScaleVars <- 4
-nVars <- 6
+nVars <- 3
 ncomp <- dat$ncomp
 wmua <- as.numeric(factor(dat$WMUA_code, labels=1:18))
 ids <- as.numeric(factor(dat$RegionalID, labels=1:length(unique(dat$RegionalID))))
@@ -129,43 +128,32 @@ samples <- nimbleMCMC(
   data =vsDataBundle, 
   inits = vsInits,
   monitors = params,
-  niter = 12000,
-  nburnin = 6000,
+  niter = 100000,
+  nburnin = 50000,
   thin = 1)
 
 
-set.seed(1)
-system.time(samplesIndicator <- runMCMC(CMCMCIndicatorRJ, thin=1, niter=50000, nburnin=20000))
-
-saveRDS(samplesIndicator, file = "results/ncomp_indicators.rds")
+saveRDS(samples, file = "results/ncomp_indicators.rds")
 # samplesIndicator <- readRDS("results/ncomp_indicators.rds")
 
 ## Looking at results
 par(mfrow = c(2, 1))
-plot(samplesIndicator[,'beta'], type="l", cex = 0.4, main = "beta traceplot")
+plot(samples[,'beta[1]'], type="l", cex = 0.4, main = "beta traceplot")
 plot(samplesIndicator[,'z'], type="l", cex = 0.4, main = "z traceplot")
 
-# Individual inclusion probabilities
-par(mfrow = c(1, 1))
-zCols <- grep("z", colnames(samplesIndicator))
-posterior_inclusion_prob <- mean(samplesIndicator[,13])
-plot(1, posterior_inclusion_prob, ylim=c(0,1),
-     xlab = "beta", ylab = "inclusion probability",
-     main = "Inclusion probabilities for each beta")
-
 ## Plot scale probabilities
-sCols <- grep("x_scale", colnames(samplesIndicator))
-posterior_scales <- samplesIndicator[, sCols]
+sCols <- grep("_scale", colnames(samples))
+posterior_scales <- samples[, sCols]
 
 posterior_scales <- as.data.frame(posterior_scales)
 
-names(posterior_scales) <- c("nbuildings")
+names(posterior_scales) <- c("fstruct_scale", "mast_scale", "wui_scale")
 
-posterior_scales <- posterior_scales %>% pivot_longer(1, names_to="covar", values_to="scale")
+posterior_scales <- posterior_scales %>% pivot_longer(1:3, names_to="covar", values_to="scale")
 
 
 ggplot(posterior_scales) +
   geom_bar(aes(x=scale)) +
   facet_wrap(vars(covar))
   
-posterior_scales %>% group_by(scale) %>% count()
+posterior_scales %>% group_by(covar, scale) %>% count()

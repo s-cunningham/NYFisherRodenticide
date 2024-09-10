@@ -5,6 +5,8 @@
 data/
 docs/
 output/
+results/
+figs/
 
 # Document types
 .tex
