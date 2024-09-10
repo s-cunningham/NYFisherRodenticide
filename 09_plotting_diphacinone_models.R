@@ -317,7 +317,9 @@ ggplot(all.qt) +
         strip.background = element_rect(color=NA, fill=NA),
         axis.ticks.length=unit(-0.1, "cm"))
 
+# probably need to remove the left and top borders
+
 ggsave("figs/prob_exp_marginal.svg")
-# Save 11.3 x 8.43
+# Save 9.85 x 5.9
 
 
