@@ -1,5 +1,6 @@
 library(tidyverse)
 library(boot)
+library(tagger)
 
 theme_set(theme_classic())
 
@@ -52,41 +53,20 @@ diph.out10 <- do.call("rbind",diph.out10)
 beta_age <- c(diph.out1[,19],diph.out2[,19],diph.out3[,19],diph.out4[,19],diph.out5[,19],
               diph.out6[,19],diph.out7[,19],diph.out8[,19],diph.out9[,19],diph.out10[,19])
 
-# Calculate HDI and quantiles
-quantile(beta_age, probs=c(0.025,0.5,0.975))
-
-
 beta_age2 <- c(diph.out1[,20],diph.out2[,20],diph.out3[,20],diph.out4[,20],diph.out5[,20],
                diph.out6[,20],diph.out7[,20],diph.out8[,20],diph.out9[,20],diph.out10[,20])
-
-# Calculate HDI and quantiles
-quantile(beta_age2, probs=c(0.025,0.5,0.975))
 
 beta_build <- c(diph.out1[,21],diph.out2[,21],diph.out3[,21],diph.out4[,21],diph.out5[,21],
                 diph.out6[,21],diph.out7[,21],diph.out8[,21],diph.out9[,21],diph.out10[,21])
 
-# Calculate quantiles
-quantile(beta_build, probs=c(0.025,0.5,0.975))
-
 beta_mast <- c(diph.out1[,22],diph.out2[,22],diph.out3[,22],diph.out4[,22],diph.out5[,22],
                diph.out6[,22],diph.out7[,22],diph.out8[,22],diph.out9[,22],diph.out10[,22])
-
-# Calculate quantiles
-quantile(beta_mast, probs=c(0.025,0.5,0.975))
 
 beta_sex2 <- c(diph.out1[,24],diph.out2[,24],diph.out3[,24],diph.out4[,24],diph.out5[,24],
                diph.out6[,24],diph.out7[,24],diph.out8[,24],diph.out9[,24],diph.out10[,24])
 
-# Calculate quantiles
-quantile(beta_sex2, probs=c(0.025,0.5,0.975))
-
-
 beta_stand <- c(diph.out1[,25],diph.out2[,25],diph.out3[,25],diph.out4[,25],diph.out5[,25],
                 diph.out6[,25],diph.out7[,25],diph.out8[,25],diph.out9[,25],diph.out10[,25])
-
-# Calculate quantiles
-quantile(beta_stand, probs=c(0.025,0.5,0.975))
-
 
 ##############
 
@@ -309,17 +289,20 @@ ggplot(all.qt) +
         panel.border=element_rect(fill=NA, color="black"),
         strip.placement = "outside",
         axis.title.x=element_blank(),
-        axis.title.y=element_text(size=13),
+        axis.title.y=element_text(size=14),
+        axis.text=element_text(size=11),
         strip.text.x=element_text(size=12),
-        strip.text.y=element_text(size=11),
+        strip.text.y=element_text(size=13),
         legend.title=element_text(size=12),
         legend.text=element_text(size=11),
         strip.background = element_rect(color=NA, fill=NA),
-        axis.ticks.length=unit(-0.1, "cm"))
+        axis.ticks.length=unit(-0.1, "cm")) + 
+  tag_facets(tag_prefix="    (")
+
 
 # probably need to remove the left and top borders
 
 ggsave("figs/prob_exp_marginal.svg")
-# Save 9.85 x 5.9
+# Save 11.4 x 7.38
 
 
