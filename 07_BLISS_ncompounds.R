@@ -46,7 +46,7 @@ vsDataBundle <- list(ncomp=ncomp, # response
 vsInits <- list(sigma.eta=1, mu.eta=1, eta=rnorm(length(unique(ids))), 
                 sigma.eps=1, mu.eps=1, eps=rnorm(length(unique(wmua))), 
                 nu=1.5, mast_scale=1, wui_scale=1, fstruct_scale=1,
-                beta=rnorm(vsConstants$nVars), #beta0=rnorm(1),
+                beta=rnorm(vsConstants$nVars), beta0=rnorm(1),
                 beta_age=rnorm(1), beta_age2=rnorm(1),
                 beta_sex=rnorm(2), cat_prob=rep(1/4,4), cat_prob2=rep(1/5,5)) 
 
@@ -78,7 +78,7 @@ var_scale_code <- nimbleCode({
   beta_age2 ~ dnorm(0, sd=10)
   beta_sex[1] <- 0
   beta_sex[2] ~ dnorm(0, sd=10)
-  # beta0 ~ dnorm(0, sd=10) 
+  beta0 ~ dnorm(0, sd=10)
   
   for (j in 1:nVars) {
     beta[j] ~ dnorm(0, sd=10)
@@ -108,7 +108,7 @@ var_scale_code <- nimbleCode({
   ## Likelihood
   for (i in 1:N) {
     
-    lambda[i] <- exp(eta[sampleID[i]] + eps[WMUA[i]] + 
+    lambda[i] <- exp(eta[sampleID[i]] + eps[WMUA[i]] + beta0 +
                        beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + 
                        beta[1]*scale_covars[i, mast_scale, 1] +
                        beta[2]*scale_covars[i, wui_scale, 2] +
@@ -120,7 +120,7 @@ var_scale_code <- nimbleCode({
   
 })
 
-params <- c("beta_age", "beta_age2", "beta_sex", "beta", "eta", "eps", "mast_scale", "wui_scale", "fstruct_scale")
+params <- c("beta0", "beta_age", "beta_age2", "beta_sex", "beta", "eta", "eps", "mast_scale", "wui_scale", "fstruct_scale")
 
 samples <- nimbleMCMC(
   code = var_scale_code,
@@ -137,9 +137,7 @@ saveRDS(samples, file = "results/ncomp_indicators.rds")
 # samplesIndicator <- readRDS("results/ncomp_indicators.rds")
 
 ## Looking at results
-par(mfrow = c(2, 1))
 plot(samples[,'beta[1]'], type="l", cex = 0.4, main = "beta traceplot")
-plot(samplesIndicator[,'z'], type="l", cex = 0.4, main = "z traceplot")
 
 ## Plot scale probabilities
 sCols <- grep("_scale", colnames(samples))
