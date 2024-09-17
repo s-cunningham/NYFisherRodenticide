@@ -14,7 +14,7 @@ dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") %>%
 # Scale variables
 dat[,c(8,17:(ncol(dat)-1))] <- scale(dat[,c(8,17:(ncol(dat)-1))])
 
-dat <- dat %>% filter(pt_index==1)
+dat <- dat %>% filter(pt_index==10)
 
 ## Set up data
 nVars <- 3
@@ -28,7 +28,7 @@ scale_covars[1:nrow(dat),1:4,1] <- as.matrix(dat[1:nrow(dat),36:39]) # mast
 scale_covars[1:nrow(dat),1:4,2] <- as.matrix(dat[1:nrow(dat),c(20,33,34,35)]) # WUI
 
 scale_covars2 <- array(NA, dim=c(nrow(dat), 5, 1))
-scale_covars2[1:nrow(dat),1:5,1] <- as.matrix(dat[1:nrow(dat),c(18,22:25)]) # forest structure
+scale_covars2[1:nrow(dat),1:5,1] <- as.matrix(dat[1:nrow(dat),c(18,23:26)]) # forest structure
 
 # prep fof nimble model
 vsConstants <- list(N=nrow(dat),
@@ -146,3 +146,5 @@ ggplot(posterior_scales) +
   facet_wrap(vars(covar))
 
 posterior_scales %>% group_by(covar, scale) %>% count()
+
+saveRDS(samples, file = "results/ncomp_indicators10.rds")

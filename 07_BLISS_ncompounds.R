@@ -26,7 +26,7 @@ scale_covars[1:nrow(dat),1:4,1] <- as.matrix(dat[1:nrow(dat),36:39]) # mast
 scale_covars[1:nrow(dat),1:4,2] <- as.matrix(dat[1:nrow(dat),c(20,33,34,35)]) # WUI
 
 scale_covars2 <- array(NA, dim=c(nrow(dat), 5, 1))
-scale_covars2[1:nrow(dat),1:5,1] <- as.matrix(dat[1:nrow(dat),c(18,22:25)]) # forest structure
+scale_covars2[1:nrow(dat),1:5,1] <- as.matrix(dat[1:nrow(dat),c(18,23:26)]) # forest structure
 
 # prep fof nimble model
 vsConstants <- list(N=nrow(dat),
@@ -74,14 +74,14 @@ var_scale_code <- nimbleCode({
   nu ~ dunif(1,2.5) # prior for CMP dispersion parameter
 
   # beta coefficient priors
-  beta_age ~ dnorm(0, sd=10)
-  beta_age2 ~ dnorm(0, sd=10)
+  beta_age ~ dnorm(0,  0.001)
+  beta_age2 ~ dnorm(0,  0.001)
   beta_sex[1] <- 0
-  beta_sex[2] ~ dnorm(0, sd=10)
-  beta0 ~ dnorm(0, sd=10)
+  beta_sex[2] ~ dnorm(0,  0.001)
+  beta0 ~ dnorm(0,  0.001)
   
   for (j in 1:nVars) {
-    beta[j] ~ dnorm(0, sd=10)
+    beta[j] ~ dnorm(0,  0.001)
   }
   
   # Scale variables
@@ -128,8 +128,8 @@ samples <- nimbleMCMC(
   data =vsDataBundle, 
   inits = vsInits,
   monitors = params,
-  niter = 100000,
-  nburnin = 50000,
+  niter = 10000,
+  nburnin = 5000,
   thin = 1)
 
 
