@@ -14,7 +14,7 @@ dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") %>%
 # Scale variables
 dat[,c(8,17:(ncol(dat)-1))] <- scale(dat[,c(8,17:(ncol(dat)-1))])
 
-dat <- dat %>% filter(pt_index==10)
+dat <- dat %>% filter(pt_index==2)
 
 ## Set up data
 nVars <- 3
@@ -24,8 +24,8 @@ ids <- as.numeric(factor(dat$RegionalID, labels=1:length(unique(dat$RegionalID))
 
 # create array for covariate data (slice for each covariate)
 scale_covars <- array(NA, dim=c(nrow(dat), 4, 2))
-scale_covars[1:nrow(dat),1:4,1] <- as.matrix(dat[1:nrow(dat),36:39]) # mast
-scale_covars[1:nrow(dat),1:4,2] <- as.matrix(dat[1:nrow(dat),c(20,33,34,35)]) # WUI
+scale_covars[1:nrow(dat),1:4,1] <- as.matrix(dat[1:nrow(dat),37:40]) # mast
+scale_covars[1:nrow(dat),1:4,2] <- as.matrix(dat[1:nrow(dat),c(21,34:36)]) # WUI
 
 scale_covars2 <- array(NA, dim=c(nrow(dat), 5, 1))
 scale_covars2[1:nrow(dat),1:5,1] <- as.matrix(dat[1:nrow(dat),c(18,23:26)]) # forest structure
@@ -147,4 +147,4 @@ ggplot(posterior_scales) +
 
 posterior_scales %>% group_by(covar, scale) %>% count()
 
-saveRDS(samples, file = "results/ncomp_indicators10.rds")
+saveRDS(samples, file = "results/ncomp_indicators2.rds")

@@ -87,9 +87,12 @@ beta_age2 <- c(diph.out1[,20],diph.out2[,20],diph.out3[,20],diph.out4[,20],diph.
 quantile(beta_age2, probs=c(0.025,0.5,0.975))
 mean(beta_age2)
 se(beta_age2)
+plot(density(beta_age2))
 
 exp_age2 <- exp(beta_age2)
 sum(exp_age2<1)/length(beta_age2)
+
+plot(density(exp_age2))
 
 ## Building count
 beta_build <- c(diph.out1[,21],diph.out2[,21],diph.out3[,21],diph.out4[,21],diph.out5[,21],
@@ -97,7 +100,7 @@ beta_build <- c(diph.out1[,21],diph.out2[,21],diph.out3[,21],diph.out4[,21],diph
 
 # Calculate quantiles
 quantile(beta_build, probs=c(0.025,0.5,0.975))
-mean(beta_build)
+mean(exp(beta_build))
 se(beta_build)
 
 beta_build <- exp(beta_build)
@@ -112,8 +115,10 @@ quantile(beta_mast, probs=c(0.025,0.5,0.975))
 mean(beta_mast)
 se(beta_mast)
 
+
+mean(exp(beta_mast))
 beta_mast <- exp(beta_mast)
-sum(beta_mast<1)/length(beta_mast)
+sum(beta_mast>1)/length(beta_mast)
 
 ## Sex (M)
 beta_sex2 <- c(diph.out1[,24],diph.out2[,24],diph.out3[,24],diph.out4[,24],diph.out5[,24],
@@ -124,6 +129,7 @@ quantile(beta_sex2, probs=c(0.025,0.5,0.975))
 mean(beta_sex2)
 se(beta_sex2)
 
+mean(exp(beta_sex2))
 beta_sex2 <- exp(beta_sex2)
 sum(beta_sex2>1)/length(beta_sex2)
 
@@ -136,6 +142,7 @@ quantile(beta_stand, probs=c(0.025,0.5,0.975))
 mean(beta_stand)
 se(beta_stand)
 
+mean(exp(beta_stand))
 beta_stand <- exp(beta_stand)
 sum(beta_stand>1)/length(beta_stand)
 
@@ -204,6 +211,7 @@ brod.out10 <- do.call("rbind",brod.out10)
 beta_age <- c(brod.out1[,19],brod.out2[,19],brod.out3[,19],brod.out4[,19],brod.out5[,19],
               brod.out6[,19],brod.out7[,19],brod.out8[,19],brod.out9[,19],brod.out10[,19])
 
+mean(exp(beta_age))
 beta_age <- exp(beta_age)
 sum(beta_age>1)/length(beta_age)
 

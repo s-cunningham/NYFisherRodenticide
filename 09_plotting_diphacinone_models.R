@@ -17,13 +17,15 @@ diph <- read_csv("output/summarized_AR_results.csv") %>% filter(compound=="Dipha
 dat <- left_join(dat, diph, by="RegionalID")
 dat <- dat %>% select(RegionalID:Town,bin.exp,deciduous:mast_year)
 
+cor.test(dat$nbuildings, dat$stand_age_mean)
+
 beech <- dat %>% select(beechnuts, bin.exp)
-structures <- dat %>% select(nbuildings, bin.exp)
+structures <- dat %>% select(totalWUI, bin.exp)
 standage <- dat %>% select(stand_age_mean, bin.exp)
 
 # Scale variables
 dat$Age <- scale(dat$Age)
-dat$nbuildings <- scale(dat$nbuildings)
+dat$totalWUI <- scale(dat$totalWUI)
 dat$lag_beechnuts <- scale(dat$lag_beechnuts)
 dat$stand_age_mean <- scale(dat$stand_age_mean)
 
@@ -82,7 +84,7 @@ age_pred <- seq(min(dat$Age),max(dat$Age),length.out=pred_length)
 age_pred2 <- age_pred^2
 
 # Average beechnut counts and number of buildlings
-mean_build <- mean(dat$nbuildings)
+mean_build <- mean(dat$totalWUI)
 mean_mast <- mean(dat$lag_beechnuts)
 mean_stand <- mean(dat$stand_age_mean)
 
@@ -126,7 +128,7 @@ pred_length <- 100
 mast_pred <- seq(min(dat$lag_beechnuts),max(dat$lag_beechnuts),length.out=pred_length)
 
 # Average beechnut counts and number of buildlings
-mean_build <- mean(dat$nbuildings)
+mean_build <- mean(dat$totalWUI)
 mean_age <- mean(dat$Age)
 mean_age2 <- mean_age^2
 mean_stand <- mean(dat$stand_age_mean)
@@ -170,7 +172,7 @@ pred_length <- 100
 stand_pred <- seq(min(dat$stand_age_mean),max(dat$stand_age_mean),length.out=pred_length)
 
 # Average beechnut counts and number of buildlings
-mean_build <- mean(dat$nbuildings)
+mean_build <- mean(dat$totalWUI)
 mean_age <- mean(dat$Age)
 mean_age2 <- mean_age^2
 mean_mast <- mean(dat$lag_beechnuts)
@@ -210,7 +212,7 @@ ggplot(stand.qt.diph) +
 ## Predicting diphifacoum exposure by stand age(and sex)
 nmcmc <- length(beta_stand)
 pred_length <- 100
-build_pred <- seq(min(dat$nbuildings),max(dat$nbuildings),length.out=pred_length)
+build_pred <- seq(min(dat$totalWUI),max(dat$totalWUI),length.out=pred_length)
 
 # Average beechnut counts and number of buildlings
 mean_age <- mean(dat$Age)
@@ -233,7 +235,7 @@ build.diphM.qt <- apply(build.diphM, 2, quantile, probs=c(.5, .025, .975)) |> t(
 build.qt <- bind_rows(build.diphF.qt, build.diphM.qt) %>% rename(median=`50%`, lci=`2.5%`, uci=`97.5%`) 
 
 # Back-transform age prediction values
-build_pred <- build_pred * attr(dat$nbuildings, 'scaled:scale') + attr(dat$nbuildings, 'scaled:center')
+build_pred <- build_pred * attr(dat$totalWUI, 'scaled:scale') + attr(dat$totalWUI, 'scaled:center')
 
 build.qt.diph <- build.qt %>% mutate(Buildings=rep(build_pred, 2))
 build.qt.diph$compound <- "Diphacinone"
@@ -253,7 +255,7 @@ ggplot(build.qt.diph) +
 age.qt.diph <- age.qt.diph %>% mutate(x="Age") %>% rename(x_val=Age) %>% select(compound, Sex, x, x_val, median:uci)
 mast.qt.diph <- mast.qt.diph %>% mutate(x="Beechnuts") %>% rename(x_val=Beechnuts) %>% select(compound, Sex, x, x_val, median:uci)
 stand.qt.diph <- stand.qt.diph %>% mutate(x="StandAge") %>% rename(x_val=StandAge) %>% select(compound, Sex, x, x_val, median:uci)
-build.qt.diph <- build.qt.diph %>% mutate(x="Buildings") %>% rename(x_val=Buildings) %>% select(compound, Sex, x, x_val, median:uci)
+build.qt.diph <- build.qt.diph %>% mutate(x="%WUI") %>% rename(x_val=Buildings) %>% select(compound, Sex, x, x_val, median:uci)
 
 qt.diph <- bind_rows(age.qt.diph, mast.qt.diph, stand.qt.diph, build.qt.diph)
 
@@ -271,11 +273,12 @@ ggplot(qt.diph) +
 all.qt <- bind_rows(qt.diph, qt.brom, qt.brod)
 all.qt$compound <- factor(all.qt$compound, levels=c("Diphacinone", "Brodifacoum", "Bromadiolone"))
 
+
 all.qt <- all.qt %>% mutate(x=case_when(x=="Age" ~ "Age (years)",
                                         x=="Beechnuts" ~ "Beechnut count",
-                                        x=="Buildings" ~ "Building count",
+                                        x=="%WUI" ~ "% WUI",
                                         x=="StandAge" ~ "Stand age (years)"))
-
+all.qt$x <- factor(all.qt$x, levels=c("Age (years)", "Beechnut count", "% WUI", "Stand age (years)"))
 
 ggplot(all.qt) +
   coord_cartesian(ylim=c(0, 1)) +
@@ -303,6 +306,6 @@ ggplot(all.qt) +
 # probably need to remove the left and top borders
 
 ggsave("figs/prob_exp_marginal.svg")
-# Save 11.4 x 7.38
+# Saving 12.7 x 8.41 in image
 
 

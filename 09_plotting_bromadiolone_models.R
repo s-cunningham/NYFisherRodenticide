@@ -17,12 +17,12 @@ dat <- left_join(dat, brom, by="RegionalID")
 dat <- dat %>% select(RegionalID:Town,bin.exp,deciduous:mast_year)
 
 beech <- dat %>% select(beechnuts, bin.exp)
-structures <- dat %>% select(nbuildings, bin.exp)
+structures <- dat %>% select(totalWUI, bin.exp)
 standage <- dat %>% select(stand_age_mean, bin.exp)
 
 # Scale variables
 dat$Age <- scale(dat$Age)
-dat$nbuildings <- scale(dat$nbuildings)
+dat$totalWUI <- scale(dat$totalWUI)
 dat$lag_beechnuts <- scale(dat$lag_beechnuts)
 dat$stand_age_mean <- scale(dat$stand_age_mean)
 
@@ -102,7 +102,7 @@ age_pred <- seq(min(dat$Age),max(dat$Age),length.out=pred_length)
 age_pred2 <- age_pred^2
 
 # Average beechnut counts and number of buildlings
-mean_build <- mean(dat$nbuildings)
+mean_build <- mean(dat$totalWUI)
 mean_mast <- mean(dat$lag_beechnuts)
 mean_stand <- mean(dat$stand_age_mean)
 
@@ -146,7 +146,7 @@ pred_length <- 100
 mast_pred <- seq(min(dat$lag_beechnuts),max(dat$lag_beechnuts),length.out=pred_length)
 
 # Average beechnut counts and number of buildlings
-mean_build <- mean(dat$nbuildings)
+mean_build <- mean(dat$totalWUI)
 mean_age <- mean(dat$Age)
 mean_age2 <- mean_age^2
 mean_stand <- mean(dat$stand_age_mean)
@@ -190,7 +190,7 @@ pred_length <- 100
 stand_pred <- seq(min(dat$stand_age_mean),max(dat$stand_age_mean),length.out=pred_length)
 
 # Average beechnut counts and number of buildlings
-mean_build <- mean(dat$nbuildings)
+mean_build <- mean(dat$totalWUI)
 mean_age <- mean(dat$Age)
 mean_age2 <- mean_age^2
 mean_mast <- mean(dat$lag_beechnuts)
@@ -230,7 +230,7 @@ ggplot(stand.qt.brom) +
 ## Predicting bromifacoum exposure by stand age(and sex)
 nmcmc <- length(beta_stand)
 pred_length <- 100
-build_pred <- seq(min(dat$nbuildings),max(dat$nbuildings),length.out=pred_length)
+build_pred <- seq(min(dat$totalWUI),max(dat$totalWUI),length.out=pred_length)
 
 # Average beechnut counts and number of buildlings
 mean_age <- mean(dat$Age)
@@ -253,7 +253,7 @@ build.bromM.qt <- apply(build.bromM, 2, quantile, probs=c(.5, .025, .975)) |> t(
 build.qt <- bind_rows(build.bromF.qt, build.bromM.qt) %>% rename(median=`50%`, lci=`2.5%`, uci=`97.5%`) 
 
 # Back-transform age prediction values
-build_pred <- build_pred * attr(dat$nbuildings, 'scaled:scale') + attr(dat$nbuildings, 'scaled:center')
+build_pred <- build_pred * attr(dat$totalWUI, 'scaled:scale') + attr(dat$totalWUI, 'scaled:center')
 
 build.qt.brom <- build.qt %>% mutate(Buildings=rep(build_pred, 2))
 build.qt.brom$compound <- "Bromadiolone"
@@ -274,7 +274,7 @@ ggplot(build.qt.brom) +
 age.qt.brom <- age.qt.brom %>% mutate(x="Age") %>% rename(x_val=Age) %>% select(compound, Sex, x, x_val, median:uci)
 mast.qt.brom <- mast.qt.brom %>% mutate(x="Beechnuts") %>% rename(x_val=Beechnuts) %>% select(compound, Sex, x, x_val, median:uci)
 stand.qt.brom <- stand.qt.brom %>% mutate(x="StandAge") %>% rename(x_val=StandAge) %>% select(compound, Sex, x, x_val, median:uci)
-build.qt.brom <- build.qt.brom %>% mutate(x="Buildings") %>% rename(x_val=Buildings) %>% select(compound, Sex, x, x_val, median:uci)
+build.qt.brom <- build.qt.brom %>% mutate(x="%WUI") %>% rename(x_val=Buildings) %>% select(compound, Sex, x, x_val, median:uci)
 
 qt.brom <- bind_rows(age.qt.brom, mast.qt.brom, stand.qt.brom, build.qt.brom)
 

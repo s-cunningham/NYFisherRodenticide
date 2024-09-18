@@ -77,7 +77,7 @@ wmua1 <- as.numeric(factor(dat1$WMUA_code, labels=1:18))
 # create array for covariate data (column for each covariate)
 covars1 <- matrix(NA, nrow=nrow(dat1),ncol=3)
 covars1[1:nrow(dat1),1] <- dat1$lag_beechnuts
-covars1[1:nrow(dat1),2] <- dat1$nbuildings
+covars1[1:nrow(dat1),2] <- dat1$totalWUI
 covars1[1:nrow(dat1),3] <- dat1$stand_age_mean
 
 ## prep fof nimble model
@@ -112,7 +112,7 @@ wmua2 <- as.numeric(factor(dat2$WMUA_code, labels=1:18))
 # create array for covariate data (column for each covariate)
 covars2 <- matrix(NA, nrow=nrow(dat2),ncol=3)
 covars2[1:nrow(dat2),1] <- dat2$lag_beechnuts
-covars2[1:nrow(dat2),2] <- dat2$nbuildings
+covars2[1:nrow(dat2),2] <- dat2$totalWUI
 covars2[1:nrow(dat2),3] <- dat2$stand_age_mean
 
 ## prep fof nimble model
@@ -145,7 +145,7 @@ wmua3 <- as.numeric(factor(dat3$WMUA_code, labels=1:18))
 # create array for covariate data (column for each covariate)
 covars3 <- matrix(NA, nrow=nrow(dat3),ncol=3)
 covars3[1:nrow(dat3),1] <- dat3$lag_beechnuts
-covars3[1:nrow(dat3),2] <- dat3$nbuildings
+covars3[1:nrow(dat3),2] <- dat3$totalWUI
 covars3[1:nrow(dat3),3] <- dat3$stand_age_mean
 
 ## prep fof nimble model
@@ -178,7 +178,7 @@ wmua4 <- as.numeric(factor(dat1$WMUA_code, labels=1:18))
 # create array for covariate data (column for each covariate)
 covars4 <- matrix(NA, nrow=nrow(dat4),ncol=3)
 covars4[1:nrow(dat4),1] <- dat4$lag_beechnuts
-covars4[1:nrow(dat4),2] <- dat4$nbuildings
+covars4[1:nrow(dat4),2] <- dat4$totalWUI
 covars4[1:nrow(dat4),3] <- dat4$stand_age_mean
 
 ## prep fof nimble model
@@ -211,7 +211,7 @@ wmua5 <- as.numeric(factor(dat1$WMUA_code, labels=1:18))
 # create array for covariate data (column for each covariate)
 covars5 <- matrix(NA, nrow=nrow(dat5),ncol=3)
 covars5[1:nrow(dat5),1] <- dat5$lag_beechnuts
-covars5[1:nrow(dat5),2] <- dat5$nbuildings
+covars5[1:nrow(dat5),2] <- dat5$totalWUI
 covars5[1:nrow(dat5),3] <- dat5$stand_age_mean
 
 ## prep fof nimble model
@@ -244,7 +244,7 @@ wmua6 <- as.numeric(factor(dat6$WMUA_code, labels=1:18))
 # create array for covariate data (column for each covariate)
 covars6 <- matrix(NA, nrow=nrow(dat6),ncol=3)
 covars6[1:nrow(dat6),1] <- dat6$lag_beechnuts
-covars6[1:nrow(dat6),2] <- dat6$nbuildings
+covars6[1:nrow(dat6),2] <- dat6$totalWUI
 covars6[1:nrow(dat6),3] <- dat6$stand_age_mean
 
 ## prep fof nimble model
@@ -277,7 +277,7 @@ wmua7 <- as.numeric(factor(dat7$WMUA_code, labels=1:18))
 # create array for covariate data (column for each covariate)
 covars7 <- matrix(NA, nrow=nrow(dat7),ncol=3)
 covars7[1:nrow(dat7),1] <- dat7$lag_beechnuts
-covars7[1:nrow(dat7),2] <- dat7$nbuildings
+covars7[1:nrow(dat7),2] <- dat7$totalWUI
 covars7[1:nrow(dat7),3] <- dat7$stand_age_mean
 
 ## prep fof nimble model
@@ -311,7 +311,7 @@ wmua8 <- as.numeric(factor(dat8$WMUA_code, labels=1:18))
 # create array for covariate data (column for each covariate)
 covars8 <- matrix(NA, nrow=nrow(dat8),ncol=3)
 covars8[1:nrow(dat8),1] <- dat8$lag_beechnuts
-covars8[1:nrow(dat8),2] <- dat8$nbuildings
+covars8[1:nrow(dat8),2] <- dat8$totalWUI
 covars8[1:nrow(dat8),3] <- dat8$stand_age_mean
 
 ## prep fof nimble model
@@ -344,7 +344,7 @@ wmua9 <- as.numeric(factor(dat9$WMUA_code, labels=1:18))
 # create array for covariate data (column for each covariate)
 covars9 <- matrix(NA, nrow=nrow(dat9),ncol=3)
 covars9[1:nrow(dat9),1] <- dat9$lag_beechnuts
-covars9[1:nrow(dat9),2] <- dat9$nbuildings
+covars9[1:nrow(dat9),2] <- dat9$totalWUI
 covars9[1:nrow(dat9),3] <- dat9$stand_age_mean
 
 ## prep fof nimble model
@@ -377,7 +377,7 @@ wmua10 <- as.numeric(factor(dat1$WMUA_code, labels=1:18))
 # create array for covariate data (column for each covariate)
 covars10 <- matrix(NA, nrow=nrow(dat10),ncol=3)
 covars10[1:nrow(dat10),1] <- dat10$lag_beechnuts
-covars10[1:nrow(dat10),2] <- dat10$nbuildings
+covars10[1:nrow(dat10),2] <- dat10$totalWUI
 covars10[1:nrow(dat10),3] <- dat10$stand_age_mean
 
 ## prep fof nimble model
