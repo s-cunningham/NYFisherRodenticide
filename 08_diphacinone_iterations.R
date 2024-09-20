@@ -19,17 +19,17 @@ dat <- left_join(dat, diph, by="RegionalID")
 dat <- dat %>% select(RegionalID:Town,bin.exp,deciduous:mast_year)
 
 # Build model in BUGS language
-diphacinone_code <- nimbleCode({
+diphifacoum_code <- nimbleCode({
   
   ## Priors
   # beta coefficient priors
   beta_age ~ dnorm(0, sd=1.4)
   beta_age2 ~ dnorm(0, sd=1.4)
   beta_sex[1] <- 0
-  beta_sex[2] ~ dnorm(0, 0.001)
-  beta_build ~ dnorm(0, sd=1.4)
+  beta_sex[2] ~ dnorm(0, sd=1.4)
+  beta_wui ~ dnorm(0, sd=1.4)
   beta_mast ~ dnorm(0, sd=1.4)
-  beta_standm ~ dnorm(0, sd=1.4)
+  beta_intx ~ dnorm(0, sd=1.4)
   
   ## random intercepts
   # WMU
@@ -43,7 +43,7 @@ diphacinone_code <- nimbleCode({
   for (i in 1:N) {
     
     logit(p[i]) <- alpha[WMUA[i]] + beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + 
-                      beta_mast*covars[i,1] + beta_build*covars[i,2] + beta_standm*covars[i,3]
+      beta_mast*beechnuts[i] + beta_wui*wui[i] + beta_intx*wui[i]*beechnuts[i]
     
     y[i] ~ dbern(p[i])
     
@@ -52,19 +52,19 @@ diphacinone_code <- nimbleCode({
 })
 
 # parameters to monitor
-params <- c("beta_age","beta_age2","beta_sex","beta_mast",
-            "beta_build","beta_standm",  "alpha", "mu.alpha", "sigma.alpha")  
+params <- c("beta_age","beta_age2","beta_sex","beta_mast","beta_wui","beta_intx", 
+            "alpha", "mu.alpha", "sigma.alpha")  
 
 # MCMC options
 nt <- 1
-ni <- 25000
-nb <- 12000
+ni <- 50000
+nb <- 25000
 nc <- 3
 
 set.seed(1)
 Inits <- list(sigma.alpha=1, mu.alpha=1, alpha=rnorm(18), #beta0=rnorm(1),
-              beta_mast=rnorm(1), beta_build=rnorm(1), beta_standm=rnorm(1), 
-              beta_age=rnorm(1), beta_age2=rnorm(1), beta_sex=rnorm(2)) 
+              beta_mast=0, beta_wui=0, beta_intx=rnorm(1), 
+              beta_age=0, beta_age2=0, beta_sex=rep(0,2)) 
 
 #### Loop over random locations ####
 ## Iteration 1
@@ -74,12 +74,6 @@ dat1 <- dat %>% filter(pt_index==1)
 diph1 <- dat1$bin.exp
 wmua1 <- as.numeric(factor(dat1$WMUA_code, labels=1:18))
 
-# create array for covariate data (column for each covariate)
-covars1 <- matrix(NA, nrow=nrow(dat1),ncol=3)
-covars1[1:nrow(dat1),1] <- dat1$lag_beechnuts
-covars1[1:nrow(dat1),2] <- dat1$totalWUI
-covars1[1:nrow(dat1),3] <- dat1$stand_age_mean
-
 ## prep fof nimble model
 Constants1 <- list(N=nrow(dat1),
                    sex=dat1$Sex,
@@ -87,12 +81,13 @@ Constants1 <- list(N=nrow(dat1),
                    nWMUA=length(unique(dat1$WMUA_code)))
 
 DataBundle1 <- list(y=diph1, # response
-                    covars=covars1, # covariates 
+                    beechnuts=dat1$lag_beechnuts,
+                    wui=dat1$intermix,
                     age=dat1$Age,
                     age2=dat1$age2) 
 
 set.seed(1)
-diph.out1 <- nimbleMCMC(code=diphacinone_code, constants=Constants1, data=DataBundle1, 
+diph.out1 <- nimbleMCMC(code=diphifacoum_code, constants=Constants1, data=DataBundle1, 
                         inits=Inits, monitors=params,thin=nt, niter=ni, nburnin=nb, 
                         nchains=nc, check=FALSE, samples=TRUE,
                         samplesAsCodaMCMC=TRUE, summary=FALSE, WAIC=FALSE)
@@ -109,12 +104,6 @@ dat2 <- dat %>% filter(pt_index==2)
 diph2 <- dat2$bin.exp
 wmua2 <- as.numeric(factor(dat2$WMUA_code, labels=1:18))
 
-# create array for covariate data (column for each covariate)
-covars2 <- matrix(NA, nrow=nrow(dat2),ncol=3)
-covars2[1:nrow(dat2),1] <- dat2$lag_beechnuts
-covars2[1:nrow(dat2),2] <- dat2$totalWUI
-covars2[1:nrow(dat2),3] <- dat2$stand_age_mean
-
 ## prep fof nimble model
 Constants2 <- list(N=nrow(dat2),
                    sex=dat2$Sex,
@@ -122,12 +111,13 @@ Constants2 <- list(N=nrow(dat2),
                    nWMUA=length(unique(dat2$WMUA_code)))
 
 DataBundle2 <- list(y=diph2, # response
-                    covars=covars2, # covariates 
+                    beechnuts=dat2$lag_beechnuts,
+                    wui=dat2$intermix,
                     age=dat2$Age,
                     age2=dat2$age2) 
 
 set.seed(1)
-diph.out2 <- nimbleMCMC(code=diphacinone_code, constants=Constants2, data=DataBundle2, 
+diph.out2 <- nimbleMCMC(code=diphifacoum_code, constants=Constants2, data=DataBundle2, 
                         inits=Inits, monitors=params,thin=nt, niter=ni, nburnin=nb, 
                         nchains=nc, check=FALSE, samples=TRUE,
                         samplesAsCodaMCMC=TRUE, summary=FALSE, WAIC=FALSE)
@@ -142,12 +132,6 @@ dat3 <- dat %>% filter(pt_index==3)
 diph3 <- dat3$bin.exp
 wmua3 <- as.numeric(factor(dat3$WMUA_code, labels=1:18))
 
-# create array for covariate data (column for each covariate)
-covars3 <- matrix(NA, nrow=nrow(dat3),ncol=3)
-covars3[1:nrow(dat3),1] <- dat3$lag_beechnuts
-covars3[1:nrow(dat3),2] <- dat3$totalWUI
-covars3[1:nrow(dat3),3] <- dat3$stand_age_mean
-
 ## prep fof nimble model
 Constants3 <- list(N=nrow(dat3),
                    sex=dat3$Sex,
@@ -155,12 +139,13 @@ Constants3 <- list(N=nrow(dat3),
                    nWMUA=length(unique(dat3$WMUA_code)))
 
 DataBundle3 <- list(y=diph3, # response
-                    covars=covars3, # covariates 
+                    beechnuts=dat3$lag_beechnuts,
+                    wui=dat3$intermix,
                     age=dat3$Age,
                     age2=dat3$age2) 
 
 set.seed(1)
-diph.out3 <- nimbleMCMC(code=diphacinone_code, constants=Constants3, data=DataBundle3, 
+diph.out3 <- nimbleMCMC(code=diphifacoum_code, constants=Constants3, data=DataBundle3, 
                         inits=Inits, monitors=params,thin=nt, niter=ni, nburnin=nb, 
                         nchains=nc, check=FALSE, samples=TRUE,
                         samplesAsCodaMCMC=TRUE, summary=FALSE, WAIC=FALSE)
@@ -175,12 +160,6 @@ dat4 <- dat %>% filter(pt_index==4)
 diph4 <- dat4$bin.exp
 wmua4 <- as.numeric(factor(dat1$WMUA_code, labels=1:18))
 
-# create array for covariate data (column for each covariate)
-covars4 <- matrix(NA, nrow=nrow(dat4),ncol=3)
-covars4[1:nrow(dat4),1] <- dat4$lag_beechnuts
-covars4[1:nrow(dat4),2] <- dat4$totalWUI
-covars4[1:nrow(dat4),3] <- dat4$stand_age_mean
-
 ## prep fof nimble model
 Constants4 <- list(N=nrow(dat4),
                    sex=dat4$Sex,
@@ -188,12 +167,13 @@ Constants4 <- list(N=nrow(dat4),
                    nWMUA=length(unique(dat4$WMUA_code)))
 
 DataBundle4 <- list(y=diph4, # response
-                    covars=covars4, # covariates 
+                    beechnuts=dat4$lag_beechnuts,
+                    wui=dat4$intermix,
                     age=dat4$Age,
                     age2=dat4$age2) 
 
 set.seed(1)
-diph.out4 <- nimbleMCMC(code=diphacinone_code, constants=Constants4, data=DataBundle4, 
+diph.out4 <- nimbleMCMC(code=diphifacoum_code, constants=Constants4, data=DataBundle4, 
                         inits=Inits, monitors=params,thin=nt, niter=ni, nburnin=nb, 
                         nchains=nc, check=FALSE, samples=TRUE,
                         samplesAsCodaMCMC=TRUE, summary=FALSE, WAIC=FALSE)
@@ -208,12 +188,6 @@ dat5 <- dat %>% filter(pt_index==5)
 diph5 <- dat5$bin.exp
 wmua5 <- as.numeric(factor(dat1$WMUA_code, labels=1:18))
 
-# create array for covariate data (column for each covariate)
-covars5 <- matrix(NA, nrow=nrow(dat5),ncol=3)
-covars5[1:nrow(dat5),1] <- dat5$lag_beechnuts
-covars5[1:nrow(dat5),2] <- dat5$totalWUI
-covars5[1:nrow(dat5),3] <- dat5$stand_age_mean
-
 ## prep fof nimble model
 Constants5 <- list(N=nrow(dat5),
                    sex=dat5$Sex,
@@ -221,12 +195,13 @@ Constants5 <- list(N=nrow(dat5),
                    nWMUA=length(unique(dat5$WMUA_code)))
 
 DataBundle5 <- list(y=diph5, # response
-                    covars=covars5, # covariates 
+                    beechnuts=dat5$lag_beechnuts,
+                    wui=dat5$intermix,
                     age=dat5$Age,
                     age2=dat5$age2) 
 
 set.seed(1)
-diph.out5 <- nimbleMCMC(code=diphacinone_code, constants=Constants5, data=DataBundle5, 
+diph.out5 <- nimbleMCMC(code=diphifacoum_code, constants=Constants5, data=DataBundle5, 
                         inits=Inits, monitors=params,thin=nt, niter=ni, nburnin=nb, 
                         nchains=nc, check=FALSE, samples=TRUE,
                         samplesAsCodaMCMC=TRUE, summary=FALSE, WAIC=FALSE)
@@ -241,12 +216,6 @@ dat6<- dat %>% filter(pt_index==6)
 diph6 <- dat6$bin.exp
 wmua6 <- as.numeric(factor(dat6$WMUA_code, labels=1:18))
 
-# create array for covariate data (column for each covariate)
-covars6 <- matrix(NA, nrow=nrow(dat6),ncol=3)
-covars6[1:nrow(dat6),1] <- dat6$lag_beechnuts
-covars6[1:nrow(dat6),2] <- dat6$totalWUI
-covars6[1:nrow(dat6),3] <- dat6$stand_age_mean
-
 ## prep fof nimble model
 Constants6 <- list(N=nrow(dat6),
                    sex=dat6$Sex,
@@ -254,12 +223,13 @@ Constants6 <- list(N=nrow(dat6),
                    nWMUA=length(unique(dat6$WMUA_code)))
 
 DataBundle6 <- list(y=diph6, # response
-                    covars=covars6, # covariates 
+                    beechnuts=dat6$lag_beechnuts,
+                    wui=dat6$intermix,
                     age=dat6$Age,
                     age2=dat6$age2) 
 
 set.seed(1)
-diph.out6 <- nimbleMCMC(code=diphacinone_code, constants=Constants6, data=DataBundle6, 
+diph.out6 <- nimbleMCMC(code=diphifacoum_code, constants=Constants6, data=DataBundle6, 
                         inits=Inits, monitors=params,thin=nt, niter=ni, nburnin=nb, 
                         nchains=nc, check=FALSE, samples=TRUE,
                         samplesAsCodaMCMC=TRUE, summary=FALSE, WAIC=FALSE)
@@ -274,12 +244,6 @@ dat7 <- dat %>% filter(pt_index==7)
 diph7 <- dat7$bin.exp
 wmua7 <- as.numeric(factor(dat7$WMUA_code, labels=1:18))
 
-# create array for covariate data (column for each covariate)
-covars7 <- matrix(NA, nrow=nrow(dat7),ncol=3)
-covars7[1:nrow(dat7),1] <- dat7$lag_beechnuts
-covars7[1:nrow(dat7),2] <- dat7$totalWUI
-covars7[1:nrow(dat7),3] <- dat7$stand_age_mean
-
 ## prep fof nimble model
 Constants7 <- list(N=nrow(dat7),
                    sex=dat7$Sex,
@@ -287,12 +251,13 @@ Constants7 <- list(N=nrow(dat7),
                    nWMUA=length(unique(dat7$WMUA_code)))
 
 DataBundle7 <- list(y=diph7, # response
-                    covars=covars7, # covariates 
+                    beechnuts=dat7$lag_beechnuts,
+                    wui=dat7$intermix,
                     age=dat7$Age,
                     age2=dat7$age2) 
 
 set.seed(1)
-diph.out7 <- nimbleMCMC(code=diphacinone_code, constants=Constants5, data=DataBundle5, 
+diph.out7 <- nimbleMCMC(code=diphifacoum_code, constants=Constants5, data=DataBundle5, 
                         inits=Inits, monitors=params,thin=nt, niter=ni, nburnin=nb, 
                         nchains=nc, check=FALSE, samples=TRUE,
                         samplesAsCodaMCMC=TRUE, summary=FALSE, WAIC=FALSE)
@@ -308,12 +273,6 @@ dat8 <- dat %>% filter(pt_index==8)
 diph8 <- dat8$bin.exp
 wmua8 <- as.numeric(factor(dat8$WMUA_code, labels=1:18))
 
-# create array for covariate data (column for each covariate)
-covars8 <- matrix(NA, nrow=nrow(dat8),ncol=3)
-covars8[1:nrow(dat8),1] <- dat8$lag_beechnuts
-covars8[1:nrow(dat8),2] <- dat8$totalWUI
-covars8[1:nrow(dat8),3] <- dat8$stand_age_mean
-
 ## prep fof nimble model
 Constants8 <- list(N=nrow(dat8),
                    sex=dat8$Sex,
@@ -321,12 +280,13 @@ Constants8 <- list(N=nrow(dat8),
                    nWMUA=length(unique(dat8$WMUA_code)))
 
 DataBundle8 <- list(y=diph8, # response
-                    covars=covars8, # covariates 
+                    beechnuts=dat8$lag_beechnuts,
+                    wui=dat8$intermix,
                     age=dat8$Age,
                     age2=dat8$age2) 
 
 set.seed(1)
-diph.out8 <- nimbleMCMC(code=diphacinone_code, constants=Constants8, data=DataBundle8, 
+diph.out8 <- nimbleMCMC(code=diphifacoum_code, constants=Constants8, data=DataBundle8, 
                         inits=Inits, monitors=params,thin=nt, niter=ni, nburnin=nb, 
                         nchains=nc, check=FALSE, samples=TRUE,
                         samplesAsCodaMCMC=TRUE, summary=FALSE, WAIC=FALSE)
@@ -341,25 +301,20 @@ dat9 <- dat %>% filter(pt_index==9)
 diph9 <- dat9$bin.exp
 wmua9 <- as.numeric(factor(dat9$WMUA_code, labels=1:18))
 
-# create array for covariate data (column for each covariate)
-covars9 <- matrix(NA, nrow=nrow(dat9),ncol=3)
-covars9[1:nrow(dat9),1] <- dat9$lag_beechnuts
-covars9[1:nrow(dat9),2] <- dat9$totalWUI
-covars9[1:nrow(dat9),3] <- dat9$stand_age_mean
-
 ## prep fof nimble model
 Constants9 <- list(N=nrow(dat9),
-                    sex=dat9$Sex,
-                    WMUA=wmua9, # random intercept
-                    nWMUA=length(unique(dat9$WMUA_code)))
+                   sex=dat9$Sex,
+                   WMUA=wmua9, # random intercept
+                   nWMUA=length(unique(dat9$WMUA_code)))
 
 DataBundle9 <- list(y=diph9, # response
-                    covars=covars9, # covariates 
+                    beechnuts=dat9$lag_beechnuts,
+                    wui=dat9$intermix,
                     age=dat9$Age,
                     age2=dat9$age2) 
 
 set.seed(1)
-diph.out9 <- nimbleMCMC(code=diphacinone_code, constants=Constants9, data=DataBundle9, 
+diph.out9 <- nimbleMCMC(code=diphifacoum_code, constants=Constants9, data=DataBundle9, 
                         inits=Inits, monitors=params,thin=nt, niter=ni, nburnin=nb, 
                         nchains=nc, check=FALSE, samples=TRUE,
                         samplesAsCodaMCMC=TRUE, summary=FALSE, WAIC=FALSE)
@@ -374,25 +329,20 @@ dat10 <- dat %>% filter(pt_index==10)
 diph10 <- dat10$bin.exp
 wmua10 <- as.numeric(factor(dat1$WMUA_code, labels=1:18))
 
-# create array for covariate data (column for each covariate)
-covars10 <- matrix(NA, nrow=nrow(dat10),ncol=3)
-covars10[1:nrow(dat10),1] <- dat10$lag_beechnuts
-covars10[1:nrow(dat10),2] <- dat10$totalWUI
-covars10[1:nrow(dat10),3] <- dat10$stand_age_mean
-
 ## prep fof nimble model
 Constants10 <- list(N=nrow(dat10),
-                   sex=dat10$Sex,
-                   WMUA=wmua10, # random intercept
-                   nWMUA=length(unique(dat10$WMUA_code)))
+                    sex=dat10$Sex,
+                    WMUA=wmua10, # random intercept
+                    nWMUA=length(unique(dat10$WMUA_code)))
 
 DataBundle10 <- list(y=diph10, # response
-                     covars=covars10, # covariates 
+                     beechnuts=dat10$lag_beechnuts,
+                     wui=dat10$intermix,
                      age=dat10$Age,
                      age2=dat10$age2) 
 
 set.seed(1)
-diph.out10 <- nimbleMCMC(code=diphacinone_code, constants=Constants10, data=DataBundle10, 
+diph.out10 <- nimbleMCMC(code=diphifacoum_code, constants=Constants10, data=DataBundle10, 
                          inits=Inits, monitors=params,thin=nt, niter=ni, nburnin=nb, 
                          nchains=nc, check=FALSE, samples=TRUE,
                          samplesAsCodaMCMC=TRUE, summary=FALSE, WAIC=FALSE)
@@ -433,6 +383,8 @@ saveRDS(diph.out9, "output/model_output/diph.out9.rds")
 
 saveRDS(diph.sum10, "output/model_output/diph.sum10.rds")
 saveRDS(diph.out10, "output/model_output/diph.out10.rds")
+
+
 
 
 

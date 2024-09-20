@@ -9,12 +9,12 @@ library(HDInterval)
 ## Read data, remove some columns we don't want to test
 dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") %>%
   mutate(age2=Age^2) %>%
-  dplyr::select(-edge_density_15, -edge_density_30, -edge_density_45, -build_cat_15, -build_cat_30,-build_cat_45) %>%
+  dplyr::select(RegionalID:ncomp,nbuildings,notWUI:totalWUI,beechnuts:age2) %>%
   mutate(mast_year=if_else(year==2019, 1, 2), # mast years are reference
          Sex=if_else(Sex=='F',1,2)) # Females are reference
 
 # Scale variables
-dat[,c(8,16:42)] <- scale(dat[,c(8,16:42)])
+dat[,c(8,16:23)] <- scale(dat[,c(8,16:23)])
 
 ## Nimble-ize Conway-Maxwell Poisson functions
 # Random values function
@@ -42,11 +42,12 @@ ncompounds_code <- nimbleCode({
   # beta coefficient priors
   beta_age ~ dnorm(0, 0.001)
   beta_age2 ~ dnorm(0, 0.001)
-  beta_build ~ dnorm(0, 0.001)
   beta_sex[1] <- 0
   beta_sex[2] ~ dnorm(0, 0.001)
+  beta_wui ~ dnorm(0, 0.001)
   beta_mast ~ dnorm(0, 0.001)
-
+  beta_intx ~ dnorm(0, 0.001)
+  
   ## random intercepts - WMUA
   for (k in 1:nWMUA) {
     alpha[k] ~ dnorm(mu.alpha, tau.alpha)
@@ -58,9 +59,9 @@ ncompounds_code <- nimbleCode({
   ## Likelihood
   for (i in 1:N) {
     
-    log(lambda[i]) <- alpha[WMUA[i]] + beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + 
-                          beta_build*buildings[i] + beta_mast*beechnuts[i] 
-    
+    lambda[i] <- exp(alpha[WMUA[i]] + beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + 
+                       beta_wui*wui[i] + beta_mast*beechnuts[i] + beta_intx*wui[i]*beechnuts[i]) 
+
     ncomp[i] ~ dCOMP(lambda[i], nu)
     
   }
@@ -68,18 +69,18 @@ ncompounds_code <- nimbleCode({
 })
 
 # parameters to monitor
-params <- c("beta_age","beta_age2","beta_sex","beta_build",
-            "beta_mast", "nu", "alpha", "mu.alpha", "sigma.alpha")  
+params <- c("beta_age","beta_age2","beta_sex", "beta_wui", "beta_mast", "beta_intx",
+            "nu", "alpha", "mu.alpha", "sigma.alpha")  
 
 # MCMC options
 nt <- 1
-ni <- 40000
-nb <- 20000
+ni <- 150000
+nb <- 75000
 nc <- 3
 
 set.seed(1)
-Inits <- list(nu=1.5, sigma.alpha=1, alpha=rnorm(18), mu.alpha=rnorm(1),
-              beta_sex=rnorm(2), beta_age=rnorm(1),beta_build=rnorm(1), beta_age2=rnorm(1), beta_mast=rnorm(1))
+Inits <- list(nu=1.5, sigma.alpha=1, alpha=rnorm(18), mu.alpha=rnorm(1), beta_mast=0, beta_intx=0, 
+              beta_sex=rep(0,2), beta_age=0, beta_age2=0, beta_wui=0) #
 
 #### Loop over random locations ####
 ## Iteration 1
@@ -96,7 +97,7 @@ Constants1 <- list(N=nrow(dat1),
                    nWMUA=length(unique(dat1$WMUA_code)))
 
 DataBundle1 <- list(ncomp=ncomp1, # response
-                    buildings=dat1$nbuildings_15, # covariates (buildings)
+                    wui=dat1$intermix, # covariates (buildings)
                     beechnuts=dat1$lag_beechnuts,   
                     age=dat1$Age,
                     age2=dat1$age2) 
@@ -111,11 +112,12 @@ ncomp.sum1 <- MCMCsummary(ncomp.out1)
 ncomp.sum1 <- rownames_to_column(ncomp.sum1, "parameter")
 range(ncomp.sum1$Rhat, na.rm=TRUE)
 
-MCMCtrace(ncomp.out1, 
-          params = c('beta_mast[1]', 'beta_mast[2]'), 
-          ISB = FALSE, 
-          exact = TRUE,
-          pdf = FALSE)
+MCMCtrace(ncomp.out1, pdf = FALSE)
+
+
+saveRDS(ncomp.sum1, "output/model_output/ncomp.sum1.rds")
+saveRDS(ncomp.out1, "output/model_output/ncomp.out1.rds")
+
 
 ## Iteration 2
 dat2 <- dat %>% filter(pt_index==2)
@@ -146,6 +148,11 @@ ncomp.sum2 <- MCMCsummary(ncomp.out2)
 ncomp.sum2 <- rownames_to_column(ncomp.sum2, "parameter")
 range(ncomp.sum2$Rhat, na.rm=TRUE)
 
+
+saveRDS(ncomp.sum2, "output/model_output/ncomp.sum2.rds")
+saveRDS(ncomp.out2, "output/model_output/ncomp.out2.rds")
+
+
 ## Iteration 3
 dat3 <- dat %>% filter(pt_index==3)
 
@@ -174,6 +181,11 @@ ncomp.out3 <- nimbleMCMC(code=ncompounds_code, constants=Constants3, data=DataBu
 ncomp.sum3 <- MCMCsummary(ncomp.out3)
 ncomp.sum3 <- rownames_to_column(ncomp.sum3, "parameter")
 range(ncomp.sum3$Rhat, na.rm=TRUE)
+
+
+saveRDS(ncomp.sum3, "output/model_output/ncomp.sum3.rds")
+saveRDS(ncomp.out3, "output/model_output/ncomp.out3.rds")
+
 
 ## Iteration 4
 dat4 <- dat %>% filter(pt_index==4)
@@ -204,6 +216,10 @@ ncomp.sum4 <- MCMCsummary(ncomp.out4)
 ncomp.sum4 <- rownames_to_column(ncomp.sum4, "parameter")
 range(ncomp.sum4$Rhat, na.rm=TRUE)
 
+saveRDS(ncomp.sum4, "output/model_output/ncomp.sum4.rds")
+saveRDS(ncomp.out4, "output/model_output/ncomp.out4.rds")
+
+
 ## Iteration 5
 dat5 <- dat %>% filter(pt_index==5)
 
@@ -232,6 +248,10 @@ ncomp.out5 <- nimbleMCMC(code=ncompounds_code, constants=Constants5, data=DataBu
 ncomp.sum5 <- MCMCsummary(ncomp.out5)
 ncomp.sum5 <- rownames_to_column(ncomp.sum5, "parameter")
 range(ncomp.sum5$Rhat, na.rm=TRUE)
+
+saveRDS(ncomp.sum5, "output/model_output/ncomp.sum5.rds")
+saveRDS(ncomp.out5, "output/model_output/ncomp.out5.rds")
+
 
 ## Iteration 6
 dat6 <- dat %>% filter(pt_index==6)

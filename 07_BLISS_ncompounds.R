@@ -15,7 +15,7 @@ dat <- read_csv("data/analysis-ready/combined_AR_covars.csv") %>%
 dat[,c(8,17:(ncol(dat)-1))] <- scale(dat[,c(8,17:(ncol(dat)-1))])
 
 ## Set up data
-nVars <- 3
+nVars <- 2
 ncomp <- dat$ncomp
 wmua <- as.numeric(factor(dat$WMUA_code, labels=1:18))
 ids <- as.numeric(factor(dat$RegionalID, labels=1:length(unique(dat$RegionalID))))
@@ -24,9 +24,6 @@ ids <- as.numeric(factor(dat$RegionalID, labels=1:length(unique(dat$RegionalID))
 scale_covars <- array(NA, dim=c(nrow(dat), 4, 2))
 scale_covars[1:nrow(dat),1:4,1] <- as.matrix(dat[1:nrow(dat),37:40]) # mast
 scale_covars[1:nrow(dat),1:4,2] <- as.matrix(dat[1:nrow(dat),c(21,34:36)]) # WUI
-
-scale_covars2 <- array(NA, dim=c(nrow(dat), 5, 1))
-scale_covars2[1:nrow(dat),1:5,1] <- as.matrix(dat[1:nrow(dat),c(18,23:26)]) # forest structure
 
 # prep fof nimble model
 vsConstants <- list(N=nrow(dat),
@@ -39,16 +36,15 @@ vsConstants <- list(N=nrow(dat),
 
 vsDataBundle <- list(ncomp=ncomp, # response
                      scale_covars=scale_covars,
-                     scale_covars2=scale_covars2,
                      age=dat$Age,
                      age2=dat$age2) 
 
 vsInits <- list(sigma.eta=1, mu.eta=1, eta=rnorm(length(unique(ids))), 
                 sigma.eps=1, mu.eps=1, eps=rnorm(length(unique(wmua))), 
-                nu=1.5, mast_scale=1, wui_scale=1, fstruct_scale=1,
+                nu=1.5, mast_scale=1, wui_scale=1, 
                 beta=rnorm(vsConstants$nVars), beta0=rnorm(1),
                 beta_age=rnorm(1), beta_age2=rnorm(1),
-                beta_sex=rnorm(2), cat_prob=rep(1/4,4), cat_prob2=rep(1/5,5)) 
+                beta_sex=rnorm(2), cat_prob=rep(1/4,4)) 
 
 ## Nimble-ize Conway-Maxwell Poisson functions
 # Random values function
@@ -88,9 +84,7 @@ var_scale_code <- nimbleCode({
   cat_prob[1:4] <- c(1/4, 1/4, 1/4, 1/4)
   mast_scale ~ dcat(cat_prob[1:4])
   wui_scale ~ dcat(cat_prob[1:4])
-  cat_prob2[1:5] <- c(1/5, 1/5, 1/5, 1/5, 1/5)
-  fstruct_scale ~ dcat(cat_prob2[1:5])
-  
+
   # sample
   for (k in 1:nsamples) {
     eta[k] ~ dnorm(mu.eta, sd=sigma.eta)
@@ -108,11 +102,10 @@ var_scale_code <- nimbleCode({
   ## Likelihood
   for (i in 1:N) {
     
-    lambda[i] <- exp(eta[sampleID[i]] + eps[WMUA[i]] + beta0 +
+    log(lambda[i]) <- eta[sampleID[i]] + eps[WMUA[i]] + beta0 +
                        beta_age*age[i] + beta_age2*age2[i] + beta_sex[sex[i]] + 
                        beta[1]*scale_covars[i, mast_scale, 1] +
-                       beta[2]*scale_covars[i, wui_scale, 2] +
-                       beta[3]*scale_covars2[i, fstruct_scale, 1])
+                       beta[2]*scale_covars[i, wui_scale, 2]
     
     ncomp[i] ~ dCOMP(lambda[i], nu)
     
@@ -120,7 +113,7 @@ var_scale_code <- nimbleCode({
   
 })
 
-params <- c("beta0", "beta_age", "beta_age2", "beta_sex", "beta", "eta", "eps", "mast_scale", "wui_scale", "fstruct_scale")
+params <- c("beta0", "beta_age", "beta_age2", "beta_sex", "beta", "eta", "eps", "mast_scale", "wui_scale")
 
 samples <- nimbleMCMC(
   code = var_scale_code,
