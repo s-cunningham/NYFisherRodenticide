@@ -16,15 +16,13 @@ brom <- read_csv("output/summarized_AR_results.csv") %>% filter(compound=="Broma
 dat <- left_join(dat, brom, by="RegionalID")
 dat <- dat %>% select(RegionalID:Town,bin.exp,deciduous:mast_year)
 
-beech <- dat %>% select(beechnuts, bin.exp)
-structures <- dat %>% select(totalWUI, bin.exp)
-standage <- dat %>% select(stand_age_mean, bin.exp)
+beech <- dat %>% select(lag_beechnuts, bin.exp)
+intermix <- dat %>% select(totalWUI, bin.exp)
 
 # Scale variables
 dat$Age <- scale(dat$Age)
-dat$totalWUI <- scale(dat$totalWUI)
+dat$intermix <- scale(dat$intermix)
 dat$lag_beechnuts <- scale(dat$lag_beechnuts)
-dat$stand_age_mean <- scale(dat$stand_age_mean)
 
 # Load posterior samples
 brom.out1 <- readRDS("output/model_output/brom.out1.rds")
@@ -52,66 +50,42 @@ brom.out10 <- do.call("rbind",brom.out10)
 beta_age <- c(brom.out1[,19],brom.out2[,19],brom.out3[,19],brom.out4[,19],brom.out5[,19],
               brom.out6[,19],brom.out7[,19],brom.out8[,19],brom.out9[,19],brom.out10[,19])
 
-# Calculate HDI and quantiles
-quantile(beta_age, probs=c(0.025,0.5,0.975))
-
-
 beta_age2 <- c(brom.out1[,20],brom.out2[,20],brom.out3[,20],brom.out4[,20],brom.out5[,20],
                brom.out6[,20],brom.out7[,20],brom.out8[,20],brom.out9[,20],brom.out10[,20])
 
-# Calculate HDI and quantiles
-quantile(beta_age2, probs=c(0.025,0.5,0.975))
-
-beta_build <- c(brom.out1[,21],brom.out2[,21],brom.out3[,21],brom.out4[,21],brom.out5[,21],
-                brom.out6[,21],brom.out7[,21],brom.out8[,21],brom.out9[,21],brom.out10[,21])
-
-# Calculate quantiles
-quantile(beta_build, probs=c(0.025,0.5,0.975))
+beta_intx <- c(brom.out1[,21],brom.out2[,21],brom.out3[,21],brom.out4[,21],brom.out5[,21],
+               brom.out6[,21],brom.out7[,21],brom.out8[,21],brom.out9[,21],brom.out10[,21])
 
 beta_mast <- c(brom.out1[,22],brom.out2[,22],brom.out3[,22],brom.out4[,22],brom.out5[,22],
                brom.out6[,22],brom.out7[,22],brom.out8[,22],brom.out9[,22],brom.out10[,22])
 
-# Calculate quantiles
-quantile(beta_mast, probs=c(0.025,0.5,0.975))
-
 beta_sex2 <- c(brom.out1[,24],brom.out2[,24],brom.out3[,24],brom.out4[,24],brom.out5[,24],
                brom.out6[,24],brom.out7[,24],brom.out8[,24],brom.out9[,24],brom.out10[,24])
 
-# Calculate quantiles
-quantile(beta_sex2, probs=c(0.025,0.5,0.975))
-
-
-beta_stand <- c(brom.out1[,25],brom.out2[,25],brom.out3[,25],brom.out4[,25],brom.out5[,25],
-                brom.out6[,25],brom.out7[,25],brom.out8[,25],brom.out9[,25],brom.out10[,25])
-
-# Calculate quantiles
-quantile(beta_stand, probs=c(0.025,0.5,0.975))
-
-
-##############
+beta_wui <- c(brom.out1[,25],brom.out2[,25],brom.out3[,25],brom.out4[,25],brom.out5[,25],
+              brom.out6[,25],brom.out7[,25],brom.out8[,25],brom.out9[,25],brom.out10[,25])
 
 ## Look at intercept
 alpha <- c(rowMeans(brom.out1[,1:18]), rowMeans(brom.out2[,1:18]), rowMeans(brom.out3[,1:18]), rowMeans(brom.out4[,1:18]), rowMeans(brom.out5[,1:18]),
            rowMeans(brom.out6[,1:18]), rowMeans(brom.out7[,1:18]), rowMeans(brom.out8[,1:18]), rowMeans(brom.out9[,1:18]), rowMeans(brom.out10[,1:18]))
-plot(density(alpha))
+# plot(density(alpha))
 
-## Predicting bromifacoum exposure by age (and sex)
+## Predicting Bromadiolone exposure by age (and sex)
 nmcmc <- length(beta_age)
 pred_length <- 100
 age_pred <- seq(min(dat$Age),max(dat$Age),length.out=pred_length)
 age_pred2 <- age_pred^2
 
 # Average beechnut counts and number of buildlings
-mean_build <- mean(dat$totalWUI)
+mean_wui <- mean(dat$intermix)
 mean_mast <- mean(dat$lag_beechnuts)
-mean_stand <- mean(dat$stand_age_mean)
 
 # Predict
 age.bromM <- matrix(, nmcmc, pred_length)
 age.bromF <- matrix(, nmcmc, pred_length)
 for (j in 1:pred_length) {
-  age.bromF[,j] <- inv.logit(alpha + 0*1 + beta_sex2*0 + beta_age*age_pred[j] + beta_age2*(age_pred2[j]) + beta_build*mean_build + beta_mast*mean_mast + beta_stand*mean_stand) # males
-  age.bromM[,j] <- inv.logit(alpha + 0*0 + beta_sex2*1 + beta_age*age_pred[j] + beta_age2*(age_pred2[j]) + beta_build*mean_build + beta_mast*mean_mast + beta_stand*mean_stand) # females
+  age.bromF[,j] <- inv.logit(alpha + 0*1 + beta_sex2*0 + beta_age*age_pred[j] + beta_age2*(age_pred2[j]) + beta_wui*mean_wui + beta_mast*mean_mast + beta_intx*mean_wui*mean_mast) # males
+  age.bromM[,j] <- inv.logit(alpha + 0*0 + beta_sex2*1 + beta_age*age_pred[j] + beta_age2*(age_pred2[j]) + beta_wui*mean_wui + beta_mast*mean_mast + beta_intx*mean_wui*mean_mast) # females
 }
 
 # Calculate quantiles
@@ -126,6 +100,7 @@ age_pred <- age_pred * attr(dat$Age, 'scaled:scale') + attr(dat$Age, 'scaled:cen
 age.qt.brom <- age.qt %>% mutate(Age=rep(age_pred, 2))
 age.qt.brom$compound <- "Bromadiolone"
 
+
 ggplot(age.qt.brom) +
   coord_cartesian(ylim=c(0, 1), xlim=c(0,8.5)) +
   geom_ribbon(aes(x=Age, ymin=lci, ymax=uci, color=Sex, fill=Sex), alpha=.4) +
@@ -135,28 +110,26 @@ ggplot(age.qt.brom) +
   scale_x_continuous(breaks=seq(0,9)) +
   ylab("Probability of exposure") +
   theme(panel.border=element_rect(fill=NA, color="black"), 
-        legend.position = "none", 
+        legend.position = c(1,1),
+        legend.justification=c(1,1), 
         legend.background = element_rect(fill=NA))
 
-
-
-## Predicting bromifacoum exposure by mast cycles (and sex)
+## Predicting Bromadiolone exposure by mast cycles (and sex)
 nmcmc <- length(beta_age)
 pred_length <- 100
 mast_pred <- seq(min(dat$lag_beechnuts),max(dat$lag_beechnuts),length.out=pred_length)
 
 # Average beechnut counts and number of buildlings
-mean_build <- mean(dat$totalWUI)
+mean_wui <- mean(dat$intermix)
 mean_age <- mean(dat$Age)
 mean_age2 <- mean_age^2
-mean_stand <- mean(dat$stand_age_mean)
 
 # Predict
 mast.bromM <- matrix(, nmcmc, pred_length)
 mast.bromF <- matrix(, nmcmc, pred_length)
 for (j in 1:pred_length) {
-  mast.bromF[,j] <- inv.logit(alpha + 0*1 + beta_sex2*0 + beta_age*mean_age + beta_age2*mean_age2 + beta_build*mean_build + beta_mast*mast_pred[j] + beta_stand*mean_stand) # males
-  mast.bromM[,j] <- inv.logit(alpha + 0*0 + beta_sex2*1 + beta_age*mean_age + beta_age2*mean_age2 + beta_build*mean_build + beta_mast*mast_pred[j] + beta_stand*mean_stand) # females
+  mast.bromF[,j] <- inv.logit(alpha + 0*1 + beta_sex2*0 + beta_age*mean_age + beta_age2*mean_age2 + beta_wui*mean_wui + beta_mast*mast_pred[j] + beta_intx*mean_wui*mast_pred[j]) # males
+  mast.bromM[,j] <- inv.logit(alpha + 0*0 + beta_sex2*1 + beta_age*mean_age + beta_age2*mean_age2 + beta_wui*mean_wui + beta_mast*mast_pred[j] + beta_intx*mean_wui*mast_pred[j]) # females
 }
 
 # Calculate quantiles
@@ -184,99 +157,123 @@ ggplot(mast.qt.brom) +
 
 
 
-## Predicting bromifacoum exposure by stand age(and sex)
-nmcmc <- length(beta_stand)
+## Predicting Bromadiolone exposure by stand age(and sex)
+nmcmc <- length(beta_wui)
 pred_length <- 100
-stand_pred <- seq(min(dat$stand_age_mean),max(dat$stand_age_mean),length.out=pred_length)
+wui_pred <- seq(min(dat$intermix),max(dat$intermix),length.out=pred_length)
 
 # Average beechnut counts and number of buildlings
-mean_build <- mean(dat$totalWUI)
 mean_age <- mean(dat$Age)
 mean_age2 <- mean_age^2
 mean_mast <- mean(dat$lag_beechnuts)
 
 # Predict
-stand.bromM <- matrix(, nmcmc, pred_length)
-stand.bromF <- matrix(, nmcmc, pred_length)
+wui.bromM <- matrix(, nmcmc, pred_length)
+wui.bromF <- matrix(, nmcmc, pred_length)
 for (j in 1:pred_length) {
-  stand.bromF[,j] <- inv.logit(alpha + 0*1 + beta_sex2*0 + beta_age*mean_age + beta_age2*mean_age2 + beta_build*mean_build + beta_mast*mean_mast + beta_stand*stand_pred[j]) # males
-  stand.bromM[,j] <- inv.logit(alpha + 0*0 + beta_sex2*1 + beta_age*mean_age + beta_age2*mean_age2 + beta_build*mean_build + beta_mast*mean_mast + beta_stand*stand_pred[j]) # females
+  wui.bromF[,j] <- inv.logit(alpha + 0*1 + beta_sex2*0 + beta_age*mean_age + beta_age2*mean_age2 + beta_mast*mean_mast + beta_wui*wui_pred[j] + beta_intx*wui_pred[j]*mean_mast) # males
+  wui.bromM[,j] <- inv.logit(alpha + 0*0 + beta_sex2*1 + beta_age*mean_age + beta_age2*mean_age2 + beta_mast*mean_mast + beta_wui*wui_pred[j] + beta_intx*wui_pred[j]*mean_mast) # females
 }
 
 # Calculate quantiles
-stand.bromF.qt <- apply(stand.bromF, 2, quantile, probs=c(.5, .025, .975)) |> t() %>% as_tibble() %>% mutate(Sex="Female")
-stand.bromM.qt <- apply(stand.bromM, 2, quantile, probs=c(.5, .025, .975)) |> t() %>% as_tibble() %>% mutate(Sex="Male")
+wui.bromF.qt <- apply(wui.bromF, 2, quantile, probs=c(.5, .025, .975)) |> t() %>% as_tibble() %>% mutate(Sex="Female")
+wui.bromM.qt <- apply(wui.bromM, 2, quantile, probs=c(.5, .025, .975)) |> t() %>% as_tibble() %>% mutate(Sex="Male")
 
-stand.qt <- bind_rows(stand.bromF.qt, stand.bromM.qt) %>% rename(median=`50%`, lci=`2.5%`, uci=`97.5%`) 
+wui.qt <- bind_rows(wui.bromF.qt, wui.bromM.qt) %>% rename(median=`50%`, lci=`2.5%`, uci=`97.5%`) 
 
 # Back-transform age prediction values
-stand_pred <- stand_pred * attr(dat$stand_age_mean, 'scaled:scale') + attr(dat$stand_age_mean, 'scaled:center')
+wui_pred <- wui_pred * attr(dat$intermix, 'scaled:scale') + attr(dat$intermix, 'scaled:center')
 
-stand.qt.brom <- stand.qt %>% mutate(StandAge=rep(stand_pred, 2))
-stand.qt.brom$compound <- "Bromadiolone"
+wui.qt.brom <- wui.qt %>% mutate(Intermix=rep(wui_pred, 2))
+wui.qt.brom$compound <- "Bromadiolone"
 
-ggplot(stand.qt.brom) +
+ggplot(wui.qt.brom) +
   coord_cartesian(ylim=c(0, 1)) +
-  geom_ribbon(aes(x=StandAge, ymin=lci, ymax=uci, color=Sex, fill=Sex), alpha=.4) +
-  geom_line(aes(x=StandAge, y=median, color=Sex), linewidth=1) +
+  geom_ribbon(aes(x=Intermix, ymin=lci, ymax=uci, color=Sex, fill=Sex), alpha=.4) +
+  geom_line(aes(x=Intermix, y=median, color=Sex), linewidth=1) +
   scale_color_manual(values=c("#1b7837", "#762a83"), name="Sex") +
   scale_fill_manual(values=c("#1b7837", "#762a83"), name="Sex") +
-  scale_x_continuous(breaks=seq(0,90,10)) +
-  ylab("Probability of exposure") + xlab("Stand age (years)") +
+  # scale_x_continuous(breaks=seq(0,90,10)) +
+  ylab("Probability of exposure") + xlab("% Wildland-Urban Intermix") +
   theme(panel.border=element_rect(fill=NA, color="black"), 
         legend.position="none")
 
 
-## Predicting bromifacoum exposure by stand age(and sex)
-nmcmc <- length(beta_stand)
+### Interaction plot
+nmcmc <- length(beta_wui)
 pred_length <- 100
-build_pred <- seq(min(dat$totalWUI),max(dat$totalWUI),length.out=pred_length)
+intx_pred <- seq(min(dat$intermix),max(dat$intermix),length.out=pred_length)
 
 # Average beechnut counts and number of buildlings
 mean_age <- mean(dat$Age)
 mean_age2 <- mean_age^2
-mean_mast <- mean(dat$lag_beechnuts)
-mean_stand <- mean(dat$stand_age_mean)
 
 # Predict
-build.bromM <- matrix(, nmcmc, pred_length)
-build.bromF <- matrix(, nmcmc, pred_length)
+intx.bromMl <- matrix(, nmcmc, pred_length)
+intx.bromMm <- matrix(, nmcmc, pred_length)
+intx.bromMh <- matrix(, nmcmc, pred_length)
+intx.bromFl <- matrix(, nmcmc, pred_length)
+intx.bromFm <- matrix(, nmcmc, pred_length)
+intx.bromFh <- matrix(, nmcmc, pred_length)
 for (j in 1:pred_length) {
-  build.bromF[,j] <- inv.logit(alpha + 0*1 + beta_sex2*0 + beta_age*mean_age + beta_age2*mean_age2 + beta_build*build_pred[j] + beta_mast*mean_mast + beta_stand*mean_stand) # males
-  build.bromM[,j] <- inv.logit(alpha + 0*0 + beta_sex2*1 + beta_age*mean_age + beta_age2*mean_age2 + beta_build*build_pred[j] + beta_mast*mean_mast + beta_stand*mean_stand) # females
+  intx.bromFl[,j] <- inv.logit(alpha + 0*1 + beta_sex2*0 + beta_age*mean_age + beta_age2*mean_age2 + beta_wui*wui_pred[j] + beta_mast*(-1.321305) + beta_intx*wui_pred[j]*(-1.321305)) # males
+  intx.bromFm[,j] <- inv.logit(alpha + 0*1 + beta_sex2*0 + beta_age*mean_age + beta_age2*mean_age2 + beta_wui*wui_pred[j] + beta_mast*(-0.167061) + beta_intx*wui_pred[j]*(-0.167061)) # males
+  intx.bromFh[,j] <- inv.logit(alpha + 0*1 + beta_sex2*0 + beta_age*mean_age + beta_age2*mean_age2 + beta_wui*wui_pred[j] + beta_mast*(1.078526) + beta_intx*wui_pred[j]*(1.078526)) # males
+  intx.bromMl[,j] <- inv.logit(alpha + 0*0 + beta_sex2*1 + beta_age*mean_age + beta_age2*mean_age2 + beta_wui*wui_pred[j] + beta_mast*(-1.321305) + beta_intx*wui_pred[j]*(-1.321305)) # females
+  intx.bromMm[,j] <- inv.logit(alpha + 0*0 + beta_sex2*1 + beta_age*mean_age + beta_age2*mean_age2 + beta_wui*wui_pred[j] + beta_mast*(-0.167061) + beta_intx*wui_pred[j]*(-0.167061)) # females
+  intx.bromMh[,j] <- inv.logit(alpha + 0*0 + beta_sex2*1 + beta_age*mean_age + beta_age2*mean_age2 + beta_wui*wui_pred[j] + beta_mast*(1.078526) + beta_intx*wui_pred[j]*(1.078526)) # females
 }
 
 # Calculate quantiles
-build.bromF.qt <- apply(build.bromF, 2, quantile, probs=c(.5, .025, .975)) |> t() %>% as_tibble() %>% mutate(Sex="Female")
-build.bromM.qt <- apply(build.bromM, 2, quantile, probs=c(.5, .025, .975)) |> t() %>% as_tibble() %>% mutate(Sex="Male")
+intx.bromFl.qt <- apply(intx.bromFl, 2, quantile, probs=c(.5, .025, .975)) |> t() %>% as_tibble() %>% mutate(Sex="Female", Mast="Fail")
+intx.bromFm.qt <- apply(intx.bromFm, 2, quantile, probs=c(.5, .025, .975)) |> t() %>% as_tibble() %>% mutate(Sex="Female", Mast="Normal")
+intx.bromFh.qt <- apply(intx.bromFh, 2, quantile, probs=c(.5, .025, .975)) |> t() %>% as_tibble() %>% mutate(Sex="Female", Mast="High")
+intx.bromMl.qt <- apply(intx.bromMl, 2, quantile, probs=c(.5, .025, .975)) |> t() %>% as_tibble() %>% mutate(Sex="Male", Mast="Fail")
+intx.bromMm.qt <- apply(intx.bromMm, 2, quantile, probs=c(.5, .025, .975)) |> t() %>% as_tibble() %>% mutate(Sex="Male", Mast="Normal")
+intx.bromMh.qt <- apply(intx.bromMh, 2, quantile, probs=c(.5, .025, .975)) |> t() %>% as_tibble() %>% mutate(Sex="Male", Mast="High")
 
-build.qt <- bind_rows(build.bromF.qt, build.bromM.qt) %>% rename(median=`50%`, lci=`2.5%`, uci=`97.5%`) 
+intx.qt <- bind_rows(intx.bromFl.qt, intx.bromMl.qt,
+                     intx.bromFm.qt, intx.bromMm.qt,
+                     intx.bromFh.qt, intx.bromMh.qt) %>% rename(median=`50%`, lci=`2.5%`, uci=`97.5%`) 
 
 # Back-transform age prediction values
-build_pred <- build_pred * attr(dat$totalWUI, 'scaled:scale') + attr(dat$totalWUI, 'scaled:center')
+intx_pred <- intx_pred * attr(dat$intermix, 'scaled:scale') + attr(dat$intermix, 'scaled:center')
 
-build.qt.brom <- build.qt %>% mutate(Buildings=rep(build_pred, 2))
-build.qt.brom$compound <- "Bromadiolone"
+intx.qt.brom <- intx.qt %>% mutate(Intermix=rep(intx_pred, 6))
+intx.qt.brom$compound <- "Bromadiolone"
+intx.qt.brom$Mast <- factor(intx.qt.brom$Mast, levels=c("Fail", "Normal", "High"))
 
-ggplot(build.qt.brom) +
+ggplot(intx.qt.brom) +
   coord_cartesian(ylim=c(0, 1)) +
-  geom_ribbon(aes(x=Buildings, ymin=lci, ymax=uci, color=Sex, fill=Sex), alpha=.4) +
-  geom_line(aes(x=Buildings, y=median, color=Sex), linewidth=1) +
-  scale_color_manual(values=c("#1b7837", "#762a83"), name="Sex") +
-  scale_fill_manual(values=c("#1b7837", "#762a83"), name="Sex") +
-  # scale_x_continuous(breaks=seq(0,9)) +
+  geom_ribbon(aes(x=Intermix, ymin=lci, ymax=uci, color=Sex, fill=Sex, linetype=Mast), alpha=.1) +
+  geom_line(aes(x=Intermix, y=median, color=Sex,  linetype=Mast), linewidth=1) +
+  scale_color_manual(values=c("#1b7837","#762a83"), name="Sex") +
+  scale_fill_manual(values=c("#1b7837","#762a83"), name="Sex") +
+  facet_grid(Sex~.) + guides(colour="none", fill="none") +
   ylab("Probability of exposure") + 
-  theme(panel.border=element_rect(fill=NA, color="black"), 
-        legend.position="none")
+  theme(panel.border=element_rect(fill=NA, color="black"),
+        legend.position=c(0,0),
+        legend.justification = c(0,0), 
+        legend.background = element_rect(fill=NA))
 
 
-## Organize for full plot
+# Organize for full plot
 age.qt.brom <- age.qt.brom %>% mutate(x="Age") %>% rename(x_val=Age) %>% select(compound, Sex, x, x_val, median:uci)
 mast.qt.brom <- mast.qt.brom %>% mutate(x="Beechnuts") %>% rename(x_val=Beechnuts) %>% select(compound, Sex, x, x_val, median:uci)
-stand.qt.brom <- stand.qt.brom %>% mutate(x="StandAge") %>% rename(x_val=StandAge) %>% select(compound, Sex, x, x_val, median:uci)
-build.qt.brom <- build.qt.brom %>% mutate(x="%WUI") %>% rename(x_val=Buildings) %>% select(compound, Sex, x, x_val, median:uci)
+wui.qt.brom <- wui.qt.brom %>% mutate(x="Intermix") %>% rename(x_val=Intermix) %>% select(compound, Sex, x, x_val, median:uci)
+intx.qt.brom <- intx.qt.brom %>% mutate(x="%WildlandUrbanIntermix") %>% rename(x_val=Intermix) %>% select(compound, Sex, Mast, x, x_val, median:uci)
 
-qt.brom <- bind_rows(age.qt.brom, mast.qt.brom, stand.qt.brom, build.qt.brom)
+brom.data <- list()
+brom.data$age.qt.brom <- age.qt.brom
+brom.data$mast.qt.brom <- mast.qt.brom
+brom.data$wui.qt.brom <- wui.qt.brom
+brom.data$intx.qt.brom <- intx.qt.brom
+
+## Save as R data
+save(brom.data, file="data/bromadiolone_preds.Rdata")
+
+
+qt.brom <- bind_rows(age.qt.brom, mast.qt.brom, wui.qt.brom, intx.qt.brom)
 
 ggplot(qt.brom) +
   coord_cartesian(ylim=c(0, 1)) +

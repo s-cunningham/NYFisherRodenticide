@@ -51,8 +51,10 @@ diph.sum <- diph.sum %>% mutate(compound="diphacinone") %>%
                          `50%`=exp(`50%`),
                          `97.5%`=exp(`97.5%`))
 
-diph.odds <- diph.sum %>% group_by(param) %>% reframe(mean=mean(mean), `2.5%`=mean(`2.5%`), 
-                                         `50%`=mean(`50%`), `97.5%`=mean(`97.5%`)) %>% 
+diph.odds <- diph.sum %>% group_by(param) %>% reframe(mean=mean(mean), 
+                                                      `2.5%`=mean(`2.5%`), 
+                                                      # `50%`=mean(`50%`), 
+                                                      `97.5%`=mean(`97.5%`)) %>% 
   filter(str_detect(param, 'beta'))
 
 ## Combine all iterations
@@ -94,17 +96,17 @@ sum(exp_age2<1)/length(beta_age2)
 
 plot(density(exp_age2))
 
-## Building count
-beta_build <- c(diph.out1[,21],diph.out2[,21],diph.out3[,21],diph.out4[,21],diph.out5[,21],
+# Intermix * mast interaction
+beta_intx <- c(diph.out1[,21],diph.out2[,21],diph.out3[,21],diph.out4[,21],diph.out5[,21],
                 diph.out6[,21],diph.out7[,21],diph.out8[,21],diph.out9[,21],diph.out10[,21])
 
 # Calculate quantiles
-quantile(beta_build, probs=c(0.025,0.5,0.975))
-mean(exp(beta_build))
-se(beta_build)
+quantile(beta_intx, probs=c(0.025,0.5,0.975))
+mean(exp(beta_intx))
+se(beta_intx)
 
-beta_build <- exp(beta_build)
-sum(beta_build>1)/length(beta_build)
+beta_intx <- exp(beta_intx)
+sum(beta_intx>1)/length(beta_intx)
 
 ## Beech mast
 beta_mast <- c(diph.out1[,22],diph.out2[,22],diph.out3[,22],diph.out4[,22],diph.out5[,22],
@@ -133,18 +135,18 @@ mean(exp(beta_sex2))
 beta_sex2 <- exp(beta_sex2)
 sum(beta_sex2>1)/length(beta_sex2)
 
-## Stand age
-beta_stand <- c(diph.out1[,25],diph.out2[,25],diph.out3[,25],diph.out4[,25],diph.out5[,25],
+## WUI intermix
+beta_wui <- c(diph.out1[,25],diph.out2[,25],diph.out3[,25],diph.out4[,25],diph.out5[,25],
                 diph.out6[,25],diph.out7[,25],diph.out8[,25],diph.out9[,25],diph.out10[,25])
 
 # Calculate quantiles
-quantile(beta_stand, probs=c(0.025,0.5,0.975))
-mean(beta_stand)
-se(beta_stand)
+quantile(beta_wui, probs=c(0.025,0.5,0.975))
+mean(beta_wui)
+se(beta_wui)
 
-mean(exp(beta_stand))
-beta_stand <- exp(beta_stand)
-sum(beta_stand>1)/length(beta_stand)
+mean(exp(beta_wui))
+beta_wui <- exp(beta_wui)
+sum(beta_wui>1)/length(beta_wui)
 
 #### Brodifacoum ####
 # Load posterior samples
@@ -232,17 +234,17 @@ se(beta_age2)
 beta_age2 <- exp(beta_age2)
 sum(beta_age2<1)/length(beta_age2)
 
-### Buildings
-beta_build <- c(brod.out1[,21],brod.out2[,21],brod.out3[,21],brod.out4[,21],brod.out5[,21],
+### WUI * mast interaction
+beta_intx <- c(brod.out1[,21],brod.out2[,21],brod.out3[,21],brod.out4[,21],brod.out5[,21],
                 brod.out6[,21],brod.out7[,21],brod.out8[,21],brod.out9[,21],brod.out10[,21])
 
 # Calculate quantiles
-quantile(beta_build, probs=c(0.025,0.5,0.975))
-mean(beta_build)
-se(beta_build)
+quantile(beta_intx, probs=c(0.025,0.5,0.975))
+mean(beta_intx)
+se(beta_intx)
 
-beta_build <- exp(beta_build)
-sum(beta_build>1)/length(beta_build)
+beta_intx <- exp(beta_intx)
+sum(beta_intx>1)/length(beta_intx)
 
 ## Beech mast
 beta_mast <- c(brod.out1[,22],brod.out2[,22],brod.out3[,22],brod.out4[,22],brod.out5[,22],
@@ -268,17 +270,18 @@ se(beta_sex2)
 beta_sex2 <- exp(beta_sex2)
 sum(beta_sex2>1)/length(beta_sex2)
 
-## Stand age
-beta_stand <- c(brod.out1[,25],brod.out2[,25],brod.out3[,25],brod.out4[,25],brod.out5[,25],
-                brod.out6[,25],brod.out7[,25],brod.out8[,25],brod.out9[,25],brod.out10[,25])
+### WUI Intermix
+beta_wui <- c(brod.out1[,25],brod.out2[,25],brod.out3[,25],brod.out4[,25],brod.out5[,25],
+              brod.out6[,25],brod.out7[,25],brod.out8[,25],brod.out9[,25],brod.out10[,25])
 
 # Calculate quantiles
-quantile(beta_stand, probs=c(0.025,0.5,0.975))
-mean(beta_stand)
-se(beta_stand)
+quantile(beta_wui, probs=c(0.025,0.5,0.975))
+mean(beta_wui)
+se(beta_wui)
 
-beta_stand <- exp(beta_stand)
-sum(beta_stand>1)/length(beta_stand)
+mean(exp(beta_wui))
+beta_wui <- exp(beta_wui)
+sum(beta_wui>1)/length(beta_wui)
 
 
 #### Bromadiolone ####
@@ -368,17 +371,17 @@ se(beta_age2)
 beta_age2 <- exp(beta_age2)
 sum(beta_age2<1)/length(beta_age2)
 
-### Building count
-beta_build <- c(brom.out1[,21],brom.out2[,21],brom.out3[,21],brom.out4[,21],brom.out5[,21],
+### WUI intermix * mast interaction
+beta_intx <- c(brom.out1[,21],brom.out2[,21],brom.out3[,21],brom.out4[,21],brom.out5[,21],
                 brom.out6[,21],brom.out7[,21],brom.out8[,21],brom.out9[,21],brom.out10[,21])
 
 # Calculate quantiles
-quantile(beta_build, probs=c(0.025,0.5,0.975))
-mean(beta_build)
-se(beta_build)
+quantile(beta_intx, probs=c(0.025,0.5,0.975))
+mean(beta_intx)
+se(beta_intx)
 
-beta_build <- exp(beta_build)
-sum(beta_build>1)/length(beta_build)
+beta_intx <- exp(beta_intx)
+sum(beta_intx>1)/length(beta_intx)
 
 ### Beech mast
 beta_mast <- c(brom.out1[,22],brom.out2[,22],brom.out3[,22],brom.out4[,22],brom.out5[,22],
@@ -404,14 +407,15 @@ se(beta_sex2)
 beta_sex2 <- exp(beta_sex2)
 sum(beta_sex2>1)/length(beta_sex2)
 
-## Stand age
-beta_stand <- c(brom.out1[,25],brom.out2[,25],brom.out3[,25],brom.out4[,25],brom.out5[,25],
-                brom.out6[,25],brom.out7[,25],brom.out8[,25],brom.out9[,25],brom.out10[,25])
+### WUI Intermix
+beta_wui <- c(brom.out1[,25],brom.out2[,25],brom.out3[,25],brom.out4[,25],brom.out5[,25],
+              brom.out6[,25],brom.out7[,25],brom.out8[,25],brom.out9[,25],brom.out10[,25])
 
 # Calculate quantiles
-quantile(beta_stand, probs=c(0.025,0.5,0.975))
-mean(beta_stand)
-se(beta_stand)
+quantile(beta_wui, probs=c(0.025,0.5,0.975))
+mean(beta_wui)
+se(beta_wui)
 
-beta_stand <- exp(beta_stand)
-sum(beta_stand>1)/length(beta_stand)
+mean(exp(beta_wui))
+beta_wui <- exp(beta_wui)
+sum(beta_wui>1)/length(beta_wui)

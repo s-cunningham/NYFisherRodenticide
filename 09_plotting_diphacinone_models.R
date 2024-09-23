@@ -1,6 +1,5 @@
 library(tidyverse)
 library(boot)
-library(tagger)
 
 theme_set(theme_classic())
 
@@ -17,17 +16,13 @@ diph <- read_csv("output/summarized_AR_results.csv") %>% filter(compound=="Dipha
 dat <- left_join(dat, diph, by="RegionalID")
 dat <- dat %>% select(RegionalID:Town,bin.exp,deciduous:mast_year)
 
-cor.test(dat$nbuildings, dat$stand_age_mean)
-
-beech <- dat %>% select(beechnuts, bin.exp)
-structures <- dat %>% select(totalWUI, bin.exp)
-standage <- dat %>% select(stand_age_mean, bin.exp)
+beech <- dat %>% select(lag_beechnuts, bin.exp)
+intermix <- dat %>% select(totalWUI, bin.exp)
 
 # Scale variables
 dat$Age <- scale(dat$Age)
-dat$totalWUI <- scale(dat$totalWUI)
+dat$intermix <- scale(dat$intermix)
 dat$lag_beechnuts <- scale(dat$lag_beechnuts)
-dat$stand_age_mean <- scale(dat$stand_age_mean)
 
 # Load posterior samples
 diph.out1 <- readRDS("output/model_output/diph.out1.rds")
@@ -58,8 +53,8 @@ beta_age <- c(diph.out1[,19],diph.out2[,19],diph.out3[,19],diph.out4[,19],diph.o
 beta_age2 <- c(diph.out1[,20],diph.out2[,20],diph.out3[,20],diph.out4[,20],diph.out5[,20],
                diph.out6[,20],diph.out7[,20],diph.out8[,20],diph.out9[,20],diph.out10[,20])
 
-beta_build <- c(diph.out1[,21],diph.out2[,21],diph.out3[,21],diph.out4[,21],diph.out5[,21],
-                diph.out6[,21],diph.out7[,21],diph.out8[,21],diph.out9[,21],diph.out10[,21])
+beta_intx <- c(diph.out1[,21],diph.out2[,21],diph.out3[,21],diph.out4[,21],diph.out5[,21],
+               diph.out6[,21],diph.out7[,21],diph.out8[,21],diph.out9[,21],diph.out10[,21])
 
 beta_mast <- c(diph.out1[,22],diph.out2[,22],diph.out3[,22],diph.out4[,22],diph.out5[,22],
                diph.out6[,22],diph.out7[,22],diph.out8[,22],diph.out9[,22],diph.out10[,22])
@@ -67,33 +62,30 @@ beta_mast <- c(diph.out1[,22],diph.out2[,22],diph.out3[,22],diph.out4[,22],diph.
 beta_sex2 <- c(diph.out1[,24],diph.out2[,24],diph.out3[,24],diph.out4[,24],diph.out5[,24],
                diph.out6[,24],diph.out7[,24],diph.out8[,24],diph.out9[,24],diph.out10[,24])
 
-beta_stand <- c(diph.out1[,25],diph.out2[,25],diph.out3[,25],diph.out4[,25],diph.out5[,25],
-                diph.out6[,25],diph.out7[,25],diph.out8[,25],diph.out9[,25],diph.out10[,25])
-
-##############
+beta_wui <- c(diph.out1[,25],diph.out2[,25],diph.out3[,25],diph.out4[,25],diph.out5[,25],
+              diph.out6[,25],diph.out7[,25],diph.out8[,25],diph.out9[,25],diph.out10[,25])
 
 ## Look at intercept
 alpha <- c(rowMeans(diph.out1[,1:18]), rowMeans(diph.out2[,1:18]), rowMeans(diph.out3[,1:18]), rowMeans(diph.out4[,1:18]), rowMeans(diph.out5[,1:18]),
            rowMeans(diph.out6[,1:18]), rowMeans(diph.out7[,1:18]), rowMeans(diph.out8[,1:18]), rowMeans(diph.out9[,1:18]), rowMeans(diph.out10[,1:18]))
-plot(density(alpha))
+# plot(density(alpha))
 
-## Predicting diphifacoum exposure by age (and sex)
+## Predicting Diphacinone exposure by age (and sex)
 nmcmc <- length(beta_age)
 pred_length <- 100
 age_pred <- seq(min(dat$Age),max(dat$Age),length.out=pred_length)
 age_pred2 <- age_pred^2
 
 # Average beechnut counts and number of buildlings
-mean_build <- mean(dat$totalWUI)
+mean_wui <- mean(dat$intermix)
 mean_mast <- mean(dat$lag_beechnuts)
-mean_stand <- mean(dat$stand_age_mean)
 
 # Predict
 age.diphM <- matrix(, nmcmc, pred_length)
 age.diphF <- matrix(, nmcmc, pred_length)
 for (j in 1:pred_length) {
-  age.diphF[,j] <- inv.logit(alpha + 0*1 + beta_sex2*0 + beta_age*age_pred[j] + beta_age2*(age_pred2[j]) + beta_build*mean_build + beta_mast*mean_mast + beta_stand*mean_stand) # males
-  age.diphM[,j] <- inv.logit(alpha + 0*0 + beta_sex2*1 + beta_age*age_pred[j] + beta_age2*(age_pred2[j]) + beta_build*mean_build + beta_mast*mean_mast + beta_stand*mean_stand) # females
+  age.diphF[,j] <- inv.logit(alpha + 0*1 + beta_sex2*0 + beta_age*age_pred[j] + beta_age2*(age_pred2[j]) + beta_wui*mean_wui + beta_mast*mean_mast + beta_intx*mean_wui*mean_mast) # males
+  age.diphM[,j] <- inv.logit(alpha + 0*0 + beta_sex2*1 + beta_age*age_pred[j] + beta_age2*(age_pred2[j]) + beta_wui*mean_wui + beta_mast*mean_mast + beta_intx*mean_wui*mean_mast) # females
 }
 
 # Calculate quantiles
@@ -108,6 +100,7 @@ age_pred <- age_pred * attr(dat$Age, 'scaled:scale') + attr(dat$Age, 'scaled:cen
 age.qt.diph <- age.qt %>% mutate(Age=rep(age_pred, 2))
 age.qt.diph$compound <- "Diphacinone"
 
+
 ggplot(age.qt.diph) +
   coord_cartesian(ylim=c(0, 1), xlim=c(0,8.5)) +
   geom_ribbon(aes(x=Age, ymin=lci, ymax=uci, color=Sex, fill=Sex), alpha=.4) +
@@ -117,28 +110,26 @@ ggplot(age.qt.diph) +
   scale_x_continuous(breaks=seq(0,9)) +
   ylab("Probability of exposure") +
   theme(panel.border=element_rect(fill=NA, color="black"), 
-        legend.position = "none", 
+        legend.position = c(1,1),
+        legend.justification=c(1,1), 
         legend.background = element_rect(fill=NA))
 
-
-
-## Predicting diphifacoum exposure by mast cycles (and sex)
+## Predicting Diphacinone exposure by mast cycles (and sex)
 nmcmc <- length(beta_age)
 pred_length <- 100
 mast_pred <- seq(min(dat$lag_beechnuts),max(dat$lag_beechnuts),length.out=pred_length)
 
 # Average beechnut counts and number of buildlings
-mean_build <- mean(dat$totalWUI)
+mean_wui <- mean(dat$intermix)
 mean_age <- mean(dat$Age)
 mean_age2 <- mean_age^2
-mean_stand <- mean(dat$stand_age_mean)
 
 # Predict
 mast.diphM <- matrix(, nmcmc, pred_length)
 mast.diphF <- matrix(, nmcmc, pred_length)
 for (j in 1:pred_length) {
-  mast.diphF[,j] <- inv.logit(alpha + 0*1 + beta_sex2*0 + beta_age*mean_age + beta_age2*mean_age2 + beta_build*mean_build + beta_mast*mast_pred[j] + beta_stand*mean_stand) # males
-  mast.diphM[,j] <- inv.logit(alpha + 0*0 + beta_sex2*1 + beta_age*mean_age + beta_age2*mean_age2 + beta_build*mean_build + beta_mast*mast_pred[j] + beta_stand*mean_stand) # females
+  mast.diphF[,j] <- inv.logit(alpha + 0*1 + beta_sex2*0 + beta_age*mean_age + beta_age2*mean_age2 + beta_wui*mean_wui + beta_mast*mast_pred[j] + beta_intx*mean_wui*mast_pred[j]) # males
+  mast.diphM[,j] <- inv.logit(alpha + 0*0 + beta_sex2*1 + beta_age*mean_age + beta_age2*mean_age2 + beta_wui*mean_wui + beta_mast*mast_pred[j] + beta_intx*mean_wui*mast_pred[j]) # females
 }
 
 # Calculate quantiles
@@ -150,7 +141,7 @@ mast.qt <- bind_rows(mast.diphF.qt, mast.diphM.qt) %>% rename(median=`50%`, lci=
 # Back-transform age prediction values
 mast_pred <- mast_pred * attr(dat$lag_beechnuts, 'scaled:scale') + attr(dat$lag_beechnuts, 'scaled:center')
 
-mast.qt.diph  <- mast.qt %>% mutate(Beechnuts=rep(mast_pred, 2))
+mast.qt.diph <- mast.qt %>% mutate(Beechnuts=rep(mast_pred, 2))
 mast.qt.diph$compound <- "Diphacinone"
 
 ggplot(mast.qt.diph) +
@@ -166,98 +157,124 @@ ggplot(mast.qt.diph) +
 
 
 
-## Predicting diphifacoum exposure by stand age(and sex)
-nmcmc <- length(beta_stand)
+## Predicting Diphacinone exposure by stand age(and sex)
+nmcmc <- length(beta_wui)
 pred_length <- 100
-stand_pred <- seq(min(dat$stand_age_mean),max(dat$stand_age_mean),length.out=pred_length)
+wui_pred <- seq(min(dat$intermix),max(dat$intermix),length.out=pred_length)
 
 # Average beechnut counts and number of buildlings
-mean_build <- mean(dat$totalWUI)
 mean_age <- mean(dat$Age)
 mean_age2 <- mean_age^2
 mean_mast <- mean(dat$lag_beechnuts)
 
 # Predict
-stand.diphM <- matrix(, nmcmc, pred_length)
-stand.diphF <- matrix(, nmcmc, pred_length)
+wui.diphM <- matrix(, nmcmc, pred_length)
+wui.diphF <- matrix(, nmcmc, pred_length)
 for (j in 1:pred_length) {
-  stand.diphF[,j] <- inv.logit(alpha + 0*1 + beta_sex2*0 + beta_age*mean_age + beta_age2*mean_age2 + beta_build*mean_build + beta_mast*mean_mast + beta_stand*stand_pred[j]) # males
-  stand.diphM[,j] <- inv.logit(alpha + 0*0 + beta_sex2*1 + beta_age*mean_age + beta_age2*mean_age2 + beta_build*mean_build + beta_mast*mean_mast + beta_stand*stand_pred[j]) # females
+  wui.diphF[,j] <- inv.logit(alpha + 0*1 + beta_sex2*0 + beta_age*mean_age + beta_age2*mean_age2 + beta_mast*mean_mast + beta_wui*wui_pred[j] + beta_intx*wui_pred[j]*mean_mast) # males
+  wui.diphM[,j] <- inv.logit(alpha + 0*0 + beta_sex2*1 + beta_age*mean_age + beta_age2*mean_age2 + beta_mast*mean_mast + beta_wui*wui_pred[j] + beta_intx*wui_pred[j]*mean_mast) # females
 }
 
 # Calculate quantiles
-stand.diphF.qt <- apply(stand.diphF, 2, quantile, probs=c(.5, .025, .975)) |> t() %>% as_tibble() %>% mutate(Sex="Female")
-stand.diphM.qt <- apply(stand.diphM, 2, quantile, probs=c(.5, .025, .975)) |> t() %>% as_tibble() %>% mutate(Sex="Male")
+wui.diphF.qt <- apply(wui.diphF, 2, quantile, probs=c(.5, .025, .975)) |> t() %>% as_tibble() %>% mutate(Sex="Female")
+wui.diphM.qt <- apply(wui.diphM, 2, quantile, probs=c(.5, .025, .975)) |> t() %>% as_tibble() %>% mutate(Sex="Male")
 
-stand.qt <- bind_rows(stand.diphF.qt, stand.diphM.qt) %>% rename(median=`50%`, lci=`2.5%`, uci=`97.5%`) 
+wui.qt <- bind_rows(wui.diphF.qt, wui.diphM.qt) %>% rename(median=`50%`, lci=`2.5%`, uci=`97.5%`) 
 
 # Back-transform age prediction values
-stand_pred <- stand_pred * attr(dat$stand_age_mean, 'scaled:scale') + attr(dat$stand_age_mean, 'scaled:center')
+wui_pred <- wui_pred * attr(dat$intermix, 'scaled:scale') + attr(dat$intermix, 'scaled:center')
 
-stand.qt.diph  <- stand.qt %>% mutate(StandAge=rep(stand_pred, 2))
-stand.qt.diph$compound <- "Diphacinone"
+wui.qt.diph <- wui.qt %>% mutate(Intermix=rep(wui_pred, 2))
+wui.qt.diph$compound <- "Diphacinone"
 
-ggplot(stand.qt.diph) +
+ggplot(wui.qt.diph) +
   coord_cartesian(ylim=c(0, 1)) +
-  geom_ribbon(aes(x=StandAge, ymin=lci, ymax=uci, color=Sex, fill=Sex), alpha=.4) +
-  geom_line(aes(x=StandAge, y=median, color=Sex), linewidth=1) +
+  geom_ribbon(aes(x=Intermix, ymin=lci, ymax=uci, color=Sex, fill=Sex), alpha=.4) +
+  geom_line(aes(x=Intermix, y=median, color=Sex), linewidth=1) +
   scale_color_manual(values=c("#1b7837", "#762a83"), name="Sex") +
   scale_fill_manual(values=c("#1b7837", "#762a83"), name="Sex") +
-  scale_x_continuous(breaks=seq(0,90,10)) +
-  ylab("Probability of exposure") + xlab("Stand age (years)") +
+  # scale_x_continuous(breaks=seq(0,90,10)) +
+  ylab("Probability of exposure") + xlab("% Wildland-Urban Intermix") +
   theme(panel.border=element_rect(fill=NA, color="black"), 
         legend.position="none")
 
 
-## Predicting diphifacoum exposure by stand age(and sex)
-nmcmc <- length(beta_stand)
+### Interaction plot
+nmcmc <- length(beta_wui)
 pred_length <- 100
-build_pred <- seq(min(dat$totalWUI),max(dat$totalWUI),length.out=pred_length)
+intx_pred <- seq(min(dat$intermix),max(dat$intermix),length.out=pred_length)
 
 # Average beechnut counts and number of buildlings
 mean_age <- mean(dat$Age)
 mean_age2 <- mean_age^2
-mean_mast <- mean(dat$lag_beechnuts)
-mean_stand <- mean(dat$stand_age_mean)
 
 # Predict
-build.diphM <- matrix(, nmcmc, pred_length)
-build.diphF <- matrix(, nmcmc, pred_length)
+intx.diphMl <- matrix(, nmcmc, pred_length)
+intx.diphMm <- matrix(, nmcmc, pred_length)
+intx.diphMh <- matrix(, nmcmc, pred_length)
+intx.diphFl <- matrix(, nmcmc, pred_length)
+intx.diphFm <- matrix(, nmcmc, pred_length)
+intx.diphFh <- matrix(, nmcmc, pred_length)
 for (j in 1:pred_length) {
-  build.diphF[,j] <- inv.logit(alpha + 0*1 + beta_sex2*0 + beta_age*mean_age + beta_age2*mean_age2 + beta_build*build_pred[j] + beta_mast*mean_mast + beta_stand*mean_stand) # males
-  build.diphM[,j] <- inv.logit(alpha + 0*0 + beta_sex2*1 + beta_age*mean_age + beta_age2*mean_age2 + beta_build*build_pred[j] + beta_mast*mean_mast + beta_stand*mean_stand) # females
+  intx.diphFl[,j] <- inv.logit(alpha + 0*1 + beta_sex2*0 + beta_age*mean_age + beta_age2*mean_age2 + beta_wui*wui_pred[j] + beta_mast*(-1.321305) + beta_intx*wui_pred[j]*(-1.321305)) # males
+  intx.diphFm[,j] <- inv.logit(alpha + 0*1 + beta_sex2*0 + beta_age*mean_age + beta_age2*mean_age2 + beta_wui*wui_pred[j] + beta_mast*(-0.167061) + beta_intx*wui_pred[j]*(-0.167061)) # males
+  intx.diphFh[,j] <- inv.logit(alpha + 0*1 + beta_sex2*0 + beta_age*mean_age + beta_age2*mean_age2 + beta_wui*wui_pred[j] + beta_mast*(1.078526) + beta_intx*wui_pred[j]*(1.078526)) # males
+  intx.diphMl[,j] <- inv.logit(alpha + 0*0 + beta_sex2*1 + beta_age*mean_age + beta_age2*mean_age2 + beta_wui*wui_pred[j] + beta_mast*(-1.321305) + beta_intx*wui_pred[j]*(-1.321305)) # females
+  intx.diphMm[,j] <- inv.logit(alpha + 0*0 + beta_sex2*1 + beta_age*mean_age + beta_age2*mean_age2 + beta_wui*wui_pred[j] + beta_mast*(-0.167061) + beta_intx*wui_pred[j]*(-0.167061)) # females
+  intx.diphMh[,j] <- inv.logit(alpha + 0*0 + beta_sex2*1 + beta_age*mean_age + beta_age2*mean_age2 + beta_wui*wui_pred[j] + beta_mast*(1.078526) + beta_intx*wui_pred[j]*(1.078526)) # females
 }
 
 # Calculate quantiles
-build.diphF.qt <- apply(build.diphF, 2, quantile, probs=c(.5, .025, .975)) |> t() %>% as_tibble() %>% mutate(Sex="Female")
-build.diphM.qt <- apply(build.diphM, 2, quantile, probs=c(.5, .025, .975)) |> t() %>% as_tibble() %>% mutate(Sex="Male")
+intx.diphFl.qt <- apply(intx.diphFl, 2, quantile, probs=c(.5, .025, .975)) |> t() %>% as_tibble() %>% mutate(Sex="Female", Mast="Fail")
+intx.diphFm.qt <- apply(intx.diphFm, 2, quantile, probs=c(.5, .025, .975)) |> t() %>% as_tibble() %>% mutate(Sex="Female", Mast="Normal")
+intx.diphFh.qt <- apply(intx.diphFh, 2, quantile, probs=c(.5, .025, .975)) |> t() %>% as_tibble() %>% mutate(Sex="Female", Mast="High")
+intx.diphMl.qt <- apply(intx.diphMl, 2, quantile, probs=c(.5, .025, .975)) |> t() %>% as_tibble() %>% mutate(Sex="Male", Mast="Fail")
+intx.diphMm.qt <- apply(intx.diphMm, 2, quantile, probs=c(.5, .025, .975)) |> t() %>% as_tibble() %>% mutate(Sex="Male", Mast="Normal")
+intx.diphMh.qt <- apply(intx.diphMh, 2, quantile, probs=c(.5, .025, .975)) |> t() %>% as_tibble() %>% mutate(Sex="Male", Mast="High")
 
-build.qt <- bind_rows(build.diphF.qt, build.diphM.qt) %>% rename(median=`50%`, lci=`2.5%`, uci=`97.5%`) 
+intx.qt <- bind_rows(intx.diphFl.qt, intx.diphMl.qt,
+                     intx.diphFm.qt, intx.diphMm.qt,
+                     intx.diphFh.qt, intx.diphMh.qt) %>% rename(median=`50%`, lci=`2.5%`, uci=`97.5%`) 
 
 # Back-transform age prediction values
-build_pred <- build_pred * attr(dat$totalWUI, 'scaled:scale') + attr(dat$totalWUI, 'scaled:center')
+intx_pred <- intx_pred * attr(dat$intermix, 'scaled:scale') + attr(dat$intermix, 'scaled:center')
 
-build.qt.diph <- build.qt %>% mutate(Buildings=rep(build_pred, 2))
-build.qt.diph$compound <- "Diphacinone"
+intx.qt.diph <- intx.qt %>% mutate(Intermix=rep(intx_pred, 6))
+intx.qt.diph$compound <- "Diphacinone"
+intx.qt.diph$Mast <- factor(intx.qt.diph$Mast, levels=c("Fail", "Normal", "High"))
 
-ggplot(build.qt.diph) +
+ggplot(intx.qt.diph) +
   coord_cartesian(ylim=c(0, 1)) +
-  geom_ribbon(aes(x=Buildings, ymin=lci, ymax=uci, color=Sex, fill=Sex), alpha=.4) +
-  geom_line(aes(x=Buildings, y=median, color=Sex), linewidth=1) +
-  scale_color_manual(values=c("#1b7837", "#762a83"), name="Sex") +
-  scale_fill_manual(values=c("#1b7837", "#762a83"), name="Sex") +
-  # scale_x_continuous(breaks=seq(0,9)) +
+  geom_ribbon(aes(x=Intermix, ymin=lci, ymax=uci, color=Sex, fill=Sex, linetype=Mast), alpha=.1) +
+  geom_line(aes(x=Intermix, y=median, color=Sex,  linetype=Mast), linewidth=1) +
+  scale_color_manual(values=c("#1b7837","#762a83"), name="Sex") +
+  scale_fill_manual(values=c("#1b7837","#762a83"), name="Sex") +
+  facet_grid(Sex~.) + guides(colour="none", fill="none") +
   ylab("Probability of exposure") + 
-  theme(panel.border=element_rect(fill=NA, color="black"), 
-        legend.position="none")
+  theme(panel.border=element_rect(fill=NA, color="black"),
+        legend.position=c(0,0),
+        legend.justification = c(0,0), 
+        legend.background = element_rect(fill=NA))
 
-## Organize for full plot
+
+# Organize for full plot
 age.qt.diph <- age.qt.diph %>% mutate(x="Age") %>% rename(x_val=Age) %>% select(compound, Sex, x, x_val, median:uci)
 mast.qt.diph <- mast.qt.diph %>% mutate(x="Beechnuts") %>% rename(x_val=Beechnuts) %>% select(compound, Sex, x, x_val, median:uci)
-stand.qt.diph <- stand.qt.diph %>% mutate(x="StandAge") %>% rename(x_val=StandAge) %>% select(compound, Sex, x, x_val, median:uci)
-build.qt.diph <- build.qt.diph %>% mutate(x="%WUI") %>% rename(x_val=Buildings) %>% select(compound, Sex, x, x_val, median:uci)
+wui.qt.diph <- wui.qt.diph %>% mutate(x="Intermix") %>% rename(x_val=Intermix) %>% select(compound, Sex, x, x_val, median:uci)
+intx.qt.diph <- intx.qt.diph %>% mutate(x="%WildlandUrbanIntermix") %>% rename(x_val=Intermix) %>% select(compound, Sex, Mast, x, x_val, median:uci)
 
-qt.diph <- bind_rows(age.qt.diph, mast.qt.diph, stand.qt.diph, build.qt.diph)
+diph.data <- list()
+diph.data$age.qt.diph <- age.qt.diph
+diph.data$mast.qt.diph <- mast.qt.diph
+diph.data$wui.qt.diph <- wui.qt.diph
+diph.data$intx.qt.diph <- intx.qt.diph
+
+## Save as R data
+save(diph.data, file="data/diphacinone_preds.Rdata")
+
+
+
+# qt.diph <- bind_rows(age.qt.diph, mast.qt.diph, wui.qt.diph, intx.qt.diph)
 
 ggplot(qt.diph) +
   coord_cartesian(ylim=c(0, 1)) +
@@ -269,43 +286,3 @@ ggplot(qt.diph) +
 
 
 ############# Plotting all three compounds
-
-all.qt <- bind_rows(qt.diph, qt.brom, qt.brod)
-all.qt$compound <- factor(all.qt$compound, levels=c("Diphacinone", "Brodifacoum", "Bromadiolone"))
-
-
-all.qt <- all.qt %>% mutate(x=case_when(x=="Age" ~ "Age (years)",
-                                        x=="Beechnuts" ~ "Beechnut count",
-                                        x=="%WUI" ~ "% WUI",
-                                        x=="StandAge" ~ "Stand age (years)"))
-all.qt$x <- factor(all.qt$x, levels=c("Age (years)", "Beechnut count", "% WUI", "Stand age (years)"))
-
-ggplot(all.qt) +
-  coord_cartesian(ylim=c(0, 1)) +
-  geom_ribbon(aes(x=x_val, ymin=lci, ymax=uci, color=Sex, fill=Sex), alpha=.4) +
-  geom_line(aes(x=x_val, y=median, color=Sex), linewidth=1) +
-  scale_color_manual(values=c("#1b7837", "#762a83"), name="Sex") +
-  scale_fill_manual(values=c("#1b7837", "#762a83"), name="Sex") +
-  facet_grid(compound~x, scales="free_x", switch="both", axes = "all", axis.labels = "margins") +
-  ylab("Probability of exposure") +
-  theme(legend.position="bottom",
-        panel.border=element_rect(fill=NA, color="black"),
-        strip.placement = "outside",
-        axis.title.x=element_blank(),
-        axis.title.y=element_text(size=14),
-        axis.text=element_text(size=11),
-        strip.text.x=element_text(size=12),
-        strip.text.y=element_text(size=13),
-        legend.title=element_text(size=12),
-        legend.text=element_text(size=11),
-        strip.background = element_rect(color=NA, fill=NA),
-        axis.ticks.length=unit(-0.1, "cm")) + 
-  tag_facets(tag_prefix="    (")
-
-
-# probably need to remove the left and top borders
-
-ggsave("figs/prob_exp_marginal.svg")
-# Saving 12.7 x 8.41 in image
-
-
