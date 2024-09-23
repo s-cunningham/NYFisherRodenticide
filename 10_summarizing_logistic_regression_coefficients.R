@@ -192,7 +192,7 @@ brod.sum <- brod.sum %>% mutate(compound="brodifacoum") %>%
          `97.5%`=exp(`97.5%`))
 
 brod.odds <- brod.sum %>% group_by(param) %>% reframe(mean=mean(mean), `2.5%`=mean(`2.5%`), 
-                                                 `50%`=mean(`50%`), `97.5%`=mean(`97.5%`)) %>% 
+                                                 `97.5%`=mean(`97.5%`)) %>% #`50%`=mean(`50%`), 
   filter(str_detect(param, 'beta'))
 
 ## Combine all iterations
@@ -328,7 +328,8 @@ brom.sum <- brom.sum %>% mutate(compound="bromacinone") %>%
 
 brom.odds <- brom.sum %>% group_by(param) %>% 
                  reframe(mean=mean(mean), `2.5%`=mean(`2.5%`), 
-                         `50%`=mean(`50%`), `97.5%`=mean(`97.5%`)) %>% 
+                         # `50%`=mean(`50%`), 
+                         `97.5%`=mean(`97.5%`)) %>% 
                  filter(str_detect(param, 'beta'))
 
 ## Combine all iterations

@@ -96,7 +96,7 @@ brod.sum1 <- MCMCsummary(brod.out1)
 brod.sum1 <- rownames_to_column(brod.sum1, "parameter")
 range(brod.sum1$Rhat, na.rm=TRUE)
 
-plot(brod.out1)
+# plot(brod.out1)
 
 ## Iteration 2
 dat2 <- dat %>% filter(pt_index==2)

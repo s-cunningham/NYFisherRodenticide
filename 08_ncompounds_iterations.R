@@ -133,7 +133,7 @@ Constants2 <- list(N=nrow(dat2),
                    nWMUA=length(unique(dat2$WMUA_code)))
 
 DataBundle2 <- list(ncomp=ncomp2, # response
-                    buildings=dat2$nbuildings_15, # covariates (buildings)
+                    wui=dat2$intermix, # covariates (buildings)
                     beechnuts=dat2$lag_beechnuts,   
                     age=dat2$Age,
                     age2=dat2$age2) 
@@ -167,7 +167,7 @@ Constants3 <- list(N=nrow(dat3),
                    nWMUA=length(unique(dat3$WMUA_code)))
 
 DataBundle3 <- list(ncomp=ncomp3, # response
-                    buildings=dat3$nbuildings_15, 
+                    wui=dat3$intermix, 
                     beechnuts=dat3$lag_beechnuts,   
                     age=dat3$Age,
                     age2=dat3$age2) 
@@ -201,7 +201,7 @@ Constants4 <- list(N=nrow(dat4),
                    nWMUA=length(unique(dat4$WMUA_code)))
 
 DataBundle4 <- list(ncomp=ncomp4, # response
-                    buildings=dat4$nbuildings_15, 
+                    wui=dat4$intermix, 
                     beechnuts=dat4$lag_beechnuts,   
                     age=dat4$Age,
                     age2=dat4$age2) 
@@ -234,7 +234,7 @@ Constants5 <- list(N=nrow(dat5),
                    nWMUA=length(unique(dat5$WMUA_code)))
 
 DataBundle5 <- list(ncomp=ncomp5, # response
-                    buildings=dat5$nbuildings_15, 
+                    wui=dat5$intermix, 
                     beechnuts=dat5$lag_beechnuts,   
                     age=dat5$Age,
                     age2=dat5$age2) 
@@ -267,7 +267,7 @@ Constants6 <- list(N=nrow(dat6),
                    nWMUA=length(unique(dat6$WMUA_code)))
 
 DataBundle6 <- list(ncomp=ncomp6, # response
-                    buildings=dat6$nbuildings_15, 
+                    wui=dat6$intermix, 
                     beechnuts=dat6$lag_beechnuts,   
                     age=dat6$Age,
                     age2=dat6$age2) 
@@ -296,7 +296,7 @@ Constants7 <- list(N=nrow(dat7),
                    nWMUA=length(unique(dat7$WMUA_code)))
 
 DataBundle7 <- list(ncomp=ncomp7, # response
-                    buildings=dat7$nbuildings_15, 
+                    wui=dat7$intermix, 
                     beechnuts=dat7$lag_beechnuts,   
                     age=dat7$Age,
                     age2=dat7$age2) 
@@ -325,7 +325,7 @@ Constants8 <- list(N=nrow(dat8),
                    nWMUA=length(unique(dat8$WMUA_code)))
 
 DataBundle8 <- list(ncomp=ncomp8, # response
-                    buildings=dat8$nbuildings_15, 
+                    wui=dat8$intermix, 
                     beechnuts=dat8$lag_beechnuts,   
                     age=dat8$Age,
                     age2=dat8$age2) 
@@ -354,7 +354,7 @@ Constants9 <- list(N=nrow(dat9),
                    nWMUA=length(unique(dat9$WMUA_code)))
 
 DataBundle9 <- list(ncomp=ncomp9, # response
-                    buildings=dat9$nbuildings_15, 
+                    wui=dat9$intermix, 
                     beechnuts=dat9$lag_beechnuts,   
                     age=dat9$Age,
                     age2=dat9$age2) 
@@ -383,7 +383,7 @@ Constants10 <- list(N=nrow(dat10),
                    nWMUA=length(unique(dat10$WMUA_code)))
 
 DataBundle10 <- list(ncomp=ncomp10, # response
-                    buildings=dat10$nbuildings_15, 
+                    wui=dat10$intermix, 
                     beechnuts=dat10$lag_beechnuts,   
                     age=dat10$Age,
                     age2=dat10$age2) 
