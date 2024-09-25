@@ -14,14 +14,15 @@ annu_ncomp <- dat %>% filter(pt_index==1) %>% group_by(year, ncomp) %>% count() 
 p1 <- ggplot(annu_ncomp) +
   coord_cartesian(ylim=c(0,0.5)) +
   geom_col(aes(x=year, y=pct, group=ncomp, color=factor(ncomp), fill=factor(ncomp)), position="dodge") +
-  scale_color_manual(values=c("#762a83","#af8dc3","#e7d4e8","#d9f0d3","#7fbf7b","#1b7837"), name="Number of compounds detected") +
-  scale_fill_manual(values=c("#762a83","#af8dc3","#e7d4e8","#d9f0d3","#7fbf7b","#1b7837"), name="Number of compounds detected") +
+  scale_fill_manual(values=alpha(c("#762a83","#af8dc3","#e7d4e8","#d9f0d3","#7fbf7b","#1b7837"), 0.6), name="Number of compounds detected") +
+  scale_color_manual(values=c("#40004b","#762a83","#9970ab","#5aae61","#1b7837","#00441b"), name="Number of compounds detected") +
   ylab("Proportion of fishers with x compounds") + xlab("Year") +
   guides(fill=guide_legend(position = "inside", nrow=1), color=guide_legend(position = "inside", nrow=1)) +
   theme_classic() +
   theme(legend.position.inside=c(0.23,0.895),
         panel.border=element_rect(fill=NA, color="black", linewidth=1),
-        axis.title=element_text(size=14),
+        axis.title.y=element_text(size=14),
+        axis.title.x=element_blank(),
         axis.text=element_text(size=14),
         legend.title=element_text(size=14),
         legend.text=element_text(size=14))
@@ -56,8 +57,8 @@ dbb <- dbb %>% mutate(pct=if_else(year==2020, n/138, n/100))
 p2 <- ggplot(dbb) +
   coord_cartesian(ylim=c(0,1)) +
   geom_col(aes(x=year, y=pct, color=factor(compound), fill=factor(compound)), position="dodge") +
-  scale_color_manual(values=c("#762a83","gray80","#1b7837"), name="Compound") +
-  scale_fill_manual(values=c("#762a83","gray80","#1b7837"), name="Compound") +
+  scale_color_manual(values=c("#40004b","gray50","#00441b"), name="Compound") +
+  scale_fill_manual(values=alpha(c("#762a83","white","#1b7837"), 0.6), name="Compound") +
   ylab("Proportion of fishers positive") + xlab("Year") +
   guides(fill=guide_legend(position = "inside", nrow=1), color=guide_legend(position = "inside", nrow=1)) +
   theme_classic() +
@@ -69,6 +70,6 @@ p2 <- ggplot(dbb) +
         legend.text=element_text(size=14))
 
 
-p1 / p2 + plot_annotation(tag_levels=c('a'), tag_prefix='(', tag_suffix=')') + plot_layout(axes='collect')
+p1 / p2 + plot_annotation(tag_levels=c('a'), tag_prefix='(', tag_suffix=')') 
 
 

@@ -14,20 +14,20 @@ dat$variable <- factor(dat$variable, levels=c("nbuildings", "intermix", "interfa
                                 "Basal Area x Lagged Mast", "% Evergreen", "Forest Edge Density",
                                 "Mean Stand Age", "St. Dev. Stand Age", "Mean Canopy Cover"))
 
+dat <- dat %>% filter(variable=="% Intermix")
+
 
 ggplot(dat) +
-  geom_density(aes(x=value, group=pt_index, color=pt_index, fill=pt_index), alpha=0.1) +
-  scale_color_gradient(high="white", low="#5ec962") +
-  scale_fill_gradient(high="white", low="#5ec962") +
-  facet_wrap(vars(variable), ncol=3, scales="free") +
-  ylab("Density") +
+  geom_density(aes(x=value, group=pt_index, color=pt_index, fill=pt_index), alpha=0.1, linewidth=1) +
+  scale_color_gradient(high="#762a83", low="#5ec962") +
+  scale_fill_gradient(high="#762a83", low="#5ec962") +
+  ylab("Density") + xlab("% wildland-urban intermix") +
   theme_classic() +
   tag_facets(tag_prefix="(", position = "tr",) +
   theme(panel.border=element_rect(fill=NA, color="black"),
-        panel.background = element_rect(fill="gray20"),
+        # panel.background = element_rect(fill="gray20"),
         legend.position = "none",
         strip.background = element_rect(color=NA),
-        axis.title.x=element_blank(),
         strip.text=element_text(size=11),
         tagger.panel.tag.text = element_text(color = "white"),
         tagger.panel.tag.background = element_rect(fill = NA)) 
