@@ -1,6 +1,7 @@
 library(tidyverse)
 library(sf)
 library(terra)
+library(stars)
 
 #### Step 1: QA/QC on fisher harvest data ####
 
@@ -252,8 +253,8 @@ ages$County[ages$Town=="Freedom" & ages$County=="Allegany"] <- "Cattaraugus"
 
 # Read in town shapefile
 twn <- st_read("data/spatial/Cities_Towns.shp")
-twn <- st_transform(twn, CRS="+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=23 +lon_0=-96 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs")
-cents <- st_coordinates(twn) %>% as_tibble() %>% select(X, Y) %>% distinct()
+twn <- st_transform(twn, crs="+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=23 +lon_0=-96 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs")
+cents <- twn %>% st_centroid() %>% st_coordinates()
 centid <- twn$NAME
 muntype <- twn$MUNI_TYPE
 centlab <- data.frame(id=centid, longitude=cents[,1], latitude=cents[,2], munic=muntype)
@@ -265,7 +266,6 @@ centlab <- subset(centlab, munic=="town")
 dup <- subset(centlab, duplicated(Town))[,1]
 et <- centlab[centlab$Town %in% dup,]
 
-
 ggplot(et, aes(x=longitude, y=latitude, color=Town)) + geom_point()
 
 
@@ -273,7 +273,8 @@ dapart <- data.frame()
 for (i in 1:length(unique(et$Town))) {
   
   temp <- et[et$Town==unique(et$Town)[i],]
-  dist <- pointDistance(temp[1,2:3], temp[2,2:3], lonlat=FALSE)/1000
+  dist <- st_distance(st_as_sf(temp[1,2:3], coords=c("longitude", "latitude"), crs=26918), 
+                      st_as_sf(temp[2,2:3], coords=c("longitude", "latitude"), crs=26918), lonlat=FALSE)/1000
   
   new <- data.frame(Town=temp$Town[1], Dist_km=dist)
   dapart <- rbind(dapart, new)
@@ -286,7 +287,7 @@ age2 <- age2[N.order,]
 
 
 # Join town coordinates
-ages <- left_join(ages, centlab, by="Town")
+ages <- left_join(ages, centlab, by="Town", relationship="many-to-many")
 
 # Check for missing towns
 miss <- ages[is.na(ages$longitude),]
@@ -334,4 +335,338 @@ names(ages)[13] <- "RegionalID"
 ages2 <- ages %>% dplyr::select(RegionalID, TrapperID, HarvestDate, HarvestYear, Sex, Age, AgeClass, Region,
                                 WMU, County, Town, Village) 
 
+# Save cleaned file
 write_csv(ages2, "data/analysis-ready/2016-2020_ages_data.csv")
+
+#### Step 3: Forest cover grid ####
+
+# load NYS outline
+latlon <- "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=23 +lon_0=-96 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs"
+nys <- st_read("data/spatial/NYS_outline_albers.shp")
+spacing <- 10000
+nys_grid <- st_make_grid(nys, cellsize = c(spacing, spacing),
+                         what = 'polygons') 
+nys_grid <- nys_grid[nys] %>% st_sf('geometry' = ., data.frame('ID' = 1:length(.)))
+
+# Read percent forest data
+plc <- read.csv("data/grid_pct_forest.csv")
+plc <- plc[,-1]
+plc <- cbind(seq(1,1415,1), plc)
+names(plc)[1] <- "ID"
+
+# combine
+grid2 <- left_join(nys_grid, plc, by="ID")
+
+ggplot() + 
+  geom_sf(data=grid2, aes(fill=Forest)) +
+  scale_fill_gradient(low="gray90", high="#006837") +
+  theme_classic()
+
+## Convert sf object to stars object
+grid.r <- st_rasterize(grid2 %>% dplyr::select(Forest, geometry))
+
+# convert stars object to SpatRast
+grid.r <- rast(grid.r)
+
+# plot to check it works
+plot(grid.r)
+
+# write to file
+writeRaster(grid.r, "data/rasters/forest_grid_sample_select.tif")
+
+## Read in polygon with harvest area
+aea <- "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=23 +lon_0=-96 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs"
+fha <- st_read("data/spatial/FisherHarvestArea.shp")
+fha <- st_transform(fha, crs=st_crs(grid.r))
+plot(st_geometry(fha))
+# fha2 <- fortify(fha, region="Name")
+
+
+for.ha <- mask(x=grid.r, mask=fha)
+for.ha2 <- as.polygons(for.ha, values=TRUE, na.rm=TRUE, na.all=TRUE)
+
+
+
+rfor <- for.ha2@data$Forest 
+rfor <- as.data.frame(cbind(seq(1,963,1),rfor))
+names(rfor) <- c("id", "Forest")
+rfor$id <- as.character(rfor$id)
+for.ha2 <- fortify(for.ha2)
+for.ha2 <- left_join(for.ha2, rfor, by="id")
+
+
+#### 2018 Livers ####
+
+
+#### 2019 Livers ####
+
+
+# subset to 2019 and non-missing towns
+ages <- subset(ages, !is.na(longitude) & HarvestYear==2019) 
+ages <- unique(ages)
+
+# Read livers from 2020
+liv19 <- read.csv("data/2019livers_456789.csv")
+liv19$SubmissionYear <- 2019
+
+liv19$strl <- str_length(liv19$RegionalID)
+liv19$RegionalID <- ifelse(liv19$strl<=5, paste(liv19$SubmissionYear, liv19$RegionalID, sep="-"), liv19$RegionalID)
+
+# Join liver info to metadata
+dat <- ages[ages$RegionalID %in% liv19$RegionalID,]
+
+lv19 <- dat %>% group_by(Town) %>% count()
+lv19 <- left_join(lv19, centlab, by="Town")
+
+ggplot() + 
+  geom_polygon(data=nys, aes(x=long, y=lat, group=group), fill="gray40") +
+  geom_polygon(data=for.ha2, aes(x=long, y=lat, group=group, fill=Forest), color="gray40") +
+  geom_point(data=lv19, aes(x=longitude, y=latitude, size=n), color="gray80", pch=21, fill="red") +
+  scale_fill_gradient(low="#ffffe5",high="#004529") +
+  theme_void() +
+  theme(legend.position=c(0.05,0.95), legend.justification=c(0,1))
+
+plot(dat$longitude, dat$latitude)
+
+dat %>% group_by(Region) %>% count()
+
+ggplot(dat, aes(x=longitude, y=latitude, color=Region)) + geom_point() + theme_bw()
+
+dat2 <- dat %>% group_by(Town) %>% count()
+dat2 <- left_join(dat2, centlab, by="Town")
+
+# make new SPDF to extract points
+dat <- dat[,c(13:15,1:8,17:18)]
+
+xy <- dat[c(12,13)]
+dat.sp <- SpatialPointsDataFrame(xy, dat, proj4string=CRS("+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=23 +lon_0=-96 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs"))
+
+for.grid <- raster::extract(grid.r, dat.sp, method="simple") 
+
+dat$PctForest <- for.grid
+
+hist(dat$PctForest)
+
+dat$ForestGroup <- 1
+dat$ForestGroup[dat$PctForest>48 & dat$PctForest<=69] <- 2
+dat$ForestGroup[dat$PctForest>69 & dat$PctForest<=91.8] <- 3
+dat$ForestGroup[dat$PctForest>91.8 & dat$PctForest<=100] <- 4
+
+dat$AG <- ifelse(dat$Age < 3.5, "J", "A")
+dat <- unite(dat, "AgeSex", c(16,9), sep="", remove=FALSE)
+
+dat %>% group_by(Age) %>% count()
+
+N.order <- order(dat$HarvestDate, decreasing=FALSE)
+dat <- dat[N.order,]
+
+# write.csv(dat, "data/2019_forest_groups.csv")
+
+# Select livers
+nal <- data.frame()
+for (i in 1:4) {
+  temp <- dat[dat$ForestGroup==i,]
+  
+  ag <- temp %>% group_by(AG) %>% count()
+  
+  if (ag$n[ag$AG=="A"] >= 15) {
+    
+    juv <- temp[temp$Age < 3.5,]
+    jdat <- juv[sample(nrow(juv), 15, replace=FALSE),]
+    
+    ad <- temp[temp$Age >= 3.5,]
+    addat <- ad[sample(nrow(ad), 15, replace=FALSE),]
+    
+  } else {
+    ma <- min(ag[,2])
+    
+    ad <- temp[temp$Age >= 3.5,]
+    addat <- ad[sample(nrow(ad), ma, replace=FALSE),]
+    
+    juv <- temp[temp$Age < 3.5,]
+    jdat <- juv[sample(nrow(juv), (30-ma), replace=FALSE),]
+  }
+  
+  nal <- rbind(nal, jdat, addat)
+}
+lv <- nal %>% group_by(Town) %>% count()
+lv <- left_join(lv, centlab, by="Town")
+
+ggplot() + 
+  geom_polygon(data=nys, aes(x=long, y=lat, group=group), fill="gray40") +
+  geom_polygon(data=for.ha2, aes(x=long, y=lat, group=group, fill=Forest), color="gray40") +
+  geom_point(data=lv, aes(x=longitude, y=latitude, size=n), color="gray80", pch=21, fill="red") +
+  scale_fill_gradient(low="#ffffe5",high="#004529") +
+  theme_void() +
+  theme(legend.position=c(0.05,0.95), legend.justification=c(0,1))
+# 
+# write.csv(nal, "data/2019liver_samples20220308.csv")
+
+nal %>% group_by(Age) %>% count()
+nal %>% group_by(Region) %>% count()
+
+#### 2020 Livers ####
+
+# subset to 2020 and non-missing towns
+ages <- subset(ages, !is.na(longitude) & HarvestYear==2020)
+ages <- unique(ages)
+
+# Read livers from 2020
+liv20 <- read.csv("data/2020-livers-all.csv")
+
+# Join liver info to metadata
+ages <- left_join(ages, liv20, by="RegionalID")
+
+# Subset to animals with liver samples
+dat <- subset(ages, liver==1 | RegionalID=="2020-6134" | RegionalID=="2020-9481")
+
+# IDK why 4018 is lost, but just adding in manually here
+l4018 <- data.frame(HarvestDate=NA, County="Otsego", Town="Hartwick", WMU="4F", Region="4",
+                    Sex="F", Age="0.5", AgeClass="Juvenile", CC="A", AgeRange=NA, 
+                    Zone="Harvest Expansion Area", TrapperID="2029-8000-0448", RegionalID="2020-4018",
+                    SubmissionYear=as.numeric(2020), HarvestYear="2020", Village=NA, 
+                    longitude=as.numeric(1696505), latitude=as.numeric(2371246), liver=NA)
+dat <- rbind(dat, l4018)
+
+plot(dat$longitude, dat$latitude)
+
+dat %>% group_by(Region) %>% count()
+
+ggplot(dat, aes(x=longitude, y=latitude, color=Region)) + geom_point() + theme_bw()
+
+dat2 <- dat %>% group_by(Town) %>% count()
+dat2 <- left_join(dat2, centlab, by="Town")
+
+# make new SPDF to extract points
+dat <- dat[,c(13:15,1:8,17:19)]
+
+xy <- dat[c(12,13)]
+dat.sp <- SpatialPointsDataFrame(xy, dat, proj4string=CRS("+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=23 +lon_0=-96 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs"))
+
+for.grid <- raster::extract(grid.r, dat.sp, method="simple") 
+
+dat$PctForest <- for.grid
+# ggplot(dat, aes(x=longitude, y=latitude, color=PctForest)) + geom_point()
+
+hist(dat$PctForest)
+# quantile(dat$PctForest, probs=c(0.25, 0.50, 0.75, 1), na.rm=TRUE)
+
+dat$ForestGroup <- 1
+dat$ForestGroup[dat$PctForest>48 & dat$PctForest<=69] <- 2
+dat$ForestGroup[dat$PctForest>69 & dat$PctForest<=91.8] <- 3
+dat$ForestGroup[dat$PctForest>91.8 & dat$PctForest<=100] <- 4
+
+dat$AG <- ifelse(dat$Age < 3.5, "J", "A")
+dat <- unite(dat, "AgeSex", c(17,9), sep="", remove=FALSE)
+
+dat %>% group_by(Age) %>% count()
+
+N.order <- order(dat$HarvestDate, decreasing=FALSE)
+dat <- dat[N.order,]
+
+# write.csv(dat, "data/2020_forest_groups.csv")
+
+# Select livers
+livers <- data.frame()
+for (i in 1:4) {
+  temp <- dat[dat$ForestGroup==i,]
+  
+  # Save adults
+  adults <- temp[temp$AG=="A",]
+  
+  # Pull out regions 3 and 4 because there are so few
+  reg3 <- temp[(temp$Region==3 | temp$Region==4),]
+  
+  # Combine adults & regions 3/4, determine how many and any overlap.
+  temp2 <- rbind(adults, reg3)
+  
+  # How many of each age class already selected
+  af <- nrow(temp2[temp2$AgeSex=="AF",])
+  am <- nrow(temp2[temp2$AgeSex=="AM",])
+  jf <- nrow(temp2[temp2$AgeSex=="JF",])
+  jm <- nrow(temp2[temp2$AgeSex=="JM",])
+  
+  n <- af+am+jf+jm
+  f <- af+jf
+  m <- am+jm
+  
+  temp.f <- temp[temp$AG=="J" & temp$Sex=="F" & temp$Region>4,]
+  temp.m <- temp[temp$AG=="J" & temp$Sex=="M" & temp$Region>4,]
+  
+  add.f <- temp.f[sample(nrow(temp.f), size=15-f, replace=FALSE),]
+  add.m <- temp.m[sample(nrow(temp.m), size=15-m, replace=FALSE),]
+  
+  # Add to livers
+  livers <- rbind(livers, temp2, add.f, add.m)
+  
+}
+
+lv <- livers %>% group_by(Town) %>% count()
+lv <- left_join(lv, ages, by="Town")
+
+livers %>% group_by(Region) %>% count()
+ggplot() + 
+  geom_polygon(data=nys, aes(x=long, y=lat, group=group), fill="gray40") +
+  geom_polygon(data=for.ha2, aes(x=long, y=lat, group=group, fill=Forest), color="gray40") +
+  geom_point(data=lv, aes(x=longitude, y=latitude, size=n), color="gray80", pch=21, fill="red") +
+  scale_fill_gradient(low="#ffffe5",high="#004529") +
+  theme_void() +
+  theme(legend.position=c(0.05,0.95), legend.justification=c(0,1))
+
+# write.csv(livers, "data/liver_samples20211207.csv")
+
+livers <- read.csv("data/liver_samples20211207.csv")
+
+# Switch out replaced livers
+new <- dat[dat$RegionalID=="2020-5051" | dat$RegionalID=="2020-5143" |
+             dat$RegionalID=="2020-6134" | dat$RegionalID=="2020-6247",]
+
+livers <- livers[!(livers$RegionalID=="2020-5066" | livers$RegionalID=="2020-5116" |
+                     livers$RegionalID=="2020-6143" | livers$RegionalID=="2020-6231"),]
+
+livers <- rbind(livers, new)
+# write.csv(livers, "data/liver_samples20211207-updated.csv")
+
+ggplot() + 
+  geom_polygon(data=nys, aes(x=long, y=lat, group=group), fill="gray40") +
+  geom_polygon(data=for.ha2, aes(x=long, y=lat, group=group, fill=Forest), color="gray40") +
+  geom_point(data=lv18, aes(x=longitude, y=latitude, size=n), color="gray80", pch=21, fill="red") +
+  scale_fill_gradient(low="#ffffe5",high="#004529") +
+  theme_void() +
+  theme(legend.position=c(0.05,0.95), legend.justification=c(0,1))
+
+## Update after going through freezer
+
+reg7 <- subset(dat, Region==7)
+reg7 <- subset(reg7, RegionalID!="70001" & 
+                 RegionalID!="70073" & 
+                 RegionalID!="70085" & 
+                 RegionalID!="70097" & 
+                 RegionalID!="70100" & 
+                 RegionalID!="70170" & 
+                 RegionalID!="70179" & 
+                 RegionalID!="70180" & 
+                 RegionalID!="70183" & 
+                 RegionalID!="7972" & 
+                 RegionalID!="7988" & ForestGroup==3)
+sample(reg7$RegionalID, size=3, replace=FALSE)
+
+revis <- read.csv("data/2020livers_IDs-only.csv")
+
+revis <- left_join(revis, dat, by="RegionalID")
+lv20 <- revis %>% group_by(Town) %>% count()
+lv20 <- left_join(lv20, centlab, by="Town")
+
+revis %>% group_by(ForestGroup) %>% count()
+
+ggplot() + 
+  geom_polygon(data=nys, aes(x=long, y=lat, group=group), fill="gray40") +
+  geom_polygon(data=for.ha2, aes(x=long, y=lat, group=group, fill=Forest), color="gray40") +
+  geom_point(data=lv20, aes(x=longitude, y=latitude, size=n), color="gray80", pch=21, fill="red") +
+  scale_fill_gradient(low="#ffffe5",high="#004529") +
+  theme_void() +
+  theme(legend.position=c(0.05,0.95), legend.justification=c(0,1))
+
+# write.csv(revis, "data/2020livers_revised.csv")
+
+
