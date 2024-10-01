@@ -332,7 +332,7 @@ names(ages)[13] <- "RegionalID"
 ages2 <- ages %>% dplyr::select(RegionalID, TrapperID, HarvestDate, HarvestYear, Sex, Age, AgeClass, Region,
                          WMU, County, Town, Village) 
 
-write_csv(ages2, "data/analysis-ready/2016-2020_ages_data.csv")
+# write_csv(ages2, "data/analysis-ready/2016-2020_ages_data.csv")
 
 #### Create NYS grid ####
 nys <- readOGR("data/spatial", "NYS_outline_albers")
