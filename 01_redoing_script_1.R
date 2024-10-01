@@ -6,18 +6,12 @@ library(stars)
 #### Step 1: QA/QC on fisher harvest data ####
 
 # Read in age data
-age2016 <- read.csv("data/20211111_2016_age_data.csv")
-age2017 <- read.csv("data/20211111_2017_age_data.csv")
 age2018 <- read.csv("data/20211111_2018_age_data.csv")
 age2019 <- read.csv("data/20211111_2019_age_data.csv")
 age2020 <- read.csv("data/20211111_2020_age_data.csv")
 
-# Add empty sample ID column for 2016 & 2017
-age2016$Regional.Sample.ID.. <- NA
-age2017$Regional.Sample.ID.. <- NA
-
 # Bind together and rename. Fill missing values with NA. Change date type.
-ages <- rbind(age2016,age2017,age2018,age2019,age2020)
+ages <- rbind(age2018,age2019,age2020)
 names(ages)[c(1,7,9,11,12)] <- c("HarvestDate", "AgeClass", "AgeRange", "TrapperID", "RegionalSampleID")
 ages$AgeRange[ages$AgeRange==""] <- NA
 ages$TrapperID[ages$TrapperID==""] <- NA
