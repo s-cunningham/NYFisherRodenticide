@@ -40,13 +40,13 @@ ncompounds_code <- nimbleCode({
   nu ~ dunif(1,2.5) # prior for CMP dispersion parameter
   
   # beta coefficient priors
-  beta_age ~ dnorm(0, 0.001)
-  beta_age2 ~ dnorm(0, 0.001)
+  beta_age ~ dnorm(0, 0.01)
+  beta_age2 ~ dnorm(0, 0.01)
   beta_sex[1] <- 0
-  beta_sex[2] ~ dnorm(0, 0.001)
-  beta_wui ~ dnorm(0, 0.001)
-  beta_mast ~ dnorm(0, 0.001)
-  beta_intx ~ dnorm(0, 0.001)
+  beta_sex[2] ~ dnorm(0, 0.01)
+  beta_wui ~ dnorm(0, 0.01)
+  beta_mast ~ dnorm(0, 0.01)
+  beta_intx ~ dnorm(0, 0.01)
   
   ## random intercepts - WMUA
   for (k in 1:nWMUA) {
