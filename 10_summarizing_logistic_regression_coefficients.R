@@ -381,7 +381,7 @@ mean(beta_intx)
 se(beta_intx)
 
 beta_intx <- exp(beta_intx)
-sum(beta_intx>1)/length(beta_intx)
+sum(beta_intx<1)/length(beta_intx)
 
 ### Beech mast
 beta_mast <- c(brom.out1[,22],brom.out2[,22],brom.out3[,22],brom.out4[,22],brom.out5[,22],

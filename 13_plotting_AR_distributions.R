@@ -12,7 +12,7 @@ annu_ncomp <- dat %>% filter(pt_index==1) %>% group_by(year, ncomp) %>% count() 
                   mutate(pct=if_else(year==2020, n/138, n/100))
 
 p1 <- ggplot(annu_ncomp) +
-  coord_cartesian(ylim=c(0,0.5)) +
+  coord_cartesian(ylim=c(0,0.6)) +
   geom_col(aes(x=year, y=pct, group=ncomp, color=factor(ncomp), fill=factor(ncomp)), position="dodge") +
   scale_fill_manual(values=alpha(c("#762a83","#af8dc3","#e7d4e8","#d9f0d3","#7fbf7b","#1b7837"), 0.6), name="Number of compounds detected") +
   scale_color_manual(values=c("#40004b","#762a83","#9970ab","#5aae61","#1b7837","#00441b"), name="Number of compounds detected") +
@@ -58,7 +58,7 @@ p2 <- ggplot(dbb) +
   coord_cartesian(ylim=c(0,1)) +
   geom_col(aes(x=year, y=pct, color=factor(compound), fill=factor(compound)), position="dodge") +
   scale_color_manual(values=c("#40004b","gray50","#00441b"), name="Compound") +
-  scale_fill_manual(values=alpha(c("#762a83","white","#1b7837"), 0.6), name="Compound") +
+  scale_fill_manual(values=alpha(c("#762a83","white","#1b7837"), 0.5), name="Compound") +
   ylab("Proportion of fishers positive") + xlab("Year") +
   guides(fill=guide_legend(position = "inside", nrow=1), color=guide_legend(position = "inside", nrow=1)) +
   theme_classic() +
