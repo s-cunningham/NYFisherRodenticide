@@ -1,5 +1,17 @@
 # Specific files
 10_results_tables.tex
+08_age_compound_curves.R
+forest_grid_vs_wui.R
+inset_map_ny.qgz
+microtus1.svg
+mouse_silhouette1.svg
+mouse_silhouette2.svg
+nimble_rjmcmc_example.R
+rat_silhouette1.svg
+writeup.Rmd
+writeup.docx
+writeup.html
+writeup_updated.pdf
 
 # Ignore data and output for now
 data/
