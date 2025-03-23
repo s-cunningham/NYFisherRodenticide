@@ -60,7 +60,7 @@ levels(wildveg) <- list(data.frame(ID = veg_values,
 
 ## Plot
 
-ggplot() +
+m <- ggplot() +
   geom_spatvector(data=states, fill="gray95", color="gray") +
   geom_spatraster(data=wildveg) +
   scale_fill_coltab(data=wildveg, na.value="transparent", alpha=0.4, name="Landcover") +
@@ -83,9 +83,27 @@ ggplot() +
   annotation_scale(
     height = unit(0.02, "npc"),
     width_hint = 0.4,
-    pad_x = unit(0.07, "npc"),
-    pad_y = unit(0.07, "npc"),
+    pad_x = unit(0.1, "npc"),
+    pad_y = unit(0.85, "npc"), #0.07
     text_cex = 1)
 
 ggsave("figs/figure_1_map.svg")
 # Saving 9.1 x 7.38 in image
+
+# Build inset
+dat <- read_csv("output/AR_results_wide.csv") %>%
+          select(RegionalID:Town) %>%
+          mutate(Sex=if_else(Sex=="M", "Male", "Female"))
+
+ap <- ggplot(dat, aes(x=Age, y=Sex, color=Sex)) +
+  geom_jitter(alpha=0.6, size=2) +
+  scale_color_manual(values=c("#1b7837", "#762a83")) +
+  xlab("Age (years)") +
+  theme_classic() +
+  theme(legend.position="none", 
+        panel.border=element_rect(fill=NA, color="black"),
+        axis.text=element_text(size=11),
+        axis.title=element_text(size=12))
+
+
+m + inset_element(ap, 0.04, 0.04, 0.52, 0.32, align_to="panel")

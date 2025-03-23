@@ -56,6 +56,15 @@ twmu <- st_transform(twmu, aea)
 # Remove unneeded columns from twmu
 twmu <- twmu %>% select(key, geometry) 
 
+# calculate area of town/WMU unioned polygons
+sqm_ar <- st_area(twmu)
+sqkm_ar <- sqm_ar / 1e6
+
+sort(sqkm_ar)
+
+mean(sqkm_ar)
+sd(sqkm_ar)
+
 ## Select random points for multiple imputation
 # How many fishers per polygon
 keycount <- loc %>% group_by(key) %>% 

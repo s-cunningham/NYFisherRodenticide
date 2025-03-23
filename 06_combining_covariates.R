@@ -164,13 +164,13 @@ dat <- dat %>% select(RegionalID:AgeClass,key,Region,WMUA_code,WMU,Town:laggedBM
 
 # Add beechnut counts
 dat <- dat %>% mutate(beechnuts=case_when(
-                          year==2018 ~ 6,
-                          year==2019 ~ 295,
-                          year==2020 ~ 14),
+                          year==2018 ~ -41.3,
+                          year==2019 ~ 247.7,
+                          year==2020 ~ -33.3),
                       lag_beechnuts=case_when(
-                          year==2018 ~ 145,
-                          year==2019 ~ 6,
-                          year==2020 ~ 295))
+                          year==2018 ~ 97.7,
+                          year==2019 ~ -41.3,
+                          year==2020 ~ 247.7))
 
 ### Save data to file ####
 write_csv(dat, "data/analysis-ready/combined_AR_covars.csv")
