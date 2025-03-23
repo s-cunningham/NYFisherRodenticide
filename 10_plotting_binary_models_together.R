@@ -1,5 +1,4 @@
 library(tidyverse)
-library(tagger)
 
 theme_set(theme_classic())
 
@@ -31,9 +30,9 @@ all.qt <- bind_rows(qt.diph, qt.brom, qt.brod)
 all.qt$compound <- factor(all.qt$compound, levels=c("Diphacinone", "Brodifacoum", "Bromadiolone"))
 
 all.qt <- all.qt %>% mutate(x=case_when(x=="Age" ~ "Age (years)",
-                                        x=="Beechnuts" ~ "Lagged beechnut Count",
+                                        x=="Beechnuts" ~ "Difference in\nbeech seed count (1-yr lag)",
                                         x=="Intermix" ~ "% Wildland-urban intermix"))
-all.qt$x <- factor(all.qt$x, levels=c("Age (years)", "Lagged beechnut Count", "% Wildland-urban intermix"))
+all.qt$x <- factor(all.qt$x, levels=c("Age (years)", "Difference in\nbeech seed count (1-yr lag)", "% Wildland-urban intermix"))
 
 ggplot(all.qt) +
   coord_cartesian(ylim=c(0, 1)) +
@@ -54,8 +53,7 @@ ggplot(all.qt) +
         legend.title=element_text(size=12),
         legend.text=element_text(size=11),
         strip.background = element_rect(color=NA, fill=NA),
-        axis.ticks.length=unit(-0.1, "cm")) + 
-  tag_facets(tag_prefix="    (")
+        axis.ticks.length=unit(-0.1, "cm")) 
 
 
 # probably need to remove the left and top borders
