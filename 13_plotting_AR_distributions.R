@@ -16,10 +16,11 @@ p1 <- ggplot(annu_ncomp) +
   geom_col(aes(x=year, y=pct, group=ncomp, color=factor(ncomp), fill=factor(ncomp)), position="dodge") +
   scale_fill_manual(values=alpha(c("#762a83","#af8dc3","#e7d4e8","#d9f0d3","#7fbf7b","#1b7837"), 0.6), name="Number of compounds detected") +
   scale_color_manual(values=c("#40004b","#762a83","#9970ab","#5aae61","#1b7837","#00441b"), name="Number of compounds detected") +
-  ylab("Proportion of fishers with x compounds") + xlab("Year") +
+  ylab("Proportion of fishers\nwith x compounds") + xlab("Year") +
   guides(fill=guide_legend(position = "inside", nrow=1), color=guide_legend(position = "inside", nrow=1)) +
   theme_classic() +
   theme(legend.position.inside=c(0.23,0.895),
+        legend.background = element_rect(fill=NA),
         panel.border=element_rect(fill=NA, color="black", linewidth=1),
         axis.title.y=element_text(size=14),
         axis.title.x=element_blank(),
@@ -59,10 +60,11 @@ p2 <- ggplot(dbb) +
   geom_col(aes(x=year, y=pct, color=factor(compound), fill=factor(compound)), position="dodge") +
   scale_color_manual(values=c("#40004b","gray50","#00441b"), name="Compound") +
   scale_fill_manual(values=alpha(c("#762a83","white","#1b7837"), 0.5), name="Compound") +
-  ylab("Proportion of fishers positive") + xlab("Year") +
+  ylab("Proportion of\nfishers positive") + xlab("Year") +
   guides(fill=guide_legend(position = "inside", nrow=1), color=guide_legend(position = "inside", nrow=1)) +
   theme_classic() +
   theme(legend.position.inside=c(0.32,0.895),
+        legend.background = element_rect(fill=NA),
         panel.border=element_rect(fill=NA, color="black", linewidth=1),
         axis.title=element_text(size=14),
         axis.text=element_text(size=14),
@@ -73,3 +75,41 @@ p2 <- ggplot(dbb) +
 p1 / p2 + plot_annotation(tag_levels=c('a'), tag_prefix='(', tag_suffix=')') 
 
 
+dat <- read_csv("output/AR_results_wide.csv") %>%
+  # Fill NAs with 0
+  replace(is.na(.), 0) %>%
+  # Pivot longer
+  pivot_longer(11:21, names_to="compound", values_to="concentration") %>%
+  # Remove compounds that were not detected
+  filter(compound!="Pindone" & compound!="Coumafuryl" & compound!="Coumachlor") %>%
+  # subset to only those above 0
+  filter(concentration > 0) %>%
+  # add FGAR & SGAR
+  mutate(gen=if_else(compound=="Brodifacoum" |
+                       compound=="Bromadiolone" |
+                       compound=="Difethialone" |
+                       compound=="Difenacoum", "SGAR", "FGAR"))
+
+comps <- c("Diphacinone", "Brodifacoum", "Bromadiolone", "Dicoumarol", 
+           "Difethialone", "Chlorophacinone", "Difenacoum", "Warfarin")
+comps <- rev(comps)
+
+dat$compound <- factor(dat$compound, levels=comps)
+
+
+p3 <- ggplot(dat) +
+  geom_jitter(aes(x=concentration, y=compound, color=gen), alpha=0.3, size=2) +
+  scale_color_manual(values=c("#40004b", "#00441b"), name="Compound type") +
+  theme_classic() +
+  ylab("Compound") + xlab("Concentration (ppm)") +
+  theme(legend.position=c(1,0),
+        legend.justification=c(1,0),
+        legend.background = element_rect(fill=NA),
+        panel.border=element_rect(fill=NA, color="black", linewidth=1),
+        axis.title=element_text(size=14),
+        axis.text=element_text(size=12),
+        legend.title=element_text(size=14),
+        legend.text=element_text(size=14))
+
+
+free(p1) / free(p2) / p3 + plot_annotation(tag_levels=c('a'), tag_prefix='(', tag_suffix=')') 
