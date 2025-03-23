@@ -12,6 +12,7 @@ writeup.Rmd
 writeup.docx
 writeup.html
 writeup_updated.pdf
+number_of_extracted_livers.R
 
 # Ignore data and output for now
 data/
