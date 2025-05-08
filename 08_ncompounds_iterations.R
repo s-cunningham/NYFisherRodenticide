@@ -340,6 +340,9 @@ ncomp.sum8 <- MCMCsummary(ncomp.out8)
 ncomp.sum8 <- rownames_to_column(ncomp.sum8, "parameter")
 range(ncomp.sum8$Rhat, na.rm=TRUE)
 
+saveRDS(ncomp.sum8, "output/model_output/ncomp.sum8.rds")
+saveRDS(ncomp.out8, "output/model_output/ncomp.out8.rds")
+
 ## Iteration 9
 dat9 <- dat %>% filter(pt_index==9)
 
@@ -368,6 +371,9 @@ ncomp.out9 <- nimbleMCMC(code=ncompounds_code, constants=Constants9, data=DataBu
 ncomp.sum9 <- MCMCsummary(ncomp.out9)
 ncomp.sum9 <- rownames_to_column(ncomp.sum9, "parameter")
 range(ncomp.sum9$Rhat, na.rm=TRUE)
+
+saveRDS(ncomp.sum9, "output/model_output/ncomp.sum9.rds")
+saveRDS(ncomp.out9, "output/model_output/ncomp.out9.rds")
 
 ## Iteration 10
 dat10 <- dat %>% filter(pt_index==10)

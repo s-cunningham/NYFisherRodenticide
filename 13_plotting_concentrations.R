@@ -22,12 +22,27 @@ comps <- rev(comps)
 
 dat$compound <- factor(dat$compound, levels=comps)
 
+# Convert ppm to ng/g
+dat <- dat %>% mutate(concentration=concentration*1000)
 
-ggplot(dat) +
-  geom_jitter(aes(x=concentration, y=compound, color=gen), alpha=0.3, size=2) +
+avg <- dat %>% group_by(compound) %>%
+  reframe(mean=mean(concentration)) %>%
+  filter()
+  
+
+acute <- data.frame(FisherID=c("20F509","20F509","20F509","20M608","20M609"), 
+                    id=c("Adult Female","Adult Female","Adult Female","Adult Male 1","Adult Male 2"),
+                    compound=c("Bromadiolone", "Brodifacoum", "Diphacinone","Bromadiolone","Diphacinone"),
+                    concentration=c(2070,1850,696,1780,1060))
+
+
+conc_plot <- ggplot() +
+  geom_jitter(data=dat, aes(x=concentration, y=compound, color=gen), alpha=0.3, size=2) +
   scale_color_manual(values=c("#40004b", "#00441b"), name="Compound type") +
+  geom_point(data=acute, aes(x=concentration, y=compound, shape=id), color="black", size=3) +
+  guides(shape=guide_legend(title="Fisher")) +
   theme_classic() +
-  ylab("Compound") + xlab("Concentration (ppm)") +
+  ylab("Compound") + xlab("Concentration (ng/g)") +
   theme(legend.position=c(1,0),
         legend.justification=c(1,0),
         legend.background = element_rect(fill=NA),
@@ -36,3 +51,10 @@ ggplot(dat) +
         axis.text=element_text(size=12),
         legend.title=element_text(size=12),
         legend.text=element_text(size=12))
+
+
+avgs <- dat %>% filter(concentration>0.001) %>% 
+  group_by(compound) %>%
+  reframe(mean=mean(concentration))
+  
+  

@@ -19,14 +19,15 @@ p1 <- ggplot(annu_ncomp) +
   ylab("Proportion of fishers\nwith x compounds") + xlab("Year") +
   guides(fill=guide_legend(position = "inside", nrow=1), color=guide_legend(position = "inside", nrow=1)) +
   theme_classic() +
-  theme(legend.position.inside=c(0.23,0.895),
+  theme(legend.position.inside=c(0.27,0.895),  #c(0.23,0.895)
         legend.background = element_rect(fill=NA),
         panel.border=element_rect(fill=NA, color="black", linewidth=1),
-        axis.title.y=element_text(size=14),
+        axis.title.y=element_text(size=12),
         axis.title.x=element_blank(),
-        axis.text=element_text(size=14),
-        legend.title=element_text(size=14),
-        legend.text=element_text(size=14))
+        axis.text.y=element_text(size=12),
+        axis.text.x=element_blank(),
+        legend.title=element_text(size=12),
+        legend.text=element_text(size=12))
 
 # read data for individual compounds
 diph <- read_csv("output/summarized_AR_results.csv") %>% filter(compound=="Diphacinone") %>%
@@ -63,13 +64,13 @@ p2 <- ggplot(dbb) +
   ylab("Proportion of\nfishers positive") + xlab("Year") +
   guides(fill=guide_legend(position = "inside", nrow=1), color=guide_legend(position = "inside", nrow=1)) +
   theme_classic() +
-  theme(legend.position.inside=c(0.32,0.895),
+  theme(legend.position.inside=c(0.42,0.895),  # c(0.32,0.895),
         legend.background = element_rect(fill=NA),
         panel.border=element_rect(fill=NA, color="black", linewidth=1),
-        axis.title=element_text(size=14),
-        axis.text=element_text(size=14),
-        legend.title=element_text(size=14),
-        legend.text=element_text(size=14))
+        axis.title=element_text(size=12),
+        axis.text=element_text(size=12),
+        legend.title=element_text(size=12),
+        legend.text=element_text(size=12))
 
 
 p1 / p2 + plot_annotation(tag_levels=c('a'), tag_prefix='(', tag_suffix=')') 
@@ -96,20 +97,39 @@ comps <- rev(comps)
 
 dat$compound <- factor(dat$compound, levels=comps)
 
+# Convert ppm to ng/g
+dat <- dat %>% mutate(concentration=concentration*1000)
 
-p3 <- ggplot(dat) +
-  geom_jitter(aes(x=concentration, y=compound, color=gen), alpha=0.3, size=2) +
+avg <- dat %>% group_by(compound) %>%
+  reframe(mean=mean(concentration)) %>%
+  filter()
+
+
+acute <- data.frame(FisherID=c("20F509","20F509","20F509","20M608","20M609"), 
+                    id=c("Adult Female","Adult Female","Adult Female","Adult Male 1","Adult Male 2"),
+                    compound=c("Bromadiolone", "Brodifacoum", "Diphacinone","Bromadiolone","Diphacinone"),
+                    concentration=c(2070,1850,696,1780,1060))
+
+
+p3 <- ggplot() +
+  geom_jitter(data=dat, aes(y=concentration, x=compound, color=gen), alpha=0.3, size=2) +
   scale_color_manual(values=c("#40004b", "#00441b"), name="Compound type") +
+  geom_point(data=acute, aes(y=concentration, x=compound, shape=id), color="black", size=3) +
+  guides(shape=guide_legend(title="Fisher mortality")) +
   theme_classic() +
-  ylab("Compound") + xlab("Concentration (ppm)") +
-  theme(legend.position=c(1,0),
-        legend.justification=c(1,0),
+  xlab("Compound") + ylab("Concentration (ng/g)") +
+  theme(legend.position=c(0,1),
+        legend.justification=c(0,1),
         legend.background = element_rect(fill=NA),
         panel.border=element_rect(fill=NA, color="black", linewidth=1),
-        axis.title=element_text(size=14),
-        axis.text=element_text(size=12),
-        legend.title=element_text(size=14),
-        legend.text=element_text(size=14))
+        axis.title=element_text(size=12),
+        axis.text.x=element_text(size=12, angle=45, hjust=0.95),
+        axis.text.y=element_text(size=12),
+        legend.title=element_text(size=12),
+        legend.text=element_text(size=12))  #,legend.box="horizontal"
 
 
-free(p1) / free(p2) / p3 + plot_annotation(tag_levels=c('a'), tag_prefix='(', tag_suffix=')') 
+# free(p1) / free(p2) / p3 + plot_annotation(tag_levels=c('a'), tag_prefix='(', tag_suffix=')') 
+
+free(p1 / p2) | p3 + plot_layout(widths=c(3,2)) + plot_annotation(tag_levels=c('a'), tag_prefix='(', tag_suffix=')') 
+

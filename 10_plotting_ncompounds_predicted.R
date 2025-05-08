@@ -1,5 +1,4 @@
 library(tidyverse)
-library(tagger)
 
 theme_set(theme_classic())
 
@@ -204,16 +203,16 @@ wui.qt.ncomp <- wui.qt.ncomp %>% mutate(x="Intermix") %>% rename(x_val=Intermix)
 qt <- bind_rows(age.qt.ncomp, mast.qt.ncomp, wui.qt.ncomp)
 
 qt <- qt %>% mutate(x=case_when(x=="Age" ~ "Age (years)",
-                                        x=="Beechnuts" ~ "Lagged beechnut count",
+                                        x=="Beechnuts" ~ "Difference in\nbeech seed count (1-yr lag)",
                                         x=="Intermix" ~ "% Wildland-urban intermix"))
-qt$x <- factor(qt$x, levels=c("Age (years)", "Lagged beechnut count", "% Wildland-urban intermix"))
+qt$x <- factor(qt$x, levels=c("Age (years)", "Difference in\nbeech seed count (1-yr lag)", "% Wildland-urban intermix"))
 
-vline.data <- data.frame(z=c(NA, 6,145,295,NA), x=c("Age (years)", rep("Lagged beechnut count",3),"% Wildland-urban intermix"))
-vline.data$x <- factor(vline.data$x, levels=c("Age (years)", "Lagged beechnut count", "% Wildland-urban intermix"))
+vline.data <- data.frame(z=c(NA, 6,145,295,NA), x=c("Age (years)", rep("Difference in\nbeech seed count (1-yr lag)",3),"% Wildland-urban intermix"))
+vline.data$x <- factor(vline.data$x, levels=c("Age (years)", "Difference in\nbeech seed count (1-yr lag)", "% Wildland-urban intermix"))
 
 ggplot(qt) +
   coord_cartesian(ylim=c(0,8)) +
-  geom_vline(aes(xintercept = z), data=vline.data, colour = "gray85")+
+  # geom_vline(aes(xintercept = z), data=vline.data, colour = "gray85")+
   geom_ribbon(aes(x=x_val, ymin=lci, ymax=uci, color=Sex, fill=Sex), alpha=.4) +
   geom_line(aes(x=x_val, y=median, color=Sex), linewidth=1) +
   scale_color_manual(values=c("#1b7837", "#762a83"), name="Sex") +
@@ -232,12 +231,29 @@ ggplot(qt) +
         legend.text=element_text(size=11),
         legend.background = element_rect(fill=NA),
         strip.background = element_rect(color=NA, fill=NA),
-        axis.ticks.length=unit(-0.1, "cm")) + 
-  tag_facets(tag_prefix="(") +
-  theme(tagger.panel.tag.text=element_text(size = 12))
+        axis.ticks.length=unit(-0.1, "cm"))
 
 ggsave("figs/ncomp_preds.svg")
 # Saving 10.1 x 4.04 in image
+
+
+
+mast.qt.ncomp
+
+
+
+mean(c(3.309645, 2.538521))
+
+mean(c(3.233165,4.214554))
+
+
+
+
+
+
+
+
+
 
 ### Interaction plot
 # nmcmc <- length(beta_intx)

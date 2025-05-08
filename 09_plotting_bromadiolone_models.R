@@ -284,3 +284,10 @@ ggplot(qt.brom) +
   facet_wrap(vars(x), scales="free_x")
 
 
+
+
+beech <- qt.brom %>% filter(x=="Beechnuts")
+
+
+mean(c(0.1810927,0.2255170))
+mean(c(0.3335808,0.3972044))
