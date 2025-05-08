@@ -64,7 +64,7 @@ for (i in 10:20) {
 }
 
 ## write wide data
-write_csv(dat, "output/AR_results_wide.csv")
+# write_csv(dat, "output/AR_results_wide.csv")
 
 ordin <- dat %>% mutate(ar_cat=case_when(is.na(Warfarin) & is.na(Coumafuryl) & is.na(Diphacinone) & is.na(Pindone) &
                                          is.na(Brodifacoum) & is.na(Difenacoum) & is.na(Bromadiolone) & is.na(Coumachlor) &
@@ -112,10 +112,10 @@ brom <- datl %>% filter(compound=="Bromadiolone") %>% select(RegionalID:Town, bi
 diph <- datl %>% filter(compound=="Diphacinone") %>% select(RegionalID:Town, bin.exp, bin.exp.ntr)
 dico <- datl %>% filter(compound=="Dicoumarol") %>% select(RegionalID:Town, bin.exp, bin.exp.ntr)
 
-write_csv(brod,"output/binary_brodifacoum.csv")
-write_csv(brom,"output/binary_bromadiolone.csv")
-write_csv(diph,"output/binary_diphacinone.csv")
-write_csv(dico,"output/binary_dicoumarol.csv")
+# write_csv(brod,"output/binary_brodifacoum.csv")
+# write_csv(brom,"output/binary_bromadiolone.csv")
+# write_csv(diph,"output/binary_diphacinone.csv")
+# write_csv(dico,"output/binary_dicoumarol.csv")
 
 ## Summarize by number of compounds
 # look at years
@@ -127,7 +127,7 @@ dat2 <- datl %>% group_by(RegionalID) %>%
           summarize(n.compounds=sum(bin.exp))
 dat2 <- left_join(dat2, yr, by="RegionalID") %>%
           select(RegionalID, year:key, n.compounds)
-write.csv(dat2, "output/ncompounds_trace.csv")
+# write.csv(dat2, "output/ncompounds_trace.csv")
 
 # without trace
 dat3 <- datl %>% group_by(RegionalID) %>% 
@@ -135,7 +135,7 @@ dat3 <- datl %>% group_by(RegionalID) %>%
           summarize(n.compounds=sum(bin.exp.ntr))
 dat3 <- left_join(dat3, yr, by="RegionalID")%>%
           select(RegionalID, year:key, n.compounds)
-write.csv(dat3, "output/ncompounds_notrace.csv")
+# write.csv(dat3, "output/ncompounds_notrace.csv")
 
 dat2s <- dat2 %>% group_by(n.compounds, year) %>% count()
 dat2s$Trace <- "yes"
@@ -191,7 +191,14 @@ twmu <- unite(twmu, "key", c("Name", "NAME_1"), sep="-")
 
 twmu <- twmu %>% filter(key %in% unique(dat$key)) %>% select(key, x_coord, y_coord, geometry)
 
-plot(st_geometry(twmu))
+# twmu <- st_transform(twmu, 32618)
+# xy <- st_centroid(twmu)
+# xy <- st_coordinates(xy)
+# 
+# twmu <- st_drop_geometry(twmu)
+# twmu <- bind_cols(twmu, xy)
+# 
+# plot(st_geometry(twmu))
 
 # Remove islands
 twmu <- twmu[-c(104:109,130,145),]
@@ -199,6 +206,9 @@ twmu <- twmu[-c(104:109,130,145),]
 twmu <- st_zm(twmu)
 # twmu <- st_transform(twmu, crs=32632)
 
-st_write(twmu, "data/spatial/AR_towns_WMUs.shp", driver = "ESRI Shapefile", append=FALSE)
+# st_write(twmu, "data/spatial/AR_towns_WMUs.shp", driver = "ESRI Shapefile", append=FALSE)
 
 
+towns <- st_read("data/spatial/Cities_Towns.shp")
+
+towns <- st_centroid(towns)
